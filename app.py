@@ -76,7 +76,7 @@ class BiDirectionalMarketEngine:
 
 @app.route('/')
 def home():
-    res = make_response("DR CANDLE TRACKER ENGINE ACTIVE - 100% SECURE HACKER MODE!")
+    res = make_response("DR CANDLE TRACKER ENGINE ACTIVE - MULTI-COLOR CYBER MODE!")
     res.headers.add("Access-Control-Allow-Origin", "*")
     return res
 
@@ -132,27 +132,40 @@ def bot_script():
             var styleEl = d.createElement('style');
             styleEl.id = 'dr-hacker-style';
             styleEl.innerHTML = '' +
-                '@keyframes drRingPulse {' +
-                '  0% { box-shadow: 0 0 14px rgba(34,197,94,0.85), inset 0 0 10px rgba(34,197,94,0.5); border-color: #22c55e; }' +
-                '  50% { box-shadow: 0 0 28px rgba(74,222,128,1), inset 0 0 16px rgba(34,197,94,0.75); border-color: #4ade80; }' +
-                '  100% { box-shadow: 0 0 14px rgba(34,197,94,0.85), inset 0 0 10px rgba(34,197,94,0.5); border-color: #22c55e; }' +
+                '@keyframes drRgbRing {' +
+                '  0% { border-color: #22c55e; box-shadow: 0 0 18px rgba(34,197,94,0.9), 0 0 32px rgba(0,255,204,0.45), inset 0 0 12px rgba(34,197,94,0.55); }' +
+                '  33% { border-color: #00f0ff; box-shadow: 0 0 22px rgba(0,240,255,0.95), 0 0 36px rgba(168,85,247,0.45), inset 0 0 14px rgba(0,240,255,0.55); }' +
+                '  66% { border-color: #e879f9; box-shadow: 0 0 22px rgba(232,121,249,0.95), 0 0 36px rgba(250,204,21,0.45), inset 0 0 14px rgba(232,121,249,0.55); }' +
+                '  100% { border-color: #22c55e; box-shadow: 0 0 18px rgba(34,197,94,0.9), 0 0 32px rgba(0,255,204,0.45), inset 0 0 12px rgba(34,197,94,0.55); }' +
                 '}' +
-                '@keyframes drSweepLaser {' +
-                '  0% { top: 0%; opacity: 0.2; }' +
-                '  50% { top: 96%; opacity: 0.95; }' +
-                '  100% { top: 0%; opacity: 0.2; }' +
+                '@keyframes drRgbBorder {' +
+                '  0% { border-color: #22c55e; box-shadow: 0 0 26px rgba(34,197,94,0.55), inset 0 0 14px rgba(0,255,204,0.18); }' +
+                '  33% { border-color: #38bdf8; box-shadow: 0 0 30px rgba(56,189,248,0.6), inset 0 0 16px rgba(168,85,247,0.2); }' +
+                '  66% { border-color: #c084fc; box-shadow: 0 0 30px rgba(192,132,252,0.6), inset 0 0 16px rgba(250,204,21,0.18); }' +
+                '  100% { border-color: #22c55e; box-shadow: 0 0 26px rgba(34,197,94,0.55), inset 0 0 14px rgba(0,255,204,0.18); }' +
                 '}' +
-                '@keyframes drBoxGlowUp {' +
-                '  0%, 100% { box-shadow: 0 0 10px rgba(34,197,94,0.55), inset 0 0 8px rgba(34,197,94,0.2); }' +
-                '  50% { box-shadow: 0 0 22px rgba(34,197,94,0.9), inset 0 0 14px rgba(34,197,94,0.35); }' +
+                '@keyframes drMultiLaser {' +
+                '  0% { top: 0%; opacity: 0.35; background: linear-gradient(90deg,transparent,#22c55e,#00f0ff,#e879f9,transparent); }' +
+                '  50% { top: 96%; opacity: 1; background: linear-gradient(90deg,transparent,#facc15,#22c55e,#38bdf8,transparent); }' +
+                '  100% { top: 0%; opacity: 0.35; background: linear-gradient(90deg,transparent,#22c55e,#00f0ff,#e879f9,transparent); }' +
                 '}' +
-                '@keyframes drBoxGlowDown {' +
-                '  0%, 100% { box-shadow: 0 0 10px rgba(239,68,68,0.55), inset 0 0 8px rgba(239,68,68,0.2); }' +
-                '  50% { box-shadow: 0 0 22px rgba(239,68,68,0.9), inset 0 0 14px rgba(239,68,68,0.35); }' +
+                '@keyframes drCandleGrowUp {' +
+                '  0% { transform: scaleY(0.25); transform-origin: bottom center; opacity: 0.55; }' +
+                '  65% { transform: scaleY(1.05); transform-origin: bottom center; opacity: 1; }' +
+                '  100% { transform: scaleY(1); transform-origin: bottom center; opacity: 0.95; }' +
                 '}' +
-                '@keyframes drPopupPop {' +
-                '  0% { opacity: 0; transform: translateY(8px) scale(0.94); }' +
-                '  100% { opacity: 1; transform: translateY(0px) scale(1); }' +
+                '@keyframes drCandleGrowDown {' +
+                '  0% { transform: scaleY(0.25); transform-origin: top center; opacity: 0.55; }' +
+                '  65% { transform: scaleY(1.05); transform-origin: top center; opacity: 1; }' +
+                '  100% { transform: scaleY(1); transform-origin: top center; opacity: 0.95; }' +
+                '}' +
+                '@keyframes drNeonFlicker {' +
+                '  0%, 100% { filter: drop-shadow(0 0 6px currentColor); }' +
+                '  50% { filter: drop-shadow(0 0 14px currentColor); }' +
+                '}' +
+                '@keyframes drPopupSlide {' +
+                '  0% { opacity: 0; transform: translateY(10px) scale(0.92); }' +
+                '  100% { opacity: 1; transform: translateY(0) scale(1); }' +
                 '}';
             d.head.appendChild(styleEl);
 
@@ -160,15 +173,15 @@ def bot_script():
                 var btn = d.createElement('div');
                 btn.id = 'dr-tracker-btn';
                 btn.style.cssText = 'position:fixed;top:46%;right:14px;width:62px;height:62px;border-radius:50%;' +
-                    'background:radial-gradient(circle at 30% 30%, #0b2416, #020805 75%);' +
+                    'background:radial-gradient(circle at 30% 25%, #0f291e, #040d14 65%, #020508 100%);' +
                     'border:2.5px solid #22c55e;display:flex;align-items:center;justify-content:center;' +
                     'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;' +
-                    'animation:drRingPulse 2.2s infinite ease-in-out;font-family:"Courier New",Courier,monospace;';
+                    'animation:drRgbRing 2.6s infinite ease-in-out;font-family:"Courier New",Courier,monospace;';
 
                 btn.innerHTML = '' +
-                    '<div style="position:relative;width:52px;height:52px;border-radius:50%;border:1px dashed rgba(74,222,128,0.65);display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">' +
-                    '  <div style="font-size:15px;font-weight:900;color:#4ade80;letter-spacing:1px;text-shadow:0 0 10px rgba(34,197,94,0.9);line-height:1;">DR</div>' +
-                    '  <div style="font-size:6.5px;font-weight:800;color:#86efac;letter-spacing:0.8px;margin-top:2px;">TRACKER</div>' +
+                    '<div style="position:relative;width:52px;height:52px;border-radius:50%;border:1px dashed rgba(56,189,248,0.75);display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">' +
+                    '  <div style="font-size:15px;font-weight:900;color:#4ade80;letter-spacing:1px;animation:drNeonFlicker 1.8s infinite;line-height:1;">DR</div>' +
+                    '  <div style="font-size:6.5px;font-weight:800;color:#38bdf8;letter-spacing:0.8px;margin-top:2px;">TRACKER</div>' +
                     '</div>';
 
                 d.body.appendChild(btn);
@@ -232,100 +245,103 @@ def bot_script():
                 return "EURUSD";
             }
 
-            function findActiveCandleAnchor() {
+            function findLiveCandleAnchor() {
                 try {
-                    var vLines = d.querySelectorAll('line, [class*="crosshair"], [class*="current-price"], [class*="candle"]');
-                    for(var i = 0; i < vLines.length; i++) {
-                        var r = vLines[i].getBoundingClientRect();
-                        if(r.width > 0 && r.height > 25 && r.left > window.innerWidth * 0.25 && r.left < window.innerWidth * 0.85 && r.top > 90 && r.top < window.innerHeight * 0.72) {
+                    var els = d.querySelectorAll('[class*="candle"], [class*="current-price"], [class*="timer"], line');
+                    for(var i = 0; i < els.length; i++) {
+                        var r = els[i].getBoundingClientRect();
+                        if(r.width > 0 && r.height > 20 && r.left > window.innerWidth * 0.25 && r.left < window.innerWidth * 0.85 && r.top > 100 && r.top < window.innerHeight * 0.72) {
                             return {
                                 x: r.left + (r.width / 2),
-                                y: r.top + (r.height * 0.45)
+                                y: r.top + (r.height * 0.5)
                             };
                         }
                     }
                 } catch(e) {}
                 return {
-                    x: Math.round(window.innerWidth * 0.56),
-                    y: Math.round(window.innerHeight * 0.40)
+                    x: Math.round(window.innerWidth * 0.54),
+                    y: Math.round(window.innerHeight * 0.44)
                 };
             }
 
-            function generateTradeReachEstimate(isCall, seedNum) {
-                var heights = [52, 66, 80, 94, 108, 74, 86];
-                var pipsList = [12, 18, 23, 28, 34, 16, 26];
-                var idx = Math.abs(seedNum) % heights.length;
+            function estimateCandleReach(isCall, seedVal) {
+                var heights = [48, 62, 76, 92, 108, 68, 84];
+                var pts = [11, 16, 21, 27, 33, 14, 24];
+                var idx = Math.abs(seedVal) % heights.length;
+                var valPts = pts[idx];
                 return {
-                    boxHeight: heights[idx],
-                    estPips: pipsList[idx],
-                    estLabel: (isCall ? "+" : "-") + pipsList[idx] + " PTS"
+                    heightPx: heights[idx],
+                    pts: valPts,
+                    label: (isCall ? "+" : "-") + valPts + " PTS"
                 };
             }
 
-            function renderCandleProjectionAndPopup(isCall, marketName) {
+            function renderLiveCandleForecast(isCall, marketName) {
                 ["dr-candle-projection", "dr-next-signal-popup"].forEach(function(id){
                     var old = d.getElementById(id);
                     if(old) old.remove();
                 });
 
-                var anchor = findActiveCandleAnchor();
-                var reach = generateTradeReachEstimate(isCall, Math.floor(Date.now() / 1000) + marketName.charCodeAt(0));
-                var mainColor = isCall ? "#22c55e" : "#ef4444";
-                var softBg = isCall ? "rgba(34, 197, 94, 0.14)" : "rgba(239, 68, 68, 0.14)";
-                var animName = isCall ? "drBoxGlowUp" : "drBoxGlowDown";
+                var anchor = findLiveCandleAnchor();
+                var seed = Math.floor(Date.now() / 1000) + marketName.charCodeAt(0) + (isCall ? 7 : 13);
+                var est = estimateCandleReach(isCall, seed);
 
-                var projBox = d.createElement('div');
-                projBox.id = 'dr-candle-projection';
+                var colorMain = isCall ? "#22c55e" : "#ef4444";
+                var colorAccent = isCall ? "#00f0ff" : "#facc15";
+                var bgTint = isCall ? "rgba(34, 197, 94, 0.16)" : "rgba(239, 68, 68, 0.16)";
                 var boxWidth = 22;
 
+                var proj = d.createElement('div');
+                proj.id = 'dr-candle-projection';
+
                 if(isCall) {
-                    projBox.style.cssText = 'position:fixed;left:' + Math.round(anchor.x - boxWidth / 2) + 'px;' +
-                        'top:' + Math.round(anchor.y - reach.boxHeight) + 'px;width:' + boxWidth + 'px;height:' + reach.boxHeight + 'px;' +
-                        'border:2px dashed ' + mainColor + ';background:' + softBg + ';border-radius:3px;' +
-                        'z-index:2147483645;pointer-events:none;font-family:"Courier New",monospace;' +
-                        'animation:' + animName + ' 1.4s infinite ease-in-out;';
-                    projBox.innerHTML = '' +
-                        '<div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:900;color:' + mainColor + ';text-shadow:0 0 8px ' + mainColor + ';">▲</div>' +
-                        '<div style="position:absolute;top:-27px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(4,12,8,0.92);border:1px solid ' + mainColor + ';color:' + mainColor + ';font-size:8px;font-weight:900;padding:1px 4px;border-radius:3px;">' + reach.estLabel + '</div>';
+                    proj.style.cssText = 'position:fixed;left:' + Math.round(anchor.x - boxWidth / 2) + 'px;' +
+                        'top:' + Math.round(anchor.y - est.heightPx) + 'px;width:' + boxWidth + 'px;height:' + est.heightPx + 'px;' +
+                        'border:2px dashed ' + colorMain + ';background:linear-gradient(180deg,' + bgTint + ',rgba(0,240,255,0.06));' +
+                        'border-radius:3px;z-index:2147483645;pointer-events:none;font-family:"Courier New",monospace;' +
+                        'animation:drCandleGrowUp 0.65s cubic-bezier(0.22,1,0.36,1) forwards, drNeonFlicker 1.6s infinite;';
+                    proj.innerHTML = '' +
+                        '<div style="position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:900;color:' + colorMain + ';">▲</div>' +
+                        '<div style="position:absolute;top:-30px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#04130b;border:1px solid ' + colorAccent + ';color:' + colorMain + ';font-size:8px;font-weight:900;padding:1px 5px;border-radius:3px;box-shadow:0 0 10px ' + bgTint + ';">' + est.label + '</div>';
                 } else {
-                    projBox.style.cssText = 'position:fixed;left:' + Math.round(anchor.x - boxWidth / 2) + 'px;' +
-                        'top:' + Math.round(anchor.y) + 'px;width:' + boxWidth + 'px;height:' + reach.boxHeight + 'px;' +
-                        'border:2px dashed ' + mainColor + ';background:' + softBg + ';border-radius:3px;' +
-                        'z-index:2147483645;pointer-events:none;font-family:"Courier New",monospace;' +
-                        'animation:' + animName + ' 1.4s infinite ease-in-out;';
-                    projBox.innerHTML = '' +
-                        '<div style="position:absolute;bottom:-15px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:900;color:' + mainColor + ';text-shadow:0 0 8px ' + mainColor + ';">▼</div>' +
-                        '<div style="position:absolute;bottom:-27px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(16,6,8,0.92);border:1px solid ' + mainColor + ';color:' + mainColor + ';font-size:8px;font-weight:900;padding:1px 4px;border-radius:3px;">' + reach.estLabel + '</div>';
+                    proj.style.cssText = 'position:fixed;left:' + Math.round(anchor.x - boxWidth / 2) + 'px;' +
+                        'top:' + Math.round(anchor.y) + 'px;width:' + boxWidth + 'px;height:' + est.heightPx + 'px;' +
+                        'border:2px dashed ' + colorMain + ';background:linear-gradient(180deg,rgba(250,204,21,0.06),' + bgTint + ');' +
+                        'border-radius:3px;z-index:2147483645;pointer-events:none;font-family:"Courier New",monospace;' +
+                        'animation:drCandleGrowDown 0.65s cubic-bezier(0.22,1,0.36,1) forwards, drNeonFlicker 1.6s infinite;';
+                    proj.innerHTML = '' +
+                        '<div style="position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:12px;font-weight:900;color:' + colorMain + ';">▼</div>' +
+                        '<div style="position:absolute;bottom:-30px;left:50%;transform:translateX(-50%);white-space:nowrap;background:#16070a;border:1px solid ' + colorAccent + ';color:' + colorMain + ';font-size:8px;font-weight:900;padding:1px 5px;border-radius:3px;box-shadow:0 0 10px ' + bgTint + ';">' + est.label + '</div>';
                 }
 
-                d.body.appendChild(projBox);
+                d.body.appendChild(proj);
 
-                var popupLeft = Math.min(window.innerWidth - 134, Math.max(8, Math.round(anchor.x + 22)));
-                var popupTop = Math.min(window.innerHeight - 165, Math.max(75, Math.round(anchor.y - 45)));
+                var pLeft = Math.min(window.innerWidth - 134, Math.max(8, Math.round(anchor.x + 22)));
+                var pTop = Math.min(window.innerHeight - 165, Math.max(75, Math.round(anchor.y - 46)));
 
                 var popup = d.createElement('div');
                 popup.id = 'dr-next-signal-popup';
-                popup.style.cssText = 'position:fixed;left:' + popupLeft + 'px;top:' + popupTop + 'px;width:122px;' +
-                    'background:linear-gradient(180deg, rgba(6, 20, 14, 0.96), rgba(3, 10, 7, 0.98));' +
-                    'border:1.5px solid ' + mainColor + ';border-radius:10px;padding:7px 8px;' +
+                popup.style.cssText = 'position:fixed;left:' + pLeft + 'px;top:' + pTop + 'px;width:124px;' +
+                    'background:linear-gradient(160deg, rgba(7,24,18,0.96), rgba(14,10,28,0.96));' +
+                    'border:1.5px solid ' + colorMain + ';border-radius:10px;padding:7px 8px;' +
                     'z-index:2147483646;pointer-events:none;font-family:"Courier New",monospace;color:#e2e8f0;' +
-                    'box-shadow:0 0 22px rgba(0,0,0,0.85), 0 0 14px ' + softBg + ';animation:drPopupPop 0.25s ease-out;';
+                    'box-shadow:0 0 24px rgba(0,0,0,0.85), 0 0 14px ' + bgTint + ';animation:drPopupSlide 0.28s ease-out;';
 
                 popup.innerHTML = '' +
-                    '<div style="text-align:center;font-size:7px;font-weight:800;letter-spacing:0.6px;color:#94a3b8;line-height:1.25;margin-bottom:5px;">' +
-                    '  <span style="color:' + mainColor + ';font-size:9px;">' + (isCall ? '▲' : '▼') + '</span> NEXT<br>SMART SIGNAL' +
+                    '<div style="text-align:center;font-size:7px;font-weight:800;letter-spacing:0.6px;color:#38bdf8;line-height:1.25;margin-bottom:5px;">' +
+                    '  <span style="color:' + colorMain + ';font-size:9px;">' + (isCall ? '▲' : '▼') + '</span> NEXT<br>SMART SIGNAL' +
                     '</div>' +
-                    '<div style="background:rgba(2,8,5,0.9);border:1px solid rgba(148,163,184,0.22);border-radius:7px;padding:6px 4px;text-align:center;margin-bottom:5px;">' +
-                    '  <div style="font-size:10px;font-weight:900;color:' + mainColor + ';letter-spacing:0.5px;">' + (isCall ? 'CALL (UP)' : 'PUT (DOWN)') + '</div>' +
-                    '  <div style="font-size:8px;font-weight:800;color:#f8fafc;margin-top:2px;">EST: ' + reach.estLabel + '</div>' +
-                    '  <div style="font-size:6.5px;color:#64748b;margin-top:1px;">' + marketName + '</div>' +
+                    '<div style="background:rgba(2,8,12,0.9);border:1px solid rgba(56,189,248,0.28);border-radius:7px;padding:6px 4px;text-align:center;margin-bottom:5px;">' +
+                    '  <div style="font-size:10px;font-weight:900;color:' + colorMain + ';letter-spacing:0.5px;">' + (isCall ? 'CALL (UP)' : 'PUT (DOWN)') + '</div>' +
+                    '  <div style="font-size:8px;font-weight:800;color:#facc15;margin-top:2px;">EST: ' + est.label + '</div>' +
+                    '  <div style="font-size:6.5px;color:#c084fc;margin-top:1px;">' + marketName + '</div>' +
                     '</div>' +
-                    '<div style="text-align:center;font-size:7px;font-weight:900;color:#4ade80;letter-spacing:1px;border-top:1px dashed rgba(74,222,128,0.25);padding-top:4px;">LOCKED</div>';
+                    '<div style="text-align:center;font-size:7px;font-weight:900;color:#4ade80;letter-spacing:1px;border-top:1px dashed rgba(56,189,248,0.3);padding-top:4px;">LOCKED</div>';
 
                 d.body.appendChild(popup);
 
                 setTimeout(function(){
-                    if(projBox.parentNode) projBox.remove();
+                    if(proj.parentNode) proj.remove();
                     if(popup.parentNode) popup.remove();
                 }, 14000);
             }
@@ -359,31 +375,31 @@ def bot_script():
                 var modal = d.createElement('div');
                 modal.id = 'dr-scan-modal';
                 modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);width:316px;max-width:92vw;' +
-                    'background:linear-gradient(180deg, #061810 0%, #030b08 100%);' +
+                    'background:linear-gradient(165deg, #061b14 0%, #051122 55%, #120824 100%);' +
                     'border:2px solid #22c55e;border-radius:14px;padding:12px;z-index:2147483647;' +
                     'font-family:"Courier New",Courier,monospace;color:#4ade80;box-sizing:border-box;' +
-                    'box-shadow:0 0 36px rgba(34,197,94,0.45), inset 0 0 18px rgba(34,197,94,0.18);overflow:hidden;';
+                    'animation:drRgbBorder 3s infinite ease-in-out;overflow:hidden;';
 
                 modal.innerHTML = '' +
                     '<div style="position:relative;overflow:hidden;">' +
-                    '  <div id="dr-scan-laser" style="position:absolute;left:0;top:0;width:100%;height:3px;background:linear-gradient(90deg,transparent,#4ade80,#22c55e,#4ade80,transparent);box-shadow:0 0 12px #22c55e;z-index:5;pointer-events:none;animation:drSweepLaser 1.6s linear infinite;"></div>' +
-                    '  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(74,222,128,0.25);padding-bottom:7px;margin-bottom:8px;">' +
+                    '  <div id="dr-scan-laser" style="position:absolute;left:0;top:0;width:100%;height:3px;z-index:5;pointer-events:none;animation:drMultiLaser 1.4s linear infinite;"></div>' +
+                    '  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(56,189,248,0.28);padding-bottom:7px;margin-bottom:8px;">' +
                     '    <div style="display:flex;align-items:center;gap:7px;">' +
-                    '      <div style="width:28px;height:28px;border-radius:50%;border:1.5px solid #22c55e;background:#04140c;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#4ade80;">DR</div>' +
+                    '      <div style="width:28px;height:28px;border-radius:50%;border:1.5px solid #38bdf8;background:#04141c;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#4ade80;">DR</div>' +
                     '      <div>' +
                     '        <div style="font-size:11.5px;font-weight:900;color:#4ade80;letter-spacing:0.6px;">DR CANDLE TRACKER</div>' +
-                    '        <div style="font-size:7px;color:#86efac;letter-spacing:0.5px;">QUANT CORE EXPLOIT</div>' +
-                    '        <div style="font-size:6.5px;color:#64748b;">SESSION: QQX-5709-03EE-1967 | NODE 0x37</div>' +
+                    '        <div style="font-size:7px;color:#38bdf8;letter-spacing:0.5px;">QUANT CORE EXPLOIT</div>' +
+                    '        <div style="font-size:6.5px;color:#94a3b8;">SESSION: QQX-5709-03EE-1967 | NODE 0x37</div>' +
                     '      </div>' +
                     '    </div>' +
                     '    <div style="display:flex;align-items:center;gap:5px;">' +
-                    '      <div id="dr-pct-badge" style="background:rgba(20,83,45,0.65);border:1px solid #22c55e;color:#4ade80;font-size:9px;font-weight:900;padding:2px 6px;border-radius:10px;">1%</div>' +
+                    '      <div id="dr-pct-badge" style="background:rgba(20,83,45,0.75);border:1px solid #22c55e;color:#4ade80;font-size:9px;font-weight:900;padding:2px 6px;border-radius:10px;">1%</div>' +
                     '      <div id="dr-modal-close" style="cursor:pointer;color:#94a3b8;font-size:12px;font-weight:bold;padding:0 3px;">✕</div>' +
                     '    </div>' +
                     '  </div>' +
 
-                    '  <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:8px;padding:7px;margin-bottom:7px;">' +
-                    '    <div style="display:flex;justify-content:space-between;font-size:7px;color:#86efac;margin-bottom:4px;">' +
+                    '  <div style="background:rgba(2,10,16,0.85);border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:7px;margin-bottom:7px;">' +
+                    '    <div style="display:flex;justify-content:space-between;font-size:7px;color:#38bdf8;margin-bottom:4px;">' +
                     '      <span>MEMORY STREAM</span>' +
                     '      <span style="color:#4ade80;">● LINKED</span>' +
                     '    </div>' +
@@ -391,36 +407,36 @@ def bot_script():
                     '      <div style="display:flex;align-items:center;gap:3px;height:26px;">' +
                     '        <span style="width:5px;height:14px;background:#ef4444;border-radius:1px;display:inline-block;"></span>' +
                     '        <span style="width:5px;height:20px;background:#22c55e;border-radius:1px;display:inline-block;"></span>' +
-                    '        <span style="width:5px;height:11px;background:#ef4444;border-radius:1px;display:inline-block;"></span>' +
-                    '        <span style="width:5px;height:24px;background:#22c55e;border-radius:1px;display:inline-block;"></span>' +
+                    '        <span style="width:5px;height:12px;background:#38bdf8;border-radius:1px;display:inline-block;"></span>' +
+                    '        <span style="width:5px;height:24px;background:#e879f9;border-radius:1px;display:inline-block;"></span>' +
                     '      </div>' +
-                    '      <div><span style="color:#64748b;">OPEN</span> <b id="dr-m-open" style="color:#fff;">0.1645</b></div>' +
-                    '      <div><span style="color:#64748b;">HIGH</span> <b id="dr-m-high" style="color:#4ade80;">0.1650</b></div>' +
-                    '      <div><span style="color:#64748b;">LOW</span> <b id="dr-m-low" style="color:#f87171;">0.1639</b></div>' +
-                    '      <div><span style="color:#64748b;">CLOSE</span> <b id="dr-m-close" style="color:#38bdf8;">0.1643</b></div>' +
+                    '      <div><span style="color:#64748b;">OPEN</span> <b style="color:#fff;">0.1645</b></div>' +
+                    '      <div><span style="color:#64748b;">HIGH</span> <b style="color:#4ade80;">0.1650</b></div>' +
+                    '      <div><span style="color:#64748b;">LOW</span> <b style="color:#f87171;">0.1639</b></div>' +
+                    '      <div><span style="color:#64748b;">CLOSE</span> <b style="color:#38bdf8;">0.1643</b></div>' +
                     '    </div>' +
                     '  </div>' +
 
                     '  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:5px;font-size:7px;text-align:center;">' +
-                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">0x29</div><div style="color:#4ade80;font-weight:bold;">VECTOR</div></div>' +
-                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#4ade80;font-weight:bold;">LIVE</div><div style="color:#86efac;">FEED</div></div>' +
-                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">RSA</div><div id="dr-rsa-val" style="color:#eab308;font-weight:bold;">1%</div></div>' +
-                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">016</div><div style="color:#38bdf8;font-weight:bold;">CYCLE</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.85);border:1px solid rgba(34,197,94,0.25);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">0x29</div><div style="color:#4ade80;font-weight:bold;">VECTOR</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.85);border:1px solid rgba(56,189,248,0.25);border-radius:6px;padding:4px 2px;"><div style="color:#38bdf8;font-weight:bold;">LIVE</div><div style="color:#86efac;">FEED</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.85);border:1px solid rgba(250,204,21,0.25);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">RSA</div><div id="dr-rsa-val" style="color:#facc15;font-weight:bold;">1%</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.85);border:1px solid rgba(232,121,249,0.25);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">016</div><div style="color:#e879f9;font-weight:bold;">CYCLE</div></div>' +
                     '  </div>' +
 
                     '  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:7px;font-size:7px;text-align:center;">' +
-                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#4ade80;font-weight:bold;">23ms</div><div style="color:#64748b;">LATENCY</div></div>' +
-                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">BREACH</div><div id="dr-breach-val" style="color:#f87171;font-weight:bold;">1%</div></div>' +
-                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">016</div><div style="color:#86efac;font-weight:bold;">NODE</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.85);border:1px solid rgba(34,197,94,0.25);border-radius:6px;padding:4px 2px;"><div style="color:#4ade80;font-weight:bold;">23ms</div><div style="color:#64748b;">LATENCY</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.85);border:1px solid rgba(248,113,113,0.25);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">BREACH</div><div id="dr-breach-val" style="color:#f87171;font-weight:bold;">1%</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.85);border:1px solid rgba(56,189,248,0.25);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">016</div><div style="color:#38bdf8;font-weight:bold;">NODE</div></div>' +
                     '  </div>' +
 
-                    '  <div id="dr-terminal-feed" style="background:#020906;border:1px solid rgba(74,222,128,0.22);border-radius:8px;padding:7px;font-size:7.2px;line-height:1.45;color:#86efac;">' +
+                    '  <div id="dr-terminal-feed" style="background:#02090e;border:1px solid rgba(56,189,248,0.25);border-radius:8px;padding:7px;font-size:7.2px;line-height:1.45;color:#86efac;">' +
                     '    <div><span style="color:#22c55e;">✓</span> Scanning server parts</div>' +
-                    '    <div><span style="color:#22c55e;">✓</span> Brute-forcing auth token</div>' +
-                    '    <div><span style="color:#22c55e;">✓</span> Intercepting order flow packets</div>' +
-                    '    <div><span style="color:#22c55e;">✓</span> Reverse-engineering price engine</div>' +
+                    '    <div><span style="color:#38bdf8;">✓</span> Brute-forcing auth token</div>' +
+                    '    <div><span style="color:#facc15;">✓</span> Intercepting order flow packets</div>' +
+                    '    <div><span style="color:#e879f9;">✓</span> Reverse-engineering price engine</div>' +
                     '    <div><span style="color:#22c55e;">✓</span> Injecting live data hook</div>' +
-                    '    <div id="dr-status-line" style="color:#4ade80;font-weight:bold;margin-top:3px;">CIPHER LOCKED || NODE ARMED</div>' +
+                    '    <div id="dr-status-line" style="color:#38bdf8;font-weight:bold;margin-top:3px;">CIPHER LOCKED || NODE ARMED</div>' +
                     '  </div>' +
                     '</div>';
 
@@ -456,13 +472,14 @@ def bot_script():
 
                     if(pct >= 100) {
                         clearInterval(progressTimer);
-                        statusLine.innerText = '100% LOCKED || DEPLOYING CHART OVERLAY...';
+                        statusLine.style.color = '#4ade80';
+                        statusLine.innerText = '100% LOCKED || PROJECTING LIVE CANDLE...';
                         signalPromise.then(function(data){
                             var sig = String(data.signal || 'CALL').toUpperCase();
                             var isCall = (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
                             setTimeout(function(){
                                 if(modal.isConnected) modal.remove();
-                                renderCandleProjectionAndPopup(isCall, market);
+                                renderLiveCandleForecast(isCall, market);
                                 triggerBrokerTradeClick(isCall);
                             }, 350);
                         });
