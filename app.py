@@ -81,7 +81,7 @@ class BiDirectionalMarketEngine:
 
 @app.route('/')
 def home():
-    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - QUANTUM NEON MODE!")
+    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - ULTRA FX NEON MODE!")
     res.headers.add("Access-Control-Allow-Origin", "*")
     return res
 
@@ -150,63 +150,70 @@ def bot_script():
             });
 
             var renderServerUrl = "https://ra-ai-bot.onrender.com";
+            var botAvatarUrl = "https://i.postimg.cc/Fz3xjQGZ/file-000000001cc082119080b22d35ecbaaa.png";
 
             var styleEl = d.createElement('style');
             styleEl.id = 'ra-hacker-style';
             styleEl.innerHTML = '' +
                 '@keyframes raSlowRgbRing {' +
-                '  0%   { border-color: #22c55e; box-shadow: 0 0 18px #22c55e, 0 0 36px rgba(0,240,255,0.55), inset 0 0 14px rgba(34,197,94,0.65); }' +
-                '  20%  { border-color: #00f0ff; box-shadow: 0 0 22px #00f0ff, 0 0 40px rgba(168,85,247,0.55), inset 0 0 15px rgba(0,240,255,0.65); }' +
-                '  40%  { border-color: #e879f9; box-shadow: 0 0 22px #e879f9, 0 0 40px rgba(250,204,21,0.55), inset 0 0 15px rgba(232,121,249,0.65); }' +
-                '  60%  { border-color: #facc15; box-shadow: 0 0 22px #facc15, 0 0 40px rgba(244,63,94,0.55), inset 0 0 15px rgba(250,204,21,0.65); }' +
-                '  80%  { border-color: #fb7185; box-shadow: 0 0 22px #fb7185, 0 0 40px rgba(34,197,94,0.55), inset 0 0 15px rgba(251,113,133,0.65); }' +
-                '  100% { border-color: #22c55e; box-shadow: 0 0 18px #22c55e, 0 0 36px rgba(0,240,255,0.55), inset 0 0 14px rgba(34,197,94,0.65); }' +
+                '  0%   { border-color: #22c55e; box-shadow: 0 0 20px #22c55e, 0 0 38px rgba(0,240,255,0.65), inset 0 0 14px rgba(34,197,94,0.7); }' +
+                '  20%  { border-color: #00f0ff; box-shadow: 0 0 24px #00f0ff, 0 0 42px rgba(168,85,247,0.65), inset 0 0 15px rgba(0,240,255,0.7); }' +
+                '  40%  { border-color: #e879f9; box-shadow: 0 0 24px #e879f9, 0 0 42px rgba(250,204,21,0.65), inset 0 0 15px rgba(232,121,249,0.7); }' +
+                '  60%  { border-color: #facc15; box-shadow: 0 0 24px #facc15, 0 0 42px rgba(244,63,94,0.65), inset 0 0 15px rgba(250,204,21,0.7); }' +
+                '  80%  { border-color: #fb7185; box-shadow: 0 0 24px #fb7185, 0 0 42px rgba(34,197,94,0.65), inset 0 0 15px rgba(251,113,133,0.7); }' +
+                '  100% { border-color: #22c55e; box-shadow: 0 0 20px #22c55e, 0 0 38px rgba(0,240,255,0.65), inset 0 0 14px rgba(34,197,94,0.7); }' +
                 '}' +
                 '@keyframes raMainBorderCycle {' +
-                '  0%   { border-color: #22c55e; box-shadow: 0 0 30px rgba(34,197,94,0.75), 0 0 55px rgba(0,240,255,0.32), inset 0 0 18px rgba(34,197,94,0.24); }' +
-                '  25%  { border-color: #00f0ff; box-shadow: 0 0 34px rgba(0,240,255,0.8), 0 0 58px rgba(232,121,249,0.34), inset 0 0 20px rgba(0,240,255,0.26); }' +
-                '  50%  { border-color: #e879f9; box-shadow: 0 0 34px rgba(232,121,249,0.8), 0 0 58px rgba(250,204,21,0.32), inset 0 0 20px rgba(232,121,249,0.26); }' +
-                '  75%  { border-color: #facc15; box-shadow: 0 0 34px rgba(250,204,21,0.8), 0 0 58px rgba(56,189,248,0.32), inset 0 0 20px rgba(250,204,21,0.26); }' +
-                '  100% { border-color: #22c55e; box-shadow: 0 0 30px rgba(34,197,94,0.75), 0 0 55px rgba(0,240,255,0.32), inset 0 0 18px rgba(34,197,94,0.24); }' +
+                '  0%   { border-color: #22c55e; box-shadow: 0 0 32px rgba(34,197,94,0.82), 0 0 58px rgba(0,240,255,0.38), inset 0 0 18px rgba(34,197,94,0.28); }' +
+                '  25%  { border-color: #00f0ff; box-shadow: 0 0 36px rgba(0,240,255,0.86), 0 0 62px rgba(232,121,249,0.38), inset 0 0 20px rgba(0,240,255,0.28); }' +
+                '  50%  { border-color: #e879f9; box-shadow: 0 0 36px rgba(232,121,249,0.86), 0 0 62px rgba(250,204,21,0.38), inset 0 0 20px rgba(232,121,249,0.28); }' +
+                '  75%  { border-color: #facc15; box-shadow: 0 0 36px rgba(250,204,21,0.86), 0 0 62px rgba(56,189,248,0.38), inset 0 0 20px rgba(250,204,21,0.28); }' +
+                '  100% { border-color: #22c55e; box-shadow: 0 0 32px rgba(34,197,94,0.82), 0 0 58px rgba(0,240,255,0.38), inset 0 0 18px rgba(34,197,94,0.28); }' +
                 '}' +
                 '@keyframes raSubBoxCycleA {' +
-                '  0%   { border-color: rgba(34,197,94,0.75); box-shadow: 0 0 10px rgba(34,197,94,0.35), inset 0 0 6px rgba(34,197,94,0.18); }' +
-                '  33%  { border-color: rgba(232,121,249,0.8); box-shadow: 0 0 12px rgba(232,121,249,0.4), inset 0 0 7px rgba(232,121,249,0.2); }' +
-                '  66%  { border-color: rgba(250,204,21,0.8); box-shadow: 0 0 12px rgba(250,204,21,0.4), inset 0 0 7px rgba(250,204,21,0.2); }' +
-                '  100% { border-color: rgba(34,197,94,0.75); box-shadow: 0 0 10px rgba(34,197,94,0.35), inset 0 0 6px rgba(34,197,94,0.18); }' +
+                '  0%   { border-color: rgba(34,197,94,0.85); box-shadow: 0 0 12px rgba(34,197,94,0.45), inset 0 0 7px rgba(34,197,94,0.22); }' +
+                '  33%  { border-color: rgba(232,121,249,0.88); box-shadow: 0 0 14px rgba(232,121,249,0.48), inset 0 0 8px rgba(232,121,249,0.24); }' +
+                '  66%  { border-color: rgba(250,204,21,0.88); box-shadow: 0 0 14px rgba(250,204,21,0.48), inset 0 0 8px rgba(250,204,21,0.24); }' +
+                '  100% { border-color: rgba(34,197,94,0.85); box-shadow: 0 0 12px rgba(34,197,94,0.45), inset 0 0 7px rgba(34,197,94,0.22); }' +
                 '}' +
                 '@keyframes raSubBoxCycleB {' +
-                '  0%   { border-color: rgba(0,240,255,0.8); box-shadow: 0 0 10px rgba(0,240,255,0.38), inset 0 0 6px rgba(0,240,255,0.2); }' +
-                '  33%  { border-color: rgba(250,204,21,0.8); box-shadow: 0 0 12px rgba(250,204,21,0.4), inset 0 0 7px rgba(250,204,21,0.2); }' +
-                '  66%  { border-color: rgba(74,222,128,0.8); box-shadow: 0 0 12px rgba(74,222,128,0.4), inset 0 0 7px rgba(74,222,128,0.2); }' +
-                '  100% { border-color: rgba(0,240,255,0.8); box-shadow: 0 0 10px rgba(0,240,255,0.38), inset 0 0 6px rgba(0,240,255,0.2); }' +
+                '  0%   { border-color: rgba(0,240,255,0.88); box-shadow: 0 0 12px rgba(0,240,255,0.45), inset 0 0 7px rgba(0,240,255,0.22); }' +
+                '  33%  { border-color: rgba(250,204,21,0.88); box-shadow: 0 0 14px rgba(250,204,21,0.48), inset 0 0 8px rgba(250,204,21,0.24); }' +
+                '  66%  { border-color: rgba(74,222,128,0.88); box-shadow: 0 0 14px rgba(74,222,128,0.48), inset 0 0 8px rgba(74,222,128,0.24); }' +
+                '  100% { border-color: rgba(0,240,255,0.88); box-shadow: 0 0 12px rgba(0,240,255,0.45), inset 0 0 7px rgba(0,240,255,0.22); }' +
                 '}' +
                 '@keyframes raSubBoxCycleC {' +
-                '  0%   { border-color: rgba(244,63,94,0.8); box-shadow: 0 0 10px rgba(244,63,94,0.38), inset 0 0 6px rgba(244,63,94,0.2); }' +
-                '  33%  { border-color: rgba(56,189,248,0.8); box-shadow: 0 0 12px rgba(56,189,248,0.4), inset 0 0 7px rgba(56,189,248,0.2); }' +
-                '  66%  { border-color: rgba(192,132,252,0.8); box-shadow: 0 0 12px rgba(192,132,252,0.4), inset 0 0 7px rgba(192,132,252,0.2); }' +
-                '  100% { border-color: rgba(244,63,94,0.8); box-shadow: 0 0 10px rgba(244,63,94,0.38), inset 0 0 6px rgba(244,63,94,0.2); }' +
+                '  0%   { border-color: rgba(244,63,94,0.88); box-shadow: 0 0 12px rgba(244,63,94,0.45), inset 0 0 7px rgba(244,63,94,0.22); }' +
+                '  33%  { border-color: rgba(56,189,248,0.88); box-shadow: 0 0 14px rgba(56,189,248,0.48), inset 0 0 8px rgba(56,189,248,0.24); }' +
+                '  66%  { border-color: rgba(192,132,252,0.88); box-shadow: 0 0 14px rgba(192,132,252,0.48), inset 0 0 8px rgba(192,132,252,0.24); }' +
+                '  100% { border-color: rgba(244,63,94,0.88); box-shadow: 0 0 12px rgba(244,63,94,0.45), inset 0 0 7px rgba(244,63,94,0.22); }' +
+                '}' +
+                '@keyframes raPopupSlowColor {' +
+                '  0%   { box-shadow: 0 0 26px rgba(34,197,94,0.65), 0 0 42px rgba(0,240,255,0.35); }' +
+                '  33%  { box-shadow: 0 0 28px rgba(0,240,255,0.7), 0 0 44px rgba(232,121,249,0.38); }' +
+                '  66%  { box-shadow: 0 0 28px rgba(232,121,249,0.7), 0 0 44px rgba(250,204,21,0.38); }' +
+                '  100% { box-shadow: 0 0 26px rgba(34,197,94,0.65), 0 0 42px rgba(0,240,255,0.35); }' +
                 '}' +
                 '@keyframes raSmoothThickLaser {' +
-                '  0%   { top: 0%; opacity: 0.75; background: linear-gradient(90deg,transparent,#22c55e,#00f0ff,#e879f9,#facc15,transparent); box-shadow: 0 0 16px #00f0ff, 0 0 28px #e879f9; }' +
-                '  50%  { top: 96%; opacity: 1; background: linear-gradient(90deg,transparent,#facc15,#fb7185,#00f0ff,#4ade80,transparent); box-shadow: 0 0 18px #facc15, 0 0 30px #4ade80; }' +
-                '  100% { top: 0%; opacity: 0.75; background: linear-gradient(90deg,transparent,#22c55e,#00f0ff,#e879f9,#facc15,transparent); box-shadow: 0 0 16px #00f0ff, 0 0 28px #e879f9; }' +
+                '  0%   { top: 0%; opacity: 0.8; background: linear-gradient(90deg,transparent,#22c55e,#00f0ff,#e879f9,#facc15,transparent); box-shadow: 0 0 18px #00f0ff, 0 0 32px #e879f9; }' +
+                '  50%  { top: 96%; opacity: 1; background: linear-gradient(90deg,transparent,#facc15,#fb7185,#00f0ff,#4ade80,transparent); box-shadow: 0 0 20px #facc15, 0 0 34px #4ade80; }' +
+                '  100% { top: 0%; opacity: 0.8; background: linear-gradient(90deg,transparent,#22c55e,#00f0ff,#e879f9,#facc15,transparent); box-shadow: 0 0 18px #00f0ff, 0 0 32px #e879f9; }' +
                 '}' +
                 '@keyframes raMiniBarDance1 {' +
-                '  0%, 100% { height: 10px; background: #ef4444; box-shadow: 0 0 8px #ef4444; }' +
-                '  50% { height: 24px; background: #22c55e; box-shadow: 0 0 10px #22c55e; }' +
+                '  0%, 100% { height: 10px; background: #ef4444; box-shadow: 0 0 9px #ef4444; }' +
+                '  50% { height: 24px; background: #22c55e; box-shadow: 0 0 12px #22c55e; }' +
                 '}' +
                 '@keyframes raMiniBarDance2 {' +
-                '  0%, 100% { height: 22px; background: #22c55e; box-shadow: 0 0 10px #22c55e; }' +
-                '  50% { height: 9px; background: #00f0ff; box-shadow: 0 0 8px #00f0ff; }' +
+                '  0%, 100% { height: 22px; background: #22c55e; box-shadow: 0 0 12px #22c55e; }' +
+                '  50% { height: 9px; background: #00f0ff; box-shadow: 0 0 9px #00f0ff; }' +
                 '}' +
                 '@keyframes raMiniBarDance3 {' +
-                '  0%, 100% { height: 12px; background: #00f0ff; box-shadow: 0 0 8px #00f0ff; }' +
-                '  50% { height: 25px; background: #e879f9; box-shadow: 0 0 10px #e879f9; }' +
+                '  0%, 100% { height: 12px; background: #00f0ff; box-shadow: 0 0 9px #00f0ff; }' +
+                '  50% { height: 25px; background: #e879f9; box-shadow: 0 0 12px #e879f9; }' +
                 '}' +
                 '@keyframes raMiniBarDance4 {' +
-                '  0%, 100% { height: 24px; background: #e879f9; box-shadow: 0 0 10px #e879f9; }' +
-                '  50% { height: 11px; background: #facc15; box-shadow: 0 0 8px #facc15; }' +
+                '  0%, 100% { height: 24px; background: #e879f9; box-shadow: 0 0 12px #e879f9; }' +
+                '  50% { height: 11px; background: #facc15; box-shadow: 0 0 9px #facc15; }' +
                 '}' +
                 '@keyframes raStepSlideIn {' +
                 '  0% { opacity: 0; transform: translateX(-8px) scale(0.96); }' +
@@ -226,10 +233,10 @@ def bot_script():
                 if(!popupEl || !botEl) return;
                 var br = botEl.getBoundingClientRect();
                 var popupWidth = 118;
-                var gapPx = 14; // Clear visual separation above the circular button
+                var gapPx = 14;
                 var leftPos = Math.round(br.left + (br.width / 2) - (popupWidth / 2));
                 leftPos = Math.max(8, Math.min(window.innerWidth - popupWidth - 8, leftPos));
-                var popupHeight = popupEl.offsetHeight || 164;
+                var popupHeight = popupEl.offsetHeight || 168;
                 var topPos = Math.round(br.top - popupHeight - gapPx);
                 topPos = Math.max(72, topPos);
                 popupEl.style.width = popupWidth + 'px';
@@ -240,17 +247,13 @@ def bot_script():
             function createDraggableBotButton() {
                 var btn = d.createElement('div');
                 btn.id = 'ra-hacker-btn';
-                btn.style.cssText = 'position:fixed;bottom:148px;right:12px;width:62px;height:62px;border-radius:50%;' +
-                    'background:radial-gradient(circle at 28% 24%, #103324, #051324 62%, #130724 100%);' +
-                    'border:2.5px solid #22c55e;display:flex;align-items:center;justify-content:center;' +
-                    'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;' +
-                    'animation:raSlowRgbRing 5.5s infinite ease-in-out;font-family:"Courier New",Courier,monospace;';
+                btn.style.cssText = 'position:fixed;bottom:148px;right:12px;width:64px;height:64px;border-radius:50%;' +
+                    'background:#050a12;border:2.5px solid #22c55e;display:flex;align-items:center;justify-content:center;' +
+                    'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;overflow:hidden;' +
+                    'animation:raSlowRgbRing 6s infinite ease-in-out;font-family:"Courier New",Courier,monospace;';
 
                 btn.innerHTML = '' +
-                    '<div style="position:relative;width:52px;height:52px;border-radius:50%;border:1px dashed rgba(0,240,255,0.85);display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">' +
-                    '  <div style="font-size:14px;font-weight:900;color:#4ade80;letter-spacing:0.8px;line-height:1;">R-A</div>' +
-                    '  <div style="font-size:6px;font-weight:800;color:#00f0ff;letter-spacing:0.7px;margin-top:2px;">HACKER</div>' +
-                    '</div>';
+                    '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:100%;height:100%;object-fit:cover;border-radius:50%;pointer-events:none;display:block;" />';
 
                 d.body.appendChild(btn);
 
@@ -326,7 +329,6 @@ def bot_script():
                     ptsNum = pool[(Math.floor(Date.now() / 1000) + marketName.charCodeAt(0)) % pool.length];
                 }
 
-                // Exact proportional candle height (small, medium, or tall depending on trade magnitude)
                 var normalizedRatio = Math.max(0.15, Math.min(1.0, (ptsNum - 6) / 34));
                 var candleBarHeight = Math.round(10 + (normalizedRatio * 42));
                 var estText = (isCall ? "+" : "-") + ptsNum + " PTS";
@@ -339,14 +341,14 @@ def bot_script():
                         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:66px;animation:raCandleReveal 0.45s ease-out;">' +
                         '  <div style="font-size:7.5px;font-weight:900;color:#4ade80;margin-bottom:2px;">' + estText + '</div>' +
                         '  <div style="width:2px;height:6px;background:#4ade80;"></div>' +
-                        '  <div style="width:13px;height:' + candleBarHeight + 'px;background:linear-gradient(180deg,#4ade80,#16a34a);border:1px solid #86efac;border-radius:2px;box-shadow:0 0 12px rgba(34,197,94,0.8);"></div>' +
+                        '  <div style="width:13px;height:' + candleBarHeight + 'px;background:linear-gradient(180deg,#4ade80,#16a34a);border:1px solid #86efac;border-radius:2px;box-shadow:0 0 12px rgba(34,197,94,0.85);"></div>' +
                         '  <div style="width:2px;height:5px;background:#4ade80;"></div>' +
                         '</div>';
                 } else {
                     candleVisualHtml = '' +
                         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:66px;animation:raCandleReveal 0.45s ease-out;">' +
                         '  <div style="width:2px;height:5px;background:#f87171;"></div>' +
-                        '  <div style="width:13px;height:' + candleBarHeight + 'px;background:linear-gradient(180deg,#dc2626,#ef4444);border:1px solid #fca5a5;border-radius:2px;box-shadow:0 0 12px rgba(239,68,68,0.8);"></div>' +
+                        '  <div style="width:13px;height:' + candleBarHeight + 'px;background:linear-gradient(180deg,#dc2626,#ef4444);border:1px solid #fca5a5;border-radius:2px;box-shadow:0 0 12px rgba(239,68,68,0.85);"></div>' +
                         '  <div style="width:2px;height:6px;background:#f87171;"></div>' +
                         '  <div style="font-size:7.5px;font-weight:900;color:#f87171;margin-top:2px;">' + estText + '</div>' +
                         '</div>';
@@ -355,28 +357,29 @@ def bot_script():
                 var popup = d.createElement('div');
                 popup.id = 'ra-hacker-signal-popup';
                 popup.style.cssText = 'position:fixed;width:118px;' +
-                    'background:linear-gradient(165deg, rgba(6,24,18,0.97), rgba(16,9,30,0.97));' +
+                    'background:linear-gradient(165deg, rgba(6,24,18,0.98), rgba(16,9,30,0.98));' +
                     'border:1.8px solid ' + borderColor + ';border-radius:10px;padding:6px 6px;box-sizing:border-box;' +
                     'z-index:2147483646;pointer-events:none;font-family:"Courier New",monospace;color:#e2e8f0;' +
-                    'animation:raPopupEnter 0.25s ease-out, raSubBoxCycleB 5.5s infinite ease-in-out;';
+                    'animation:raPopupEnter 0.25s ease-out, raPopupSlowColor 6s infinite ease-in-out;';
 
                 popup.innerHTML = '' +
                     '<div style="text-align:center;font-size:6.2px;font-weight:900;letter-spacing:0.3px;color:#00f0ff;line-height:1.25;margin-bottom:4px;">' +
-                    '  R-A CANDLE HACKER<br><span style="color:' + mainColor + ';font-size:8px;">' + (isCall ? '▲ CALL (UP)' : '▼ PUT (DOWN)') + '</span>' +
+                    '  R-A Candle Hacker<br><span style="color:' + mainColor + ';font-size:8px;">' + (isCall ? '▲ CALL (UP)' : '▼ PUT (DOWN)') + '</span>' +
                     '</div>' +
-                    '<div style="background:rgba(2,8,12,0.94);border:1px solid rgba(0,240,255,0.28);border-radius:6px;padding:4px 4px;text-align:center;margin-bottom:4px;">' +
+                    '<div style="background:rgba(2,8,12,0.94);border:1.2px solid rgba(0,240,255,0.35);border-radius:6px;padding:4px 4px;text-align:center;margin-bottom:4px;animation:raSubBoxCycleA 5.5s infinite ease-in-out;">' +
                     candleVisualHtml +
                     '  <div style="font-size:6px;color:#e879f9;margin-top:3px;">' + marketName + '</div>' +
                     '</div>' +
-                    '<div style="text-align:center;font-size:6.5px;font-weight:900;color:#4ade80;letter-spacing:0.8px;border-top:1px dashed rgba(0,240,255,0.3);padding-top:3px;">LOCKED</div>';
+                    '<div style="text-align:center;font-size:6.5px;font-weight:900;color:#4ade80;letter-spacing:0.8px;border-top:1px dashed rgba(0,240,255,0.35);padding-top:3px;">LOCKED</div>';
 
                 d.body.appendChild(popup);
                 var botBtn = d.getElementById('ra-hacker-btn');
                 positionPopupAboveBotWithGap(popup, botBtn);
 
+                // Auto-remove after 10 seconds as requested
                 setTimeout(function(){
                     if(popup.parentNode) popup.remove();
-                }, 7500);
+                }, 10000);
             }
 
             function triggerBrokerTradeClick(isCall) {
@@ -411,23 +414,42 @@ def bot_script():
                     { text: "Intercepting order flow packets", color: "#facc15" },
                     { text: "Reverse-engineering price engine", color: "#e879f9" },
                     { text: "Injecting live data hook", color: "#38bdf8" },
-                    { text: "R-A CANDLE HACKER || NODE ARMED", color: "#4ade80" }
+                    { text: "Syncing tick buffer 0x626", color: "#4ade80" },
+                    { text: "Probing liquidity depth matrix", color: "#fb7185" },
+                    { text: "Mapping volatility impulse", color: "#00f0ff" },
+                    { text: "Verifying session entropy", color: "#facc15" },
+                    { text: "Decrypting order queue stream", color: "#e879f9" },
+                    { text: "Calibrating candle wick pressure", color: "#38bdf8" },
+                    { text: "Checking spread micro-shifts", color: "#4ade80" },
+                    { text: "Aligning momentum vectors", color: "#fb7185" },
+                    { text: "Scanning rejection zones", color: "#00f0ff" },
+                    { text: "Parsing live bid/ask delta", color: "#facc15" },
+                    { text: "Locking trend expansion filter", color: "#e879f9" },
+                    { text: "Validating node 0x37 bridge", color: "#38bdf8" },
+                    { text: "Tuning quant core weights", color: "#4ade80" },
+                    { text: "Stabilizing socket stream", color: "#fb7185" },
+                    { text: "Benchmarking execution path", color: "#00f0ff" },
+                    { text: "Confirming breakout threshold", color: "#facc15" },
+                    { text: "Finalizing candle target model", color: "#e879f9" },
+                    { text: "Arming live trade trigger", color: "#38bdf8" },
+                    { text: "Encrypting signal payload", color: "#22c55e" },
+                    { text: "R-A Candle Hacker || NODE ARMED", color: "#4ade80" }
                 ];
 
                 var modal = d.createElement('div');
                 modal.id = 'ra-hacker-scan-modal';
-                modal.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%, -50%);width:316px;max-width:92vw;' +
+                modal.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%, -50%);width:320px;max-width:93vw;' +
                     'background:linear-gradient(160deg, #061d15 0%, #051326 52%, #150726 100%);' +
                     'border:2.2px solid #22c55e;border-radius:14px;padding:12px;z-index:2147483647;' +
                     'font-family:"Courier New",Courier,monospace;color:#4ade80;box-sizing:border-box;' +
-                    'animation:raMainBorderCycle 6s infinite ease-in-out;overflow:hidden;';
+                    'animation:raMainBorderCycle 6.5s infinite ease-in-out;overflow:hidden;';
 
                 modal.innerHTML = '' +
                     '<div style="position:relative;overflow:hidden;">' +
                     '  <div id="ra-scan-laser" style="position:absolute;left:0;top:0;width:100%;height:5px;border-radius:3px;z-index:5;pointer-events:none;animation:raSmoothThickLaser 2.2s infinite ease-in-out;"></div>' +
                     '  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(0,240,255,0.35);padding-bottom:7px;margin-bottom:8px;">' +
                     '    <div style="display:flex;align-items:center;gap:7px;">' +
-                    '      <div style="width:29px;height:29px;border-radius:50%;border:1.8px solid #00f0ff;background:#041620;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:900;color:#4ade80;animation:raSlowRgbRing 5s infinite ease-in-out;">R-A</div>' +
+                    '      <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1.8px solid #00f0ff;animation:raSlowRgbRing 5.5s infinite ease-in-out;" />' +
                     '      <div>' +
                     '        <div style="font-size:11.5px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 8px rgba(74,222,128,0.65);">R-A Candle Hacker</div>' +
                     '        <div style="font-size:7px;color:#00f0ff;letter-spacing:0.5px;">QUANT CORE EXPLOIT</div>' +
@@ -435,12 +457,12 @@ def bot_script():
                     '      </div>' +
                     '    </div>' +
                     '    <div style="display:flex;align-items:center;gap:5px;">' +
-                    '      <div id="ra-pct-badge" style="background:rgba(20,83,45,0.85);border:1.2px solid #4ade80;color:#4ade80;font-size:9px;font-weight:900;padding:2px 6px;border-radius:10px;animation:raSubBoxCycleA 4.5s infinite ease-in-out;">1%</div>' +
+                    '      <div id="ra-pct-badge" style="background:rgba(20,83,45,0.85);border:1.2px solid #4ade80;color:#4ade80;font-size:9px;font-weight:900;padding:2px 6px;border-radius:10px;animation:raSubBoxCycleA 4.8s infinite ease-in-out;">1%</div>' +
                     '      <div id="ra-modal-close" style="cursor:pointer;color:#94a3b8;font-size:12px;font-weight:bold;padding:0 3px;">✕</div>' +
                     '    </div>' +
                     '  </div>' +
 
-                    '  <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:8px;padding:7px;margin-bottom:7px;animation:raSubBoxCycleB 5.2s infinite ease-in-out;">' +
+                    '  <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:8px;padding:7px;margin-bottom:7px;animation:raSubBoxCycleB 5.4s infinite ease-in-out;">' +
                     '    <div style="display:flex;justify-content:space-between;font-size:7px;color:#00f0ff;margin-bottom:4px;">' +
                     '      <span>MEMORY STREAM</span>' +
                     '      <span id="ra-mem-state" style="color:#4ade80;font-weight:bold;">● LOW</span>' +
@@ -460,19 +482,19 @@ def bot_script():
                     '  </div>' +
 
                     '  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:5px;font-size:7px;text-align:center;">' +
-                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 4.8s infinite ease-in-out;"><div style="color:#64748b;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW</div></div>' +
-                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 5.4s infinite ease-in-out;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div style="color:#86efac;">FEED</div></div>' +
-                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #facc15;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 5.0s infinite ease-in-out;"><div style="color:#64748b;">RSA</div><div id="ra-rsa-val" style="color:#facc15;font-weight:bold;">1%</div></div>' +
-                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #e879f9;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.8s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 4.9s infinite ease-in-out;"><div style="color:#64748b;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 5.5s infinite ease-in-out;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div style="color:#86efac;">FEED</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #facc15;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 5.1s infinite ease-in-out;"><div style="color:#64748b;">RSA</div><div id="ra-rsa-val" style="color:#facc15;font-weight:bold;">1%</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #e879f9;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.9s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW</div></div>' +
                     '  </div>' +
 
                     '  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:7px;font-size:7px;text-align:center;">' +
-                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 4.6s infinite ease-in-out;"><div style="color:#4ade80;font-weight:bold;">23ms</div><div style="color:#64748b;">LATENCY</div></div>' +
-                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #fb7185;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 5.2s infinite ease-in-out;"><div style="color:#64748b;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">1%</div></div>' +
-                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.6s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 4.7s infinite ease-in-out;"><div style="color:#4ade80;font-weight:bold;">23ms</div><div style="color:#64748b;">LATENCY</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #fb7185;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 5.3s infinite ease-in-out;"><div style="color:#64748b;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">1%</div></div>' +
+                    '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.7s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW</div></div>' +
                     '  </div>' +
 
-                    '  <div id="ra-terminal-feed" style="background:#02090e;border:1.3px solid #00f0ff;border-radius:8px;padding:7px;font-size:7.2px;line-height:1.45;color:#e2e8f0;min-height:82px;animation:raSubBoxCycleC 6.2s infinite ease-in-out;"></div>' +
+                    '  <div id="ra-terminal-feed" style="background:#02090e;border:1.3px solid #00f0ff;border-radius:8px;padding:7px;font-size:7px;line-height:1.4;color:#e2e8f0;max-height:108px;overflow-y:auto;animation:raSubBoxCycleC 6.2s infinite ease-in-out;"></div>' +
                     '</div>';
 
                 d.body.appendChild(modal);
@@ -499,12 +521,13 @@ def bot_script():
                         return { signal: (Math.floor(Date.now() / 15000) % 2 === 0 ? "CALL" : "PUT"), pts: 19 };
                     });
 
+                // ~7.5 seconds total scan duration (100 steps * 75ms = 7500ms)
                 var progressTimer = setInterval(function(){
                     if(!modal.isConnected) {
                         clearInterval(progressTimer);
                         return;
                     }
-                    pct += 5;
+                    pct += 1;
                     if(pct > 100) pct = 100;
                     if(pctBadge) pctBadge.innerText = pct + '%';
                     if(rsaVal) rsaVal.innerText = Math.min(98, pct) + '%';
@@ -517,13 +540,14 @@ def bot_script():
                     if(cycMode) { cycMode.innerText = levelLabel; cycMode.style.color = levelColor; }
                     if(nodeMode) { nodeMode.innerText = levelLabel; nodeMode.style.color = levelColor; }
 
-                    var targetSteps = Math.min(scanSteps.length, Math.floor((pct / 100) * scanSteps.length) + 1);
+                    var targetSteps = Math.min(scanSteps.length, Math.floor(((pct - 1) / 99) * scanSteps.length) + 1);
                     while(revealedCount < targetSteps && feedEl) {
                         var stepObj = scanSteps[revealedCount];
                         var row = d.createElement('div');
-                        row.style.cssText = 'animation:raStepSlideIn 0.25s ease-out;color:' + stepObj.color + ';';
+                        row.style.cssText = 'animation:raStepSlideIn 0.22s ease-out;color:' + stepObj.color + ';';
                         row.innerHTML = '<span style="color:#4ade80;font-weight:900;">✓</span> ' + stepObj.text;
                         feedEl.appendChild(row);
+                        feedEl.scrollTop = feedEl.scrollHeight;
                         revealedCount++;
                     }
 
@@ -537,10 +561,10 @@ def bot_script():
                                 if(modal.isConnected) modal.remove();
                                 showBoxSignalCard(isCall, market, ptsVal);
                                 triggerBrokerTradeClick(isCall);
-                            }, 350);
+                            }, 250);
                         });
                     }
-                }, 135);
+                }, 75);
             }
 
             createDraggableBotButton();
