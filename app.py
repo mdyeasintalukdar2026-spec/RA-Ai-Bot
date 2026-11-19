@@ -63,7 +63,6 @@ class BiDirectionalMarketEngine:
                     ratio = abs(diff1) / avg_move if avg_move > 0 else 1.0
                     mag_pts = max(8, min(40, int(round(14 * ratio + (abs(diff1) * 100000) % 15))))
 
-                    # Balanced Bi-Directional Momentum & Reversal Confluence
                     if diff1 > 0 and diff2 > 0:
                         sig = "PUT" if (epoch_sec // 5) % 2 == 1 else "CALL"
                         return {
@@ -203,12 +202,16 @@ def bot_script():
                 '  100% { box-shadow: 0 0 18px #22c55e, 0 0 34px rgba(34,197,94,0.85), inset 0 0 12px rgba(34,197,94,0.65); border-color: #22c55e; }' +
                 '}' +
                 '@keyframes raLoginBoxGlow {' +
-                '  0%, 100% { border-color: #22c55e; box-shadow: 0 0 34px rgba(34,197,94,0.9), 0 0 64px rgba(0,240,255,0.42), inset 0 0 18px rgba(34,197,94,0.28); }' +
-                '  50%      { border-color: #4ade80; box-shadow: 0 0 42px rgba(74,222,128,0.98), 0 0 76px rgba(34,197,94,0.58), inset 0 0 22px rgba(74,222,128,0.38); }' +
+                '  0%   { border-color: #22c55e; box-shadow: 0 0 26px rgba(34,197,94,0.75), 0 0 52px rgba(0,240,255,0.32), inset 0 0 14px rgba(34,197,94,0.22); }' +
+                '  33%  { border-color: #00f0ff; box-shadow: 0 0 28px rgba(0,240,255,0.78), 0 0 56px rgba(232,121,249,0.34), inset 0 0 14px rgba(0,240,255,0.22); }' +
+                '  66%  { border-color: #e879f9; box-shadow: 0 0 28px rgba(232,121,249,0.78), 0 0 56px rgba(250,204,21,0.34), inset 0 0 14px rgba(232,121,249,0.22); }' +
+                '  100% { border-color: #22c55e; box-shadow: 0 0 26px rgba(34,197,94,0.75), 0 0 52px rgba(0,240,255,0.32), inset 0 0 14px rgba(34,197,94,0.22); }' +
                 '}' +
                 '@keyframes raTelegramCardGlow {' +
-                '  0%, 100% { border-color: #facc15; box-shadow: 0 0 18px rgba(250,204,21,0.75), inset 0 0 10px rgba(250,204,21,0.28); }' +
-                '  50%      { border-color: #4ade80; box-shadow: 0 0 22px rgba(74,222,128,0.85), inset 0 0 12px rgba(74,222,128,0.32); }' +
+                '  0%   { border-color: #facc15; box-shadow: 0 0 14px rgba(250,204,21,0.62), inset 0 0 8px rgba(250,204,21,0.2); }' +
+                '  33%  { border-color: #4ade80; box-shadow: 0 0 16px rgba(74,222,128,0.68), inset 0 0 8px rgba(74,222,128,0.22); }' +
+                '  66%  { border-color: #38bdf8; box-shadow: 0 0 16px rgba(56,189,248,0.68), inset 0 0 8px rgba(56,189,248,0.22); }' +
+                '  100% { border-color: #facc15; box-shadow: 0 0 14px rgba(250,204,21,0.62), inset 0 0 8px rgba(250,204,21,0.2); }' +
                 '}' +
                 '@keyframes raMainBorderCycle {' +
                 '  0%   { border-color: #22c55e; box-shadow: 0 0 44px rgba(34,197,94,0.98), 0 0 84px rgba(0,240,255,0.62), inset 0 0 24px rgba(34,197,94,0.4); }' +
@@ -266,6 +269,47 @@ def bot_script():
                 '}';
             d.head.appendChild(styleEl);
 
+            function applyHeroCandleDirection(isCall) {
+                var heroCandleBox = d.getElementById('ra-hero-candle-box');
+                var heroCandleBody = d.getElementById('ra-hero-candle-body');
+                var heroWickTop = d.getElementById('ra-hero-wick-top');
+                var heroWickBot = d.getElementById('ra-hero-wick-bot');
+                var heroDirLabel = d.getElementById('ra-hero-dir-label');
+                if(!heroCandleBody || !heroWickTop || !heroWickBot || !heroCandleBox) return;
+
+                if(isCall) {
+                    heroCandleBody.style.background = '#22c55e';
+                    heroCandleBody.style.borderColor = '#86efac';
+                    heroCandleBody.style.boxShadow = '0 0 24px rgba(34,197,94,1), 0 0 46px rgba(74,222,128,0.95)';
+                    heroWickTop.style.background = '#4ade80';
+                    heroWickTop.style.height = '13px';
+                    heroWickBot.style.background = '#4ade80';
+                    heroWickBot.style.height = '8px';
+                    heroCandleBox.style.borderColor = '#4ade80';
+                    heroCandleBox.style.background = 'rgba(34,197,94,0.2)';
+                    heroCandleBox.style.boxShadow = '0 0 26px rgba(34,197,94,0.98), 0 0 48px rgba(74,222,128,0.8)';
+                    if(heroDirLabel) {
+                        heroDirLabel.innerText = '▲ UP';
+                        heroDirLabel.style.color = '#4ade80';
+                    }
+                } else {
+                    heroCandleBody.style.background = '#ef4444';
+                    heroCandleBody.style.borderColor = '#fca5a5';
+                    heroCandleBody.style.boxShadow = '0 0 24px rgba(239,68,68,1), 0 0 46px rgba(248,113,113,0.95)';
+                    heroWickTop.style.background = '#f87171';
+                    heroWickTop.style.height = '8px';
+                    heroWickBot.style.background = '#f87171';
+                    heroWickBot.style.height = '13px';
+                    heroCandleBox.style.borderColor = '#f87171';
+                    heroCandleBox.style.background = 'rgba(239,68,68,0.2)';
+                    heroCandleBox.style.boxShadow = '0 0 26px rgba(239,68,68,0.98), 0 0 48px rgba(248,113,113,0.8)';
+                    if(heroDirLabel) {
+                        heroDirLabel.innerText = '▼ DOWN';
+                        heroDirLabel.style.color = '#f87171';
+                    }
+                }
+            }
+
             function showCenteredPasswordPanel() {
                 var oldLogin = d.getElementById('ra-hacker-login-modal');
                 if(oldLogin) oldLogin.remove();
@@ -273,49 +317,49 @@ def bot_script():
                 var loginBox = d.createElement('div');
                 loginBox.id = 'ra-hacker-login-modal';
                 loginBox.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);' +
-                    'width:288px;max-width:90vw;background:linear-gradient(170deg, #061018 0%, #091722 55%, #050d14 100%);' +
-                    'border:2.2px solid #22c55e;border-radius:16px;padding:12px 13px;box-sizing:border-box;' +
+                    'width:258px;max-width:88vw;background:linear-gradient(170deg, #061018 0%, #091722 55%, #050d14 100%);' +
+                    'border:2px solid #22c55e;border-radius:14px;padding:10px 11px;box-sizing:border-box;' +
                     'z-index:2147483647;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#ffffff;' +
-                    'animation:raLoginBoxGlow 3.2s infinite ease-in-out;';
+                    'animation:raLoginBoxGlow 8s infinite ease-in-out;';
 
                 loginBox.innerHTML = '' +
-                    '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:9px;margin-bottom:9px;">' +
-                    '  <div style="display:flex;align-items:center;gap:9px;">' +
-                    '    <div style="width:40px;height:40px;border-radius:50%;padding:2px;background:linear-gradient(135deg,#22c55e,#00f0ff,#e879f9);box-shadow:0 0 14px rgba(34,197,94,0.85);flex-shrink:0;">' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:7px;margin-bottom:7px;">' +
+                    '  <div style="display:flex;align-items:center;gap:7px;">' +
+                    '    <div style="width:34px;height:34px;border-radius:50%;padding:1.5px;background:linear-gradient(135deg,#22c55e,#00f0ff,#e879f9);box-shadow:0 0 12px rgba(34,197,94,0.8);flex-shrink:0;">' +
                     '      <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;background:#02090e;" />' +
                     '    </div>' +
                     '    <div>' +
-                    '      <div style="font-size:12.5px;font-weight:900;color:#ffffff;letter-spacing:0.3px;">R-A Candle Hacker</div>' +
-                    '      <div style="font-size:8.5px;font-weight:800;color:#f43f5e;letter-spacing:0.8px;margin-top:1px;">SECURE LOGIN</div>' +
+                    '      <div style="font-size:11px;font-weight:900;color:#ffffff;letter-spacing:0.2px;line-height:1.15;">R-A Candle Hacker</div>' +
+                    '      <div style="font-size:7.5px;font-weight:800;color:#f43f5e;letter-spacing:0.7px;margin-top:1px;">SECURE LOGIN</div>' +
                     '    </div>' +
                     '  </div>' +
-                    '  <div id="ra-login-close" style="width:24px;height:24px;border-radius:6px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#cbd5e1;font-weight:bold;">✕</div>' +
+                    '  <div id="ra-login-close" style="width:20px;height:20px;border-radius:5px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10.5px;color:#cbd5e1;font-weight:bold;">✕</div>' +
                     '</div>' +
 
-                    '<div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">' +
-                    '  <div style="width:48px;height:48px;border-radius:50%;padding:2px;background:linear-gradient(135deg,#facc15,#ef4444,#22c55e);box-shadow:0 0 14px rgba(250,204,21,0.75);flex-shrink:0;">' +
+                    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">' +
+                    '  <div style="width:40px;height:40px;border-radius:50%;padding:1.5px;background:linear-gradient(135deg,#facc15,#ef4444,#22c55e);box-shadow:0 0 12px rgba(250,204,21,0.7);flex-shrink:0;">' +
                     '    <img src="' + communityAvatarUrl + '" alt="R-A Trading Community" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;background:#02090e;" />' +
                     '  </div>' +
-                    '  <div style="font-size:10px;color:#94a3b8;line-height:1.35;">' +
-                    '    <div style="color:#facc15;font-weight:800;font-size:10.5px;">Official VIP Access</div>' +
-                    '    <div>Join our Telegram channel for updates &amp; keys.</div>' +
+                    '  <div style="font-size:8.8px;color:#94a3b8;line-height:1.3;">' +
+                    '    <div style="color:#facc15;font-weight:800;font-size:9.3px;">Official VIP Access</div>' +
+                    '    <div>Join Telegram for updates &amp; keys.</div>' +
                     '  </div>' +
                     '</div>' +
 
-                    '<a href="' + telegramChannelUrl + '" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:9px;text-decoration:none;background:linear-gradient(135deg, rgba(16,28,38,0.96), rgba(10,20,28,0.98));border:1.8px solid #facc15;border-radius:11px;padding:9px 10px;margin-bottom:9px;cursor:pointer;animation:raTelegramCardGlow 2.8s infinite ease-in-out;">' +
-                    '  <div style="width:24px;height:24px;border-radius:50%;background:#26a5e4;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 10px rgba(38,165,228,0.85);">' +
-                    '    <svg width="13" height="13" viewBox="0 0 24 24" fill="#ffffff"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>' +
+                    '<a href="' + telegramChannelUrl + '" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;background:linear-gradient(135deg, rgba(16,28,38,0.96), rgba(10,20,28,0.98));border:1.6px solid #facc15;border-radius:10px;padding:7px 8px;margin-bottom:7px;cursor:pointer;animation:raTelegramCardGlow 7.5s infinite ease-in-out;">' +
+                    '  <div style="width:20px;height:20px;border-radius:50%;background:#26a5e4;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 9px rgba(38,165,228,0.8);">' +
+                    '    <svg width="11" height="11" viewBox="0 0 24 24" fill="#ffffff"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>' +
                     '  </div>' +
                     '  <div style="text-align:left;">' +
-                    '    <div style="font-size:11.5px;font-weight:800;color:#4ade80;line-height:1.2;">R-A Trading Community</div>' +
-                    '    <div style="font-size:8.5px;color:#cbd5e1;margin-top:1px;">Click to Join Telegram</div>' +
+                    '    <div style="font-size:10px;font-weight:800;color:#4ade80;line-height:1.15;">R-A Trading Community</div>' +
+                    '    <div style="font-size:7.5px;color:#cbd5e1;margin-top:1px;">Click to Join Telegram</div>' +
                     '  </div>' +
                     '</a>' +
 
-                    '<div style="text-align:center;font-size:9px;color:#94a3b8;font-weight:600;margin-bottom:5px;">Bot Access Key</div>' +
-                    '<input id="ra-access-key-input" type="password" placeholder="Bot Access Key" autocomplete="off" style="width:100%;box-sizing:border-box;background:#0b1724;border:1.5px solid rgba(148,163,184,0.3);border-radius:10px;padding:9px 10px;color:#ffffff;font-size:11.5px;text-align:center;outline:none;margin-bottom:8px;transition:all 0.25s ease;" />' +
-                    '<div id="ra-login-status-msg" style="min-height:14px;text-align:center;font-size:9.5px;font-weight:800;margin-bottom:6px;letter-spacing:0.3px;"></div>' +
-                    '<button id="ra-activate-bot-btn" type="button" style="width:100%;border:none;border-radius:10px;padding:10px;font-size:11.5px;font-weight:900;letter-spacing:0.6px;color:#04110a;background:linear-gradient(90deg, #f43f5e 0%, #eab308 45%, #22c55e 100%);cursor:pointer;box-shadow:0 0 18px rgba(34,197,94,0.55);transition:all 0.25s ease;">ACTIVATE BOT</button>';
+                    '<div style="text-align:center;font-size:8px;color:#94a3b8;font-weight:600;margin-bottom:4px;">Bot Access Key</div>' +
+                    '<input id="ra-access-key-input" type="password" placeholder="Bot Access Key" autocomplete="off" style="width:100%;box-sizing:border-box;background:#0b1724;border:1.4px solid rgba(148,163,184,0.3);border-radius:8px;padding:7px 8px;color:#ffffff;font-size:10.5px;text-align:center;outline:none;margin-bottom:6px;transition:all 0.25s ease;" />' +
+                    '<div id="ra-login-status-msg" style="min-height:12px;text-align:center;font-size:8.5px;font-weight:800;margin-bottom:5px;letter-spacing:0.2px;"></div>' +
+                    '<button id="ra-activate-bot-btn" type="button" style="width:100%;border:none;border-radius:8px;padding:8px;font-size:10.5px;font-weight:900;letter-spacing:0.5px;color:#04110a;background:linear-gradient(90deg, #f43f5e 0%, #eab308 45%, #22c55e 100%);cursor:pointer;box-shadow:0 0 15px rgba(34,197,94,0.5);transition:all 0.25s ease;">ACTIVATE BOT</button>';
 
                 d.body.appendChild(loginBox);
 
@@ -422,7 +466,6 @@ def bot_script():
                 popupEl.style.top = topPos + 'px';
             }
 
-            // Solid opaque circular bot icon with spinning animated color-changing glowing border
             function createDraggableBotButton() {
                 if(d.getElementById('ra-hacker-btn')) return;
 
@@ -603,34 +646,13 @@ def bot_script():
                 }, 10000);
             }
 
-            function triggerBrokerTradeClick(isCall) {
-                try {
-                    var btns = d.querySelectorAll('button');
-                    for(var i = 0; i < btns.length; i++) {
-                        var b = btns[i];
-                        var txt = (b.innerText || '').trim().toUpperCase();
-                        var cls = (b.className || '').toUpperCase();
-                        if(isCall) {
-                            if(txt === 'BUY' || txt.includes('CALL') || cls.includes('CALL')) {
-                                b.click();
-                                return;
-                            }
-                        } else {
-                            if(txt === 'SELL' || txt.includes('PUT') || cls.includes('PUT')) {
-                                b.click();
-                                return;
-                            }
-                        }
-                    }
-                } catch(e) {}
-            }
-
             function startHackerScanSequence() {
                 var oldModal = d.getElementById('ra-hacker-scan-modal');
                 if(oldModal) oldModal.remove();
 
                 var liveMarketDisplay = detectExactQuotexMarket();
                 var cleanSymbol = liveMarketDisplay.replace(/[^A-Z]/g, '').substring(0, 6) || "EURUSD";
+                var initialIsCall = (((Math.floor(Date.now() / 5000) + cleanSymbol.charCodeAt(0)) % 2) === 0);
 
                 var hexStreamLines = [
                     { text: "MOD KERNEL32.DLL: 0x0550D120 SCOPE", color: "#00f0ff" },
@@ -709,9 +731,10 @@ def bot_script():
                     '    <span id="ra-mem-state" style="color:#4ade80;font-weight:bold;">● LOW</span>' +
                     '  </div>' +
                     '  <div style="display:flex;align-items:center;gap:6px;">' +
-                    '    <div id="ra-hero-candle-box" style="width:34px;height:66px;border:1.8px solid #22c55e;border-radius:6px;background:rgba(34,197,94,0.16);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 24px rgba(34,197,94,0.95), 0 0 42px rgba(74,222,128,0.75);animation:raHeroCandleSpinGlow 3.2s infinite linear;">' +
+                    '    <div id="ra-hero-candle-box" style="width:36px;height:68px;border:1.8px solid #22c55e;border-radius:6px;background:rgba(34,197,94,0.16);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 24px rgba(34,197,94,0.95), 0 0 42px rgba(74,222,128,0.75);animation:raHeroCandleSpinGlow 2.8s infinite linear;">' +
+                    '      <span id="ra-hero-dir-label" style="font-size:5.8px;font-weight:900;letter-spacing:0.2px;margin-bottom:1px;color:#4ade80;">▲ UP</span>' +
                     '      <span id="ra-hero-wick-top" style="width:2.5px;height:11px;background:#4ade80;box-shadow:0 0 8px #22c55e;"></span>' +
-                    '      <span id="ra-hero-candle-body" style="width:16px;height:36px;background:#22c55e;border:1.3px solid #86efac;border-radius:2px;display:inline-block;box-shadow:0 0 22px rgba(34,197,94,1), 0 0 40px rgba(74,222,128,0.9);"></span>' +
+                    '      <span id="ra-hero-candle-body" style="width:16px;height:34px;background:#22c55e;border:1.3px solid #86efac;border-radius:2px;display:inline-block;box-shadow:0 0 22px rgba(34,197,94,1), 0 0 40px rgba(74,222,128,0.9);"></span>' +
                     '      <span id="ra-hero-wick-bot" style="width:2.5px;height:11px;background:#4ade80;box-shadow:0 0 8px #22c55e;"></span>' +
                     '    </div>' +
                     '    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">' +
@@ -753,6 +776,7 @@ def bot_script():
                     '<div id="ra-terminal-feed" style="background:#02090e;border:1.3px solid #e879f9;border-radius:8px;padding:5px 7px;font-size:7px;line-height:1.42;height:80px;overflow-y:auto;animation:raSubBoxCycleC 5.9s infinite ease-in-out;"></div>';
 
                 d.body.appendChild(modal);
+                applyHeroCandleDirection(initialIsCall);
 
                 modal.querySelector('#ra-modal-close').onclick = function() {
                     modal.remove();
@@ -775,42 +799,18 @@ def bot_script():
                 var feedEl = modal.querySelector('#ra-terminal-feed');
                 var barsRtlEl = modal.querySelector('#ra-volume-bars-rtl');
                 var barsLtrEl = modal.querySelector('#ra-volume-bars-ltr');
-                var heroCandleBox = modal.querySelector('#ra-hero-candle-box');
-                var heroCandleBody = modal.querySelector('#ra-hero-candle-body');
-                var heroWickTop = modal.querySelector('#ra-hero-wick-top');
-                var heroWickBot = modal.querySelector('#ra-hero-wick-bot');
 
                 var signalPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(cleanSymbol) + '&t=' + Date.now())
                     .then(function(r){ return r.json(); })
                     .catch(function(){
-                        var fb = ((Math.floor(Date.now() / 5000) + cleanSymbol.charCodeAt(0)) % 2 === 0) ? "CALL" : "PUT";
+                        var fb = (((Math.floor(Date.now() / 5000) + cleanSymbol.charCodeAt(0)) % 2) === 0) ? "CALL" : "PUT";
                         return { signal: fb, pts: 19 };
                     });
 
                 signalPromise.then(function(data){
                     var sig = String(data.signal || 'CALL').toUpperCase();
                     var isCall = (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
-                    if(heroCandleBody && heroWickTop && heroWickBot && heroCandleBox) {
-                        if(isCall) {
-                            heroCandleBody.style.background = '#22c55e';
-                            heroCandleBody.style.borderColor = '#86efac';
-                            heroCandleBody.style.boxShadow = '0 0 24px rgba(34,197,94,1), 0 0 46px rgba(74,222,128,0.95)';
-                            heroWickTop.style.background = '#4ade80';
-                            heroWickBot.style.background = '#4ade80';
-                            heroCandleBox.style.borderColor = '#4ade80';
-                            heroCandleBox.style.background = 'rgba(34,197,94,0.2)';
-                            heroCandleBox.style.boxShadow = '0 0 26px rgba(34,197,94,0.98), 0 0 48px rgba(74,222,128,0.8)';
-                        } else {
-                            heroCandleBody.style.background = '#ef4444';
-                            heroCandleBody.style.borderColor = '#fca5a5';
-                            heroCandleBody.style.boxShadow = '0 0 24px rgba(239,68,68,1), 0 0 46px rgba(248,113,113,0.95)';
-                            heroWickTop.style.background = '#f87171';
-                            heroWickBot.style.background = '#f87171';
-                            heroCandleBox.style.borderColor = '#f87171';
-                            heroCandleBox.style.background = 'rgba(239,68,68,0.2)';
-                            heroCandleBox.style.boxShadow = '0 0 26px rgba(239,68,68,0.98), 0 0 48px rgba(248,113,113,0.8)';
-                        }
-                    }
+                    applyHeroCandleDirection(isCall);
                 });
 
                 var trackWidth = (barsRtlEl && barsRtlEl.clientWidth) ? barsRtlEl.clientWidth : 230;
@@ -824,7 +824,7 @@ def bot_script():
                     var progressiveGrowth = Math.min(13, Math.floor((idx / maxDualCandles) * 13));
                     var barH = Math.min(24, 6 + progressiveGrowth + ((idx * 3) % 5));
                     var vCandle = d.createElement('div');
-                    vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;width:5.2px;height:26px;flex-shrink:0;animation:raUltraSmoothCandle 0.16s cubic-bezier(0.22,1,0.36,1) forwards;';
+                    vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;width:5.2px;height:26px;flex-shrink:0;animation:raUltraSmoothCandle 0.14s cubic-bezier(0.22,1,0.36,1) forwards;';
                     vCandle.innerHTML = '' +
                         '<span style="width:1px;height:2.5px;background:' + vCol + ';box-shadow:0 0 6px ' + vGlow + ';"></span>' +
                         '<span style="width:4px;height:' + barH + 'px;background:' + vCol + ';border-radius:1px;display:inline-block;box-shadow:0 0 12px ' + vGlow + ', 0 0 20px ' + vGlow + ';"></span>' +
@@ -841,7 +841,8 @@ def bot_script():
 
                     var elapsed = nowTs - scanStartTime;
                     var rawRatio = Math.min(1, elapsed / scanDurationMs);
-                    var nextPct = Math.max(1, Math.min(100, Math.floor(rawRatio * 99) + 1));
+                    var easedRatio = 1 - Math.pow(1 - rawRatio, 1.35);
+                    var nextPct = Math.max(1, Math.min(100, Math.floor(easedRatio * 99) + 1));
 
                     if(nextPct !== pct) {
                         pct = nextPct;
@@ -871,7 +872,7 @@ def bot_script():
                         if(memState) { memState.innerText = "● " + tMem.label; memState.style.color = tMem.color; }
                     }
 
-                    var candleProgress = Math.min(1, rawRatio / 0.94);
+                    var candleProgress = Math.min(1, easedRatio / 0.94);
                     var targetDualCount = Math.min(maxDualCandles, Math.floor(candleProgress * maxDualCandles) + (rawRatio > 0.01 ? 1 : 0));
                     while(revealedDualBars < targetDualCount) {
                         if(barsRtlEl) barsRtlEl.appendChild(buildCandleNode(revealedDualBars, false));
@@ -879,22 +880,22 @@ def bot_script():
                         revealedDualBars++;
                     }
 
-                    var targetHex = Math.min(hexStreamLines.length, Math.floor(rawRatio * hexStreamLines.length) + 1);
+                    var targetHex = Math.min(hexStreamLines.length, Math.floor(easedRatio * hexStreamLines.length) + 1);
                     while(revealedHex < targetHex && hexStreamEl) {
                         var hObj = hexStreamLines[revealedHex];
                         var hRow = d.createElement('div');
-                        hRow.style.cssText = 'animation:raStepSlideIn 0.16s ease-out;color:' + hObj.color + ';';
+                        hRow.style.cssText = 'animation:raStepSlideIn 0.14s ease-out;color:' + hObj.color + ';';
                         hRow.innerText = hObj.text;
                         hexStreamEl.appendChild(hRow);
                         hexStreamEl.scrollTop = hexStreamEl.scrollHeight;
                         revealedHex++;
                     }
 
-                    var targetSteps = Math.min(scanSteps.length, Math.floor(rawRatio * scanSteps.length) + 1);
+                    var targetSteps = Math.min(scanSteps.length, Math.floor(easedRatio * scanSteps.length) + 1);
                     while(revealedSteps < targetSteps && feedEl) {
                         var stepObj = scanSteps[revealedSteps];
                         var row = d.createElement('div');
-                        row.style.cssText = 'animation:raStepSlideIn 0.16s ease-out;color:' + stepObj.color + ';';
+                        row.style.cssText = 'animation:raStepSlideIn 0.14s ease-out;color:' + stepObj.color + ';';
                         row.innerHTML = '<span style="color:#4ade80;font-weight:900;">✓</span> ' + stepObj.text;
                         feedEl.appendChild(row);
                         feedEl.scrollTop = feedEl.scrollHeight;
@@ -910,10 +911,10 @@ def bot_script():
                             var sig = String(data.signal || 'CALL').toUpperCase();
                             var isCall = (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
                             var ptsVal = data.pts || 18;
+                            applyHeroCandleDirection(isCall);
                             setTimeout(function(){
                                 if(modal.isConnected) modal.remove();
                                 showBoxSignalCard(isCall, finalMarket, ptsVal);
-                                triggerBrokerTradeClick(isCall);
                             }, 220);
                         });
                         return;
