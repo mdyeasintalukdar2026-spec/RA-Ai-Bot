@@ -52,10 +52,10 @@ class BiDirectionalMarketEngine:
                     c0 = float(values[0]["close"])
                     c1 = float(values[1]["close"])
                     c2 = float(values[2]["close"])
-                    
+
                     diff1 = c0 - c1
                     diff2 = c1 - c2
-                    
+
                     if diff1 > 0 and diff2 >= 0:
                         return {"signal": "CALL", "trend": "BULLISH (UP)", "rule": f"Upward Expansion Confirmed ({c0:.5f} > {c1:.5f})"}
                     elif diff1 < 0 and diff2 <= 0:
@@ -122,169 +122,358 @@ def bot_script():
     (function(){
         try {
             var d = document;
-            ["ra-sniper-bot-panel", "ra-sniper-bot-btn", "ra-sniper-bot-style", "dr-tracker-panel", "dr-tracker-btn", "dr-chart-overlay"].forEach(function(i){
-                var e = d.getElementById(i);
-                if(e) e.remove();
+            ["ra-sniper-bot-panel", "ra-sniper-bot-btn", "ra-sniper-bot-style", "dr-tracker-panel", "dr-tracker-btn", "dr-scan-modal", "dr-candle-projection", "dr-next-signal-popup", "dr-hacker-style"].forEach(function(id){
+                var el = d.getElementById(id);
+                if(el) el.remove();
             });
 
             var renderServerUrl = "https://ra-ai-bot.onrender.com";
 
-            var s = d.createElement('style');
-            s.id = 'dr-tracker-style';
-            s.innerHTML = '@keyframes drGlowPulse {0% { border-color: #22c55e; box-shadow: 0 0 25px rgba(34,197,94,0.8); } 50% { border-color: #00ffcc; box-shadow: 0 0 35px rgba(0,255,204,0.9); } 100% { border-color: #22c55e; box-shadow: 0 0 25px rgba(34,197,94,0.8); }} ' +
-                          '@keyframes hackerScanLine {0% { top: 0%; opacity: 0.9; } 50% { top: 100%; opacity: 1; } 100% { top: 0%; opacity: 0.9; }} ' +
-                          '@keyframes widgetPulse {0% { transform: scale(0.95); opacity: 0.8; } 50% { transform: scale(1); opacity: 1; } 100% { transform: scale(0.95); opacity: 0.8; }}';
-            d.head.appendChild(s);
+            var styleEl = d.createElement('style');
+            styleEl.id = 'dr-hacker-style';
+            styleEl.innerHTML = '' +
+                '@keyframes drRingPulse {' +
+                '  0% { box-shadow: 0 0 14px rgba(34,197,94,0.85), inset 0 0 10px rgba(34,197,94,0.5); border-color: #22c55e; }' +
+                '  50% { box-shadow: 0 0 28px rgba(74,222,128,1), inset 0 0 16px rgba(34,197,94,0.75); border-color: #4ade80; }' +
+                '  100% { box-shadow: 0 0 14px rgba(34,197,94,0.85), inset 0 0 10px rgba(34,197,94,0.5); border-color: #22c55e; }' +
+                '}' +
+                '@keyframes drSweepLaser {' +
+                '  0% { top: 0%; opacity: 0.2; }' +
+                '  50% { top: 96%; opacity: 0.95; }' +
+                '  100% { top: 0%; opacity: 0.2; }' +
+                '}' +
+                '@keyframes drBoxGlowUp {' +
+                '  0%, 100% { box-shadow: 0 0 10px rgba(34,197,94,0.55), inset 0 0 8px rgba(34,197,94,0.2); }' +
+                '  50% { box-shadow: 0 0 22px rgba(34,197,94,0.9), inset 0 0 14px rgba(34,197,94,0.35); }' +
+                '}' +
+                '@keyframes drBoxGlowDown {' +
+                '  0%, 100% { box-shadow: 0 0 10px rgba(239,68,68,0.55), inset 0 0 8px rgba(239,68,68,0.2); }' +
+                '  50% { box-shadow: 0 0 22px rgba(239,68,68,0.9), inset 0 0 14px rgba(239,68,68,0.35); }' +
+                '}' +
+                '@keyframes drPopupPop {' +
+                '  0% { opacity: 0; transform: translateY(8px) scale(0.94); }' +
+                '  100% { opacity: 1; transform: translateY(0px) scale(1); }' +
+                '}';
+            d.head.appendChild(styleEl);
 
-            // Floating Draggable Icon (DR TRACK)
-            var btn = d.createElement('div');
-            btn.id = 'dr-tracker-btn';
-            btn.style.cssText = 'position:fixed;bottom:90px;right:20px;width:60px;height:60px;border-radius:50%;background:#020617;border:2.5px solid #22c55e;display:flex;align-items:center;justify-content:center;z-index:2147483647;cursor:pointer;box-shadow:0 0 20px rgba(34,197,94,0.7);animation:drGlowPulse 2s infinite ease-in-out;font-weight:900;color:#22c55e;font-size:14px;font-family:monospace;user-select:none;';
-            btn.innerHTML = '<div style="text-align:center;line-height:1.1;"><div style="font-size:12px;">DR</div><div style="font-size:7px;color:#38bdf8;">TRACK</div></div>';
-            d.body.appendChild(btn);
+            function createDraggableDrButton() {
+                var btn = d.createElement('div');
+                btn.id = 'dr-tracker-btn';
+                btn.style.cssText = 'position:fixed;top:46%;right:14px;width:62px;height:62px;border-radius:50%;' +
+                    'background:radial-gradient(circle at 30% 30%, #0b2416, #020805 75%);' +
+                    'border:2.5px solid #22c55e;display:flex;align-items:center;justify-content:center;' +
+                    'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;' +
+                    'animation:drRingPulse 2.2s infinite ease-in-out;font-family:"Courier New",Courier,monospace;';
 
-            var isDragging = false, startX, startY, hasMoved = false;
-            btn.onmousedown = btn.ontouchstart = function(e){
-                isDragging = true; hasMoved = false;
-                var p = e.touches ? e.touches[0] : e;
-                startX = p.clientX - btn.offsetLeft; startY = p.clientY - btn.offsetTop;
-            };
-            btn.onmousemove = btn.ontouchmove = function(e){
-                if(!isDragging) return;
-                var p = e.touches ? e.touches[0] : e;
-                var nx = p.clientX - startX, ny = p.clientY - startY;
-                if(Math.abs(nx - btn.offsetLeft) > 2 || Math.abs(ny - btn.offsetTop) > 2) hasMoved = true;
-                btn.style.left = nx + 'px'; btn.style.top = ny + 'px';
-                btn.style.bottom = 'auto'; btn.style.right = 'auto';
-            };
-            btn.onmouseup = btn.ontouchend = function(){ isDragging = false; };
-            btn.onclick = btn.ontouchend = function(e){ 
-                if(e) { e.stopPropagation(); e.preventDefault(); }
-                if(!hasMoved) toggleTrackerPanel(); 
-            };
+                btn.innerHTML = '' +
+                    '<div style="position:relative;width:52px;height:52px;border-radius:50%;border:1px dashed rgba(74,222,128,0.65);display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">' +
+                    '  <div style="font-size:15px;font-weight:900;color:#4ade80;letter-spacing:1px;text-shadow:0 0 10px rgba(34,197,94,0.9);line-height:1;">DR</div>' +
+                    '  <div style="font-size:6.5px;font-weight:800;color:#86efac;letter-spacing:0.8px;margin-top:2px;">TRACKER</div>' +
+                    '</div>';
 
-            function toggleTrackerPanel() {
-                var panel = d.getElementById('dr-tracker-panel');
-                if(panel) { panel.remove(); return; }
-                
-                panel = d.createElement('div');
-                panel.id = 'dr-tracker-panel';
-                panel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);width:300px;background:#050b14;border:2px solid #22c55e;border-radius:12px;z-index:2147483647;font-family:monospace;color:#22c55e;padding:12px;box-sizing:border-box;box-shadow:0 0 40px rgba(34,197,94,0.6);';
-                panel.innerHTML = 
-                    '<div id="dr-header" style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1e293b;padding-bottom:6px;margin-bottom:8px;cursor:move;">' +
-                        '<div style="font-size:11px;font-weight:bold;color:#22c55e;letter-spacing:1px;">DR CANDLE TRACKER</div>' +
-                        '<div id="dr-close" style="cursor:pointer;color:#ef4444;font-weight:bold;font-size:12px;padding:0 4px;">✕</div>' +
-                    '</div>' +
-                    '<div style="font-size:8px;color:#94a3b8;margin-bottom:6px;border-bottom:1px dashed #1e293b;padding-bottom:4px;">QUANT CORE EXPLOIT | SESSION: QQX-5709 | NODE: 0x37</div>' +
-                    '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;text-align:center;margin-bottom:8px;font-size:8px;background:#030712;padding:6px;border-radius:6px;border:1px solid #1e293b;">' +
-                        '<div><span style="color:#64748b">OPEN</span><br><b id="m-open" style="color:#fff;">0.1645</b></div>' +
-                        '<div><span style="color:#64748b">HIGH</span><br><b id="m-high" style="color:#22c55e;">0.1650</b></div>' +
-                        '<div><span style="color:#64748b">LOW</span><br><b id="m-low" style="color:#ef4444;">0.1639</b></div>' +
-                        '<div><span style="color:#64748b">CLOSE</span><br><b id="m-close" style="color:#38bdf8;">0.1643</b></div>' +
-                    '</div>' +
-                    '<div style="position:relative;background:#020617;border:1px solid #1e293b;border-radius:6px;height:75px;overflow:hidden;margin-bottom:8px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:4px;">' +
-                        '<div style="position:absolute;top:0;left:0;width:100%;height:2px;background:#22c55e;box-shadow:0 0 10px #22c55e;animation:hackerScanLine 1.5s linear infinite;"></div>' +
-                        '<div id="hacker-log" style="font-size:7.5px;color:#22c55e;text-align:center;line-height:1.3;">Scanning server parts...<br>Brute-forcing auth token...<br>Injecting live data hook...<br>HACK COMPLETE - NODE ARMED</div>' +
-                    '</div>' +
-                    '<button id="dr-exec-btn" style="width:100%;background:linear-gradient(90deg, #16a34a, #0284c7);color:#fff;border:none;border-radius:4px;padding:8px;font-size:10.5px;font-weight:900;cursor:pointer;letter-spacing:0.5px;">EXECUTE SCAN & TRADE</button>';
-                d.body.appendChild(panel);
+                d.body.appendChild(btn);
 
-                // Make panel draggable
-                var header = panel.querySelector('#dr-header');
-                var pX = 0, pY = 0, mX = 0, mY = 0;
-                header.onmousedown = header.ontouchstart = function(e) {
-                    var p = e.touches ? e.touches[0] : e;
-                    mX = p.clientX; mY = p.clientY;
-                    d.onmouseup = d.ontouchend = function() { d.onmouseup = d.ontouchend = d.onmousemove = d.ontouchmove = null; };
-                    d.onmousemove = d.ontouchmove = function(ev) {
-                        var pt = ev.touches ? ev.touches[0] : ev;
-                        pX = mX - pt.clientX; pY = mY - pt.clientY;
-                        mX = pt.clientX; mY = pt.clientY;
-                        panel.style.top = (panel.offsetTop - pY) + "px";
-                        panel.style.left = (panel.offsetLeft - pX) + "px";
-                        panel.style.transform = 'none';
-                    };
-                };
+                var dragging = false, moved = false, offsetX = 0, offsetY = 0;
 
-                panel.querySelector('#dr-close').onclick = function() { panel.remove(); };
-                panel.querySelector('#dr-exec-btn').onclick = function() {
-                    var statusEl = panel.querySelector('#hacker-log');
-                    var btnExec = panel.querySelector('#dr-exec-btn');
-                    btnExec.disabled = true;
-                    statusEl.style.color = '#38bdf8';
-                    statusEl.innerText = '⚡ BREACHING LIVE MARKET & SCANNING...';
+                function onStart(e) {
+                    var pt = e.touches ? e.touches[0] : e;
+                    var rect = btn.getBoundingClientRect();
+                    offsetX = pt.clientX - rect.left;
+                    offsetY = pt.clientY - rect.top;
+                    dragging = true;
+                    moved = false;
+                    btn.style.cursor = 'grabbing';
+                }
 
-                    var activeMarket = "EURUSD";
-                    try {
-                        var assetEl = d.querySelector('.asset-select__title, [class*="asset-select"] [class*="title"]');
-                        if(assetEl && assetEl.innerText) {
-                            activeMarket = assetEl.innerText.replace(/[^A-Za-z]/g, '').substring(0,6).toUpperCase();
-                        }
-                    } catch(e){}
+                function onMove(e) {
+                    if(!dragging) return;
+                    var pt = e.touches ? e.touches[0] : e;
+                    var nextLeft = pt.clientX - offsetX;
+                    var nextTop = pt.clientY - offsetY;
+                    if(Math.abs(nextLeft - btn.offsetLeft) > 3 || Math.abs(nextTop - btn.offsetTop) > 3) {
+                        moved = true;
+                    }
+                    var maxX = window.innerWidth - btn.offsetWidth - 4;
+                    var maxY = window.innerHeight - btn.offsetHeight - 4;
+                    nextLeft = Math.max(4, Math.min(nextLeft, maxX));
+                    nextTop = Math.max(4, Math.min(nextTop, maxY));
+                    btn.style.left = nextLeft + 'px';
+                    btn.style.top = nextTop + 'px';
+                    btn.style.right = 'auto';
+                    btn.style.bottom = 'auto';
+                }
 
-                    setTimeout(function(){
-                        fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(activeMarket) + '&t=' + Date.now())
-                        .then(function(res){ return res.json(); })
-                        .then(function(data){
-                            var isCall = (String(data.signal || 'CALL').toUpperCase() === 'CALL');
-                            statusEl.style.color = isCall ? '#22c55e' : '#ef4444';
-                            statusEl.innerHTML = 'Target: ' + activeMarket + '<br>Prediction: ' + (isCall ? 'BULLISH CANDLE EXPANSION' : 'BEARISH CANDLE DROP') + '<br>STATUS: EXECUTING TRADE...';
+                function onEnd(e) {
+                    if(!dragging) return;
+                    dragging = false;
+                    btn.style.cursor = 'grab';
+                    if(!moved) {
+                        if(e) { e.stopPropagation(); e.preventDefault(); }
+                        startHackerScanSequence();
+                    }
+                }
 
-                            // Show Chart Overlay Prediction Widget (like in video)
-                            showChartOverlayWidget(isCall);
-
-                            // Execute Quotex trade automatically
-                            executeQuotexOrder(isCall);
-
-                            setTimeout(function(){
-                                panel.remove();
-                            }, 3500);
-                        })
-                        .catch(function(){
-                            statusEl.style.color = '#ef4444';
-                            statusEl.innerText = 'CONNECTION ERROR - RETRY';
-                            btnExec.disabled = false;
-                        });
-                    }, 2000);
-                };
+                btn.addEventListener('mousedown', onStart);
+                btn.addEventListener('touchstart', onStart, {passive: true});
+                d.addEventListener('mousemove', onMove);
+                d.addEventListener('touchmove', onMove, {passive: true});
+                d.addEventListener('mouseup', onEnd);
+                d.addEventListener('touchend', onEnd);
             }
 
-            function showChartOverlayWidget(isCall) {
-                var oldW = d.getElementById('dr-chart-overlay');
-                if(oldW) oldW.remove();
-
-                var widget = d.createElement('div');
-                widget.id = 'dr-chart-overlay';
-                widget.style.cssText = 'position:fixed;top:40%;right:30%;background:rgba(5,11,20,0.95);border:2px solid ' + (isCall ? '#22c55e' : '#ef4444') + ';border-radius:10px;padding:8px 12px;z-index:2147483647;font-family:monospace;color:#fff;box-shadow:0 0 30px ' + (isCall ? 'rgba(34,197,94,0.8)' : 'rgba(239,68,68,0.8)') + ';animation:widgetPulse 1s infinite ease-in-out;text-align:center;';
-                widget.innerHTML = 
-                    '<div style="font-size:8px;color:#94a3b8;font-weight:bold;margin-bottom:2px;">NEXT SMART SIGNAL</div>' +
-                    '<div style="font-size:12px;font-weight:900;color:' + (isCall ? '#22c55e' : '#ef4444') + ';margin-bottom:4px;">' + (isCall ? '▲ CALL (UP)' : '▼ PUT (DOWN)') + '</div>' +
-                    '<div style="background:#020617;border:1px solid #1e293b;border-radius:4px;padding:3px 6px;font-size:10px;font-weight:bold;color:#facc15;">LOCKED 00</div>';
-                d.body.appendChild(widget);
-
-                setTimeout(function(){
-                    if(widget.parentNode) widget.remove();
-                }, 6000);
-            }
-
-            function executeQuotexOrder(isCall) {
+            function detectMarketSymbol() {
                 try {
-                    var buttons = d.querySelectorAll('button');
-                    for(var i=0; i<buttons.length; i++) {
-                        var b = buttons[i];
-                        var t = b.innerText.toUpperCase();
-                        if(isCall && (t.includes('BUY') || t.includes('CALL'))) {
-                            b.click();
-                            break;
-                        } else if(!isCall && (t.includes('SELL') || t.includes('PUT'))) {
-                            b.click();
-                            break;
+                    var candidates = d.querySelectorAll('.asset-select__title, [class*="asset-select"] [class*="title"], [class*="pair-name"], [class*="symbol"]');
+                    for(var i = 0; i < candidates.length; i++) {
+                        var txt = (candidates[i].innerText || '').toUpperCase().replace(/[^A-Z]/g, '');
+                        if(txt.length >= 6) return txt.substring(0, 6);
+                    }
+                } catch(e) {}
+                return "EURUSD";
+            }
+
+            function findActiveCandleAnchor() {
+                try {
+                    var vLines = d.querySelectorAll('line, [class*="crosshair"], [class*="current-price"], [class*="candle"]');
+                    for(var i = 0; i < vLines.length; i++) {
+                        var r = vLines[i].getBoundingClientRect();
+                        if(r.width > 0 && r.height > 25 && r.left > window.innerWidth * 0.25 && r.left < window.innerWidth * 0.85 && r.top > 90 && r.top < window.innerHeight * 0.72) {
+                            return {
+                                x: r.left + (r.width / 2),
+                                y: r.top + (r.height * 0.45)
+                            };
                         }
                     }
-                } catch(e){}
+                } catch(e) {}
+                return {
+                    x: Math.round(window.innerWidth * 0.56),
+                    y: Math.round(window.innerHeight * 0.40)
+                };
             }
 
-        } catch(e) { console.error("DR Tracker Error:", e); }
+            function generateTradeReachEstimate(isCall, seedNum) {
+                var heights = [54, 68, 82, 96, 112, 76, 88];
+                var pipsList = [14, 19, 24, 29, 35, 17, 27];
+                var idx = Math.abs(seedNum) % heights.length;
+                return {
+                    boxHeight: heights[idx],
+                    estPips: pipsList[idx],
+                    estLabel: (isCall ? "+" : "-") + pipsList[idx] + " PTS"
+                };
+            }
+
+            function renderCandleProjectionAndPopup(isCall, marketName) {
+                ["dr-candle-projection", "dr-next-signal-popup"].forEach(function(id){
+                    var old = d.getElementById(id);
+                    if(old) old.remove();
+                });
+
+                var anchor = findActiveCandleAnchor();
+                var reach = generateTradeReachEstimate(isCall, Math.floor(Date.now() / 1000) + marketName.charCodeAt(0));
+                var mainColor = isCall ? "#22c55e" : "#ef4444";
+                var softBg = isCall ? "rgba(34, 197, 94, 0.14)" : "rgba(239, 68, 68, 0.14)";
+                var animName = isCall ? "drBoxGlowUp" : "drBoxGlowDown";
+
+                var projBox = d.createElement('div');
+                projBox.id = 'dr-candle-projection';
+                var boxWidth = 22;
+
+                if(isCall) {
+                    projBox.style.cssText = 'position:fixed;left:' + Math.round(anchor.x - boxWidth / 2) + 'px;' +
+                        'top:' + Math.round(anchor.y - reach.boxHeight) + 'px;width:' + boxWidth + 'px;height:' + reach.boxHeight + 'px;' +
+                        'border:2px dashed ' + mainColor + ';background:' + softBg + ';border-radius:3px;' +
+                        'z-index:2147483645;pointer-events:none;font-family:"Courier New",monospace;' +
+                        'animation:' + animName + ' 1.4s infinite ease-in-out;';
+                    projBox.innerHTML = '' +
+                        '<div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:900;color:' + mainColor + ';text-shadow:0 0 8px ' + mainColor + ';">▲</div>' +
+                        '<div style="position:absolute;top:-27px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(4,12,8,0.92);border:1px solid ' + mainColor + ';color:' + mainColor + ';font-size:8px;font-weight:900;padding:1px 4px;border-radius:3px;">' + reach.estLabel + '</div>';
+                } else {
+                    projBox.style.cssText = 'position:fixed;left:' + Math.round(anchor.x - boxWidth / 2) + 'px;' +
+                        'top:' + Math.round(anchor.y) + 'px;width:' + boxWidth + 'px;height:' + reach.boxHeight + 'px;' +
+                        'border:2px dashed ' + mainColor + ';background:' + softBg + ';border-radius:3px;' +
+                        'z-index:2147483645;pointer-events:none;font-family:"Courier New",monospace;' +
+                        'animation:' + animName + ' 1.4s infinite ease-in-out;';
+                    projBox.innerHTML = '' +
+                        '<div style="position:absolute;bottom:-15px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:900;color:' + mainColor + ';text-shadow:0 0 8px ' + mainColor + ';">▼</div>' +
+                        '<div style="position:absolute;bottom:-27px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(16,6,8,0.92);border:1px solid ' + mainColor + ';color:' + mainColor + ';font-size:8px;font-weight:900;padding:1px 4px;border-radius:3px;">' + reach.estLabel + '</div>';
+                }
+
+                d.body.appendChild(projBox);
+
+                var popupLeft = Math.min(window.innerWidth - 134, Math.max(8, Math.round(anchor.x + 22)));
+                var popupTop = Math.min(window.innerHeight - 165, Math.max(75, Math.round(anchor.y - 45)));
+
+                var popup = d.createElement('div');
+                popup.id = 'dr-next-signal-popup';
+                popup.style.cssText = 'position:fixed;left:' + popupLeft + 'px;top:' + popupTop + 'px;width:122px;' +
+                    'background:linear-gradient(180deg, rgba(6, 20, 14, 0.96), rgba(3, 10, 7, 0.98));' +
+                    'border:1.5px solid ' + mainColor + ';border-radius:10px;padding:7px 8px;' +
+                    'z-index:2147483646;pointer-events:none;font-family:"Courier New",monospace;color:#e2e8f0;' +
+                    'box-shadow:0 0 22px rgba(0,0,0,0.85), 0 0 14px ' + softBg + ';animation:drPopupPop 0.25s ease-out;';
+
+                popup.innerHTML = '' +
+                    '<div style="text-align:center;font-size:7px;font-weight:800;letter-spacing:0.6px;color:#94a3b8;line-height:1.25;margin-bottom:5px;">' +
+                    '  <span style="color:' + mainColor + ';font-size:9px;">' + (isCall ? '▲' : '▼') + '</span> NEXT<br>SMART SIGNAL' +
+                    '</div>' +
+                    '<div style="background:rgba(2,8,5,0.9);border:1px solid rgba(148,163,184,0.22);border-radius:7px;padding:6px 4px;text-align:center;margin-bottom:5px;">' +
+                    '  <div style="font-size:10px;font-weight:900;color:' + mainColor + ';letter-spacing:0.5px;">' + (isCall ? 'CALL (UP)' : 'PUT (DOWN)') + '</div>' +
+                    '  <div style="font-size:8px;font-weight:800;color:#f8fafc;margin-top:2px;">EST: ' + reach.estLabel + '</div>' +
+                    '  <div style="font-size:6.5px;color:#64748b;margin-top:1px;">' + marketName + '</div>' +
+                    '</div>' +
+                    '<div style="text-align:center;font-size:7px;font-weight:900;color:#4ade80;letter-spacing:1px;border-top:1px dashed rgba(74,222,128,0.25);padding-top:4px;">LOCKED</div>';
+
+                d.body.appendChild(popup);
+
+                setTimeout(function(){
+                    if(projBox.parentNode) projBox.remove();
+                    if(popup.parentNode) popup.remove();
+                }, 14000);
+            }
+
+            function triggerBrokerTradeClick(isCall) {
+                try {
+                    var btns = d.querySelectorAll('button');
+                    for(var i = 0; i < btns.length; i++) {
+                        var b = btns[i];
+                        var txt = (b.innerText || '').trim().toUpperCase();
+                        var cls = (b.className || '').toUpperCase();
+                        if(isCall) {
+                            if(txt === 'BUY' || txt.includes('CALL') || cls.includes('CALL')) {
+                                b.click();
+                                return;
+                            }
+                        } else {
+                            if(txt === 'SELL' || txt.includes('PUT') || cls.includes('PUT')) {
+                                b.click();
+                                return;
+                            }
+                        }
+                    }
+                } catch(e) {}
+            }
+
+            function startHackerScanSequence() {
+                var oldModal = d.getElementById('dr-scan-modal');
+                if(oldModal) oldModal.remove();
+
+                var modal = d.createElement('div');
+                modal.id = 'dr-scan-modal';
+                modal.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);width:316px;max-width:92vw;' +
+                    'background:linear-gradient(180deg, #061810 0%, #030b08 100%);' +
+                    'border:2px solid #22c55e;border-radius:14px;padding:12px;z-index:2147483647;' +
+                    'font-family:"Courier New",Courier,monospace;color:#4ade80;box-sizing:border-box;' +
+                    'box-shadow:0 0 36px rgba(34,197,94,0.45), inset 0 0 18px rgba(34,197,94,0.18);overflow:hidden;';
+
+                modal.innerHTML = '' +
+                    '<div style="position:relative;overflow:hidden;">' +
+                    '  <div id="dr-scan-laser" style="position:absolute;left:0;top:0;width:100%;height:3px;background:linear-gradient(90deg,transparent,#4ade80,#22c55e,#4ade80,transparent);box-shadow:0 0 12px #22c55e;z-index:5;pointer-events:none;animation:drSweepLaser 1.6s linear infinite;"></div>' +
+                    '  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(74,222,128,0.25);padding-bottom:7px;margin-bottom:8px;">' +
+                    '    <div style="display:flex;align-items:center;gap:7px;">' +
+                    '      <div style="width:28px;height:28px;border-radius:50%;border:1.5px solid #22c55e;background:#04140c;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;color:#4ade80;">DR</div>' +
+                    '      <div>' +
+                    '        <div style="font-size:11.5px;font-weight:900;color:#4ade80;letter-spacing:0.6px;">DR CANDLE TRACKER</div>' +
+                    '        <div style="font-size:7px;color:#86efac;letter-spacing:0.5px;">QUANT CORE EXPLOIT</div>' +
+                    '        <div style="font-size:6.5px;color:#64748b;">SESSION: QQX-5709-03EE-1967 | NODE 0x37</div>' +
+                    '      </div>' +
+                    '    </div>' +
+                    '    <div style="display:flex;align-items:center;gap:5px;">' +
+                    '      <div id="dr-pct-badge" style="background:rgba(20,83,45,0.65);border:1px solid #22c55e;color:#4ade80;font-size:9px;font-weight:900;padding:2px 6px;border-radius:10px;">1%</div>' +
+                    '      <div id="dr-modal-close" style="cursor:pointer;color:#94a3b8;font-size:12px;font-weight:bold;padding:0 3px;">✕</div>' +
+                    '    </div>' +
+                    '  </div>' +
+
+                    '  <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:8px;padding:7px;margin-bottom:7px;">' +
+                    '    <div style="display:flex;justify-content:space-between;font-size:7px;color:#86efac;margin-bottom:4px;">' +
+                    '      <span>MEMORY STREAM</span>' +
+                    '      <span style="color:#4ade80;">● LINKED</span>' +
+                    '    </div>' +
+                    '    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:7.5px;">' +
+                    '      <div style="display:flex;align-items:center;gap:3px;height:26px;">' +
+                    '        <span style="width:5px;height:14px;background:#ef4444;border-radius:1px;display:inline-block;"></span>' +
+                    '        <span style="width:5px;height:20px;background:#22c55e;border-radius:1px;display:inline-block;"></span>' +
+                    '        <span style="width:5px;height:11px;background:#ef4444;border-radius:1px;display:inline-block;"></span>' +
+                    '        <span style="width:5px;height:24px;background:#22c55e;border-radius:1px;display:inline-block;"></span>' +
+                    '      </div>' +
+                    '      <div><span style="color:#64748b;">OPEN</span> <b id="dr-m-open" style="color:#fff;">0.1645</b></div>' +
+                    '      <div><span style="color:#64748b;">HIGH</span> <b id="dr-m-high" style="color:#4ade80;">0.1650</b></div>' +
+                    '      <div><span style="color:#64748b;">LOW</span> <b id="dr-m-low" style="color:#f87171;">0.1639</b></div>' +
+                    '      <div><span style="color:#64748b;">CLOSE</span> <b id="dr-m-close" style="color:#38bdf8;">0.1643</b></div>' +
+                    '    </div>' +
+                    '  </div>' +
+
+                    '  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:5px;font-size:7px;text-align:center;">' +
+                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">0x29</div><div style="color:#4ade80;font-weight:bold;">VECTOR</div></div>' +
+                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#4ade80;font-weight:bold;">LIVE</div><div style="color:#86efac;">FEED</div></div>' +
+                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">RSA</div><div id="dr-rsa-val" style="color:#eab308;font-weight:bold;">1%</div></div>' +
+                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">016</div><div style="color:#38bdf8;font-weight:bold;">CYCLE</div></div>' +
+                    '  </div>' +
+
+                    '  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:7px;font-size:7px;text-align:center;">' +
+                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#4ade80;font-weight:bold;">23ms</div><div style="color:#64748b;">LATENCY</div></div>' +
+                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">BREACH</div><div id="dr-breach-val" style="color:#f87171;font-weight:bold;">1%</div></div>' +
+                    '    <div style="background:rgba(2,10,6,0.85);border:1px solid rgba(74,222,128,0.2);border-radius:6px;padding:4px 2px;"><div style="color:#64748b;">016</div><div style="color:#86efac;font-weight:bold;">NODE</div></div>' +
+                    '  </div>' +
+
+                    '  <div id="dr-terminal-feed" style="background:#020906;border:1px solid rgba(74,222,128,0.22);border-radius:8px;padding:7px;font-size:7.2px;line-height:1.45;color:#86efac;">' +
+                    '    <div><span style="color:#22c55e;">✓</span> Scanning server parts</div>' +
+                    '    <div><span style="color:#22c55e;">✓</span> Brute-forcing auth token</div>' +
+                    '    <div><span style="color:#22c55e;">✓</span> Intercepting order flow packets</div>' +
+                    '    <div><span style="color:#22c55e;">✓</span> Reverse-engineering price engine</div>' +
+                    '    <div><span style="color:#22c55e;">✓</span> Injecting live data hook</div>' +
+                    '    <div id="dr-status-line" style="color:#4ade80;font-weight:bold;margin-top:3px;">CIPHER LOCKED || NODE ARMED</div>' +
+                    '  </div>' +
+                    '</div>';
+
+                d.body.appendChild(modal);
+
+                modal.querySelector('#dr-modal-close').onclick = function() {
+                    modal.remove();
+                };
+
+                var market = detectMarketSymbol();
+                var pct = 1;
+                var pctBadge = modal.querySelector('#dr-pct-badge');
+                var rsaVal = modal.querySelector('#dr-rsa-val');
+                var breachVal = modal.querySelector('#dr-breach-val');
+                var statusLine = modal.querySelector('#dr-status-line');
+
+                var signalPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(market) + '&t=' + Date.now())
+                    .then(function(r){ return r.json(); })
+                    .catch(function(){
+                        return { signal: (Math.floor(Date.now() / 15000) % 2 === 0 ? "CALL" : "PUT") };
+                    });
+
+                var progressTimer = setInterval(function(){
+                    if(!modal.isConnected) {
+                        clearInterval(progressTimer);
+                        return;
+                    }
+                    pct += 5;
+                    if(pct > 100) pct = 100;
+                    if(pctBadge) pctBadge.innerText = pct + '%';
+                    if(rsaVal) rsaVal.innerText = Math.min(98, pct) + '%';
+                    if(breachVal) breachVal.innerText = Math.min(64, Math.round(pct * 0.54)) + '%';
+
+                    if(pct >= 100) {
+                        clearInterval(progressTimer);
+                        statusLine.innerText = '100% LOCKED || DEPLOYING CHART OVERLAY...';
+                        signalPromise.then(function(data){
+                            var sig = String(data.signal || 'CALL').toUpperCase();
+                            var isCall = (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
+                            setTimeout(function(){
+                                if(modal.isConnected) modal.remove();
+                                renderCandleProjectionAndPopup(isCall, market);
+                                triggerBrokerTradeClick(isCall);
+                            }, 350);
+                        });
+                    }
+                }, 120);
+            }
+
+            createDraggableDrButton();
+        } catch(err) {
+            console.error("DR Tracker Init Error:", err);
+        }
     })();
     """
     res = make_response(js)
