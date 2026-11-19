@@ -81,7 +81,7 @@ class BiDirectionalMarketEngine:
 
 @app.route('/')
 def home():
-    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - ULTRA FX NEON MODE!")
+    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - HIGH FX NEON MODE!")
     res.headers.add("Access-Control-Allow-Origin", "*")
     return res
 
@@ -156,64 +156,69 @@ def bot_script():
             styleEl.id = 'ra-hacker-style';
             styleEl.innerHTML = '' +
                 '@keyframes raSlowRgbRing {' +
-                '  0%   { border-color: #22c55e; box-shadow: 0 0 20px #22c55e, 0 0 38px rgba(0,240,255,0.65), inset 0 0 14px rgba(34,197,94,0.7); }' +
-                '  20%  { border-color: #00f0ff; box-shadow: 0 0 24px #00f0ff, 0 0 42px rgba(168,85,247,0.65), inset 0 0 15px rgba(0,240,255,0.7); }' +
-                '  40%  { border-color: #e879f9; box-shadow: 0 0 24px #e879f9, 0 0 42px rgba(250,204,21,0.65), inset 0 0 15px rgba(232,121,249,0.7); }' +
-                '  60%  { border-color: #facc15; box-shadow: 0 0 24px #facc15, 0 0 42px rgba(244,63,94,0.65), inset 0 0 15px rgba(250,204,21,0.7); }' +
-                '  80%  { border-color: #fb7185; box-shadow: 0 0 24px #fb7185, 0 0 42px rgba(34,197,94,0.65), inset 0 0 15px rgba(251,113,133,0.7); }' +
-                '  100% { border-color: #22c55e; box-shadow: 0 0 20px #22c55e, 0 0 38px rgba(0,240,255,0.65), inset 0 0 14px rgba(34,197,94,0.7); }' +
+                '  0%   { border-color: #22c55e; box-shadow: 0 0 22px #22c55e, 0 0 42px rgba(0,240,255,0.75), inset 0 0 14px rgba(34,197,94,0.75); }' +
+                '  20%  { border-color: #00f0ff; box-shadow: 0 0 26px #00f0ff, 0 0 46px rgba(232,121,249,0.75), inset 0 0 16px rgba(0,240,255,0.75); }' +
+                '  40%  { border-color: #e879f9; box-shadow: 0 0 26px #e879f9, 0 0 46px rgba(250,204,21,0.75), inset 0 0 16px rgba(232,121,249,0.75); }' +
+                '  60%  { border-color: #facc15; box-shadow: 0 0 26px #facc15, 0 0 46px rgba(251,113,133,0.75), inset 0 0 16px rgba(250,204,21,0.75); }' +
+                '  80%  { border-color: #fb7185; box-shadow: 0 0 26px #fb7185, 0 0 46px rgba(34,197,94,0.75), inset 0 0 16px rgba(251,113,133,0.75); }' +
+                '  100% { border-color: #22c55e; box-shadow: 0 0 22px #22c55e, 0 0 42px rgba(0,240,255,0.75), inset 0 0 14px rgba(34,197,94,0.75); }' +
                 '}' +
                 '@keyframes raMainBorderCycle {' +
-                '  0%   { border-color: #22c55e; box-shadow: 0 0 32px rgba(34,197,94,0.82), 0 0 58px rgba(0,240,255,0.38), inset 0 0 18px rgba(34,197,94,0.28); }' +
-                '  25%  { border-color: #00f0ff; box-shadow: 0 0 36px rgba(0,240,255,0.86), 0 0 62px rgba(232,121,249,0.38), inset 0 0 20px rgba(0,240,255,0.28); }' +
-                '  50%  { border-color: #e879f9; box-shadow: 0 0 36px rgba(232,121,249,0.86), 0 0 62px rgba(250,204,21,0.38), inset 0 0 20px rgba(232,121,249,0.28); }' +
-                '  75%  { border-color: #facc15; box-shadow: 0 0 36px rgba(250,204,21,0.86), 0 0 62px rgba(56,189,248,0.38), inset 0 0 20px rgba(250,204,21,0.28); }' +
-                '  100% { border-color: #22c55e; box-shadow: 0 0 32px rgba(34,197,94,0.82), 0 0 58px rgba(0,240,255,0.38), inset 0 0 18px rgba(34,197,94,0.28); }' +
+                '  0%   { border-color: #22c55e; box-shadow: 0 0 36px rgba(34,197,94,0.88), 0 0 64px rgba(0,240,255,0.45), inset 0 0 20px rgba(34,197,94,0.3); }' +
+                '  25%  { border-color: #00f0ff; box-shadow: 0 0 40px rgba(0,240,255,0.92), 0 0 68px rgba(232,121,249,0.45), inset 0 0 22px rgba(0,240,255,0.32); }' +
+                '  50%  { border-color: #e879f9; box-shadow: 0 0 40px rgba(232,121,249,0.92), 0 0 68px rgba(250,204,21,0.45), inset 0 0 22px rgba(232,121,249,0.32); }' +
+                '  75%  { border-color: #facc15; box-shadow: 0 0 40px rgba(250,204,21,0.92), 0 0 68px rgba(56,189,248,0.45), inset 0 0 22px rgba(250,204,21,0.32); }' +
+                '  100% { border-color: #22c55e; box-shadow: 0 0 36px rgba(34,197,94,0.88), 0 0 64px rgba(0,240,255,0.45), inset 0 0 20px rgba(34,197,94,0.3); }' +
                 '}' +
                 '@keyframes raSubBoxCycleA {' +
-                '  0%   { border-color: rgba(34,197,94,0.85); box-shadow: 0 0 12px rgba(34,197,94,0.45), inset 0 0 7px rgba(34,197,94,0.22); }' +
-                '  33%  { border-color: rgba(232,121,249,0.88); box-shadow: 0 0 14px rgba(232,121,249,0.48), inset 0 0 8px rgba(232,121,249,0.24); }' +
-                '  66%  { border-color: rgba(250,204,21,0.88); box-shadow: 0 0 14px rgba(250,204,21,0.48), inset 0 0 8px rgba(250,204,21,0.24); }' +
-                '  100% { border-color: rgba(34,197,94,0.85); box-shadow: 0 0 12px rgba(34,197,94,0.45), inset 0 0 7px rgba(34,197,94,0.22); }' +
+                '  0%   { border-color: rgba(34,197,94,0.9); box-shadow: 0 0 14px rgba(34,197,94,0.5), inset 0 0 8px rgba(34,197,94,0.25); }' +
+                '  33%  { border-color: rgba(232,121,249,0.9); box-shadow: 0 0 16px rgba(232,121,249,0.55), inset 0 0 9px rgba(232,121,249,0.25); }' +
+                '  66%  { border-color: rgba(250,204,21,0.9); box-shadow: 0 0 16px rgba(250,204,21,0.55), inset 0 0 9px rgba(250,204,21,0.25); }' +
+                '  100% { border-color: rgba(34,197,94,0.9); box-shadow: 0 0 14px rgba(34,197,94,0.5), inset 0 0 8px rgba(34,197,94,0.25); }' +
                 '}' +
                 '@keyframes raSubBoxCycleB {' +
-                '  0%   { border-color: rgba(0,240,255,0.88); box-shadow: 0 0 12px rgba(0,240,255,0.45), inset 0 0 7px rgba(0,240,255,0.22); }' +
-                '  33%  { border-color: rgba(250,204,21,0.88); box-shadow: 0 0 14px rgba(250,204,21,0.48), inset 0 0 8px rgba(250,204,21,0.24); }' +
-                '  66%  { border-color: rgba(74,222,128,0.88); box-shadow: 0 0 14px rgba(74,222,128,0.48), inset 0 0 8px rgba(74,222,128,0.24); }' +
-                '  100% { border-color: rgba(0,240,255,0.88); box-shadow: 0 0 12px rgba(0,240,255,0.45), inset 0 0 7px rgba(0,240,255,0.22); }' +
+                '  0%   { border-color: rgba(0,240,255,0.9); box-shadow: 0 0 14px rgba(0,240,255,0.5), inset 0 0 8px rgba(0,240,255,0.25); }' +
+                '  33%  { border-color: rgba(250,204,21,0.9); box-shadow: 0 0 16px rgba(250,204,21,0.55), inset 0 0 9px rgba(250,204,21,0.25); }' +
+                '  66%  { border-color: rgba(74,222,128,0.9); box-shadow: 0 0 16px rgba(74,222,128,0.55), inset 0 0 9px rgba(74,222,128,0.25); }' +
+                '  100% { border-color: rgba(0,240,255,0.9); box-shadow: 0 0 14px rgba(0,240,255,0.5), inset 0 0 8px rgba(0,240,255,0.25); }' +
                 '}' +
                 '@keyframes raSubBoxCycleC {' +
-                '  0%   { border-color: rgba(244,63,94,0.88); box-shadow: 0 0 12px rgba(244,63,94,0.45), inset 0 0 7px rgba(244,63,94,0.22); }' +
-                '  33%  { border-color: rgba(56,189,248,0.88); box-shadow: 0 0 14px rgba(56,189,248,0.48), inset 0 0 8px rgba(56,189,248,0.24); }' +
-                '  66%  { border-color: rgba(192,132,252,0.88); box-shadow: 0 0 14px rgba(192,132,252,0.48), inset 0 0 8px rgba(192,132,252,0.24); }' +
-                '  100% { border-color: rgba(244,63,94,0.88); box-shadow: 0 0 12px rgba(244,63,94,0.45), inset 0 0 7px rgba(244,63,94,0.22); }' +
+                '  0%   { border-color: rgba(244,63,94,0.9); box-shadow: 0 0 14px rgba(244,63,94,0.5), inset 0 0 8px rgba(244,63,94,0.25); }' +
+                '  33%  { border-color: rgba(56,189,248,0.9); box-shadow: 0 0 16px rgba(56,189,248,0.55), inset 0 0 9px rgba(56,189,248,0.25); }' +
+                '  66%  { border-color: rgba(192,132,252,0.9); box-shadow: 0 0 16px rgba(192,132,252,0.55), inset 0 0 9px rgba(192,132,252,0.25); }' +
+                '  100% { border-color: rgba(244,63,94,0.9); box-shadow: 0 0 14px rgba(244,63,94,0.5), inset 0 0 8px rgba(244,63,94,0.25); }' +
                 '}' +
                 '@keyframes raPopupSlowColor {' +
-                '  0%   { box-shadow: 0 0 26px rgba(34,197,94,0.65), 0 0 42px rgba(0,240,255,0.35); }' +
-                '  33%  { box-shadow: 0 0 28px rgba(0,240,255,0.7), 0 0 44px rgba(232,121,249,0.38); }' +
-                '  66%  { box-shadow: 0 0 28px rgba(232,121,249,0.7), 0 0 44px rgba(250,204,21,0.38); }' +
-                '  100% { box-shadow: 0 0 26px rgba(34,197,94,0.65), 0 0 42px rgba(0,240,255,0.35); }' +
+                '  0%   { box-shadow: 0 0 28px rgba(34,197,94,0.75), 0 0 46px rgba(0,240,255,0.42); }' +
+                '  33%  { box-shadow: 0 0 32px rgba(0,240,255,0.8), 0 0 48px rgba(232,121,249,0.45); }' +
+                '  66%  { box-shadow: 0 0 32px rgba(232,121,249,0.8), 0 0 48px rgba(250,204,21,0.45); }' +
+                '  100% { box-shadow: 0 0 28px rgba(34,197,94,0.75), 0 0 46px rgba(0,240,255,0.42); }' +
                 '}' +
                 '@keyframes raSmoothThickLaser {' +
-                '  0%   { top: 0%; opacity: 0.8; background: linear-gradient(90deg,transparent,#22c55e,#00f0ff,#e879f9,#facc15,transparent); box-shadow: 0 0 18px #00f0ff, 0 0 32px #e879f9; }' +
-                '  50%  { top: 96%; opacity: 1; background: linear-gradient(90deg,transparent,#facc15,#fb7185,#00f0ff,#4ade80,transparent); box-shadow: 0 0 20px #facc15, 0 0 34px #4ade80; }' +
-                '  100% { top: 0%; opacity: 0.8; background: linear-gradient(90deg,transparent,#22c55e,#00f0ff,#e879f9,#facc15,transparent); box-shadow: 0 0 18px #00f0ff, 0 0 32px #e879f9; }' +
+                '  0%   { top: 0%; opacity: 0.85; background: linear-gradient(90deg,transparent,#22c55e,#00f0ff,#e879f9,#facc15,transparent); box-shadow: 0 0 18px #00f0ff, 0 0 34px #e879f9; }' +
+                '  50%  { top: 96%; opacity: 1; background: linear-gradient(90deg,transparent,#facc15,#fb7185,#00f0ff,#4ade80,transparent); box-shadow: 0 0 22px #facc15, 0 0 36px #4ade80; }' +
+                '  100% { top: 0%; opacity: 0.85; background: linear-gradient(90deg,transparent,#22c55e,#00f0ff,#e879f9,#facc15,transparent); box-shadow: 0 0 18px #00f0ff, 0 0 34px #e879f9; }' +
                 '}' +
-                '@keyframes raMiniBarDance1 {' +
-                '  0%, 100% { height: 10px; background: #ef4444; box-shadow: 0 0 9px #ef4444; }' +
-                '  50% { height: 24px; background: #22c55e; box-shadow: 0 0 12px #22c55e; }' +
+                '@keyframes raThickCandleSlow {' +
+                '  0%   { height: 14px; background: #ef4444; box-shadow: 0 0 12px #ef4444; }' +
+                '  50%  { height: 28px; background: #22c55e; box-shadow: 0 0 14px #22c55e; }' +
+                '  100% { height: 14px; background: #ef4444; box-shadow: 0 0 12px #ef4444; }' +
                 '}' +
-                '@keyframes raMiniBarDance2 {' +
-                '  0%, 100% { height: 22px; background: #22c55e; box-shadow: 0 0 12px #22c55e; }' +
-                '  50% { height: 9px; background: #00f0ff; box-shadow: 0 0 9px #00f0ff; }' +
+                '@keyframes raMiniBarSlow1 {' +
+                '  0%, 100% { height: 10px; background: #22c55e; box-shadow: 0 0 10px #22c55e; }' +
+                '  50% { height: 25px; background: #00f0ff; box-shadow: 0 0 12px #00f0ff; }' +
                 '}' +
-                '@keyframes raMiniBarDance3 {' +
-                '  0%, 100% { height: 12px; background: #00f0ff; box-shadow: 0 0 9px #00f0ff; }' +
-                '  50% { height: 25px; background: #e879f9; box-shadow: 0 0 12px #e879f9; }' +
+                '@keyframes raMiniBarSlow2 {' +
+                '  0%, 100% { height: 22px; background: #00f0ff; box-shadow: 0 0 12px #00f0ff; }' +
+                '  50% { height: 9px; background: #e879f9; box-shadow: 0 0 10px #e879f9; }' +
                 '}' +
-                '@keyframes raMiniBarDance4 {' +
-                '  0%, 100% { height: 24px; background: #e879f9; box-shadow: 0 0 12px #e879f9; }' +
-                '  50% { height: 11px; background: #facc15; box-shadow: 0 0 9px #facc15; }' +
+                '@keyframes raMiniBarSlow3 {' +
+                '  0%, 100% { height: 13px; background: #e879f9; box-shadow: 0 0 10px #e879f9; }' +
+                '  50% { height: 26px; background: #facc15; box-shadow: 0 0 12px #facc15; }' +
+                '}' +
+                '@keyframes raMiniBarSlow4 {' +
+                '  0%, 100% { height: 24px; background: #facc15; box-shadow: 0 0 12px #facc15; }' +
+                '  50% { height: 11px; background: #fb7185; box-shadow: 0 0 10px #fb7185; }' +
                 '}' +
                 '@keyframes raStepSlideIn {' +
                 '  0% { opacity: 0; transform: translateX(-8px) scale(0.96); }' +
@@ -376,7 +381,6 @@ def bot_script():
                 var botBtn = d.getElementById('ra-hacker-btn');
                 positionPopupAboveBotWithGap(popup, botBtn);
 
-                // Auto-remove after 10 seconds as requested
                 setTimeout(function(){
                     if(popup.parentNode) popup.remove();
                 }, 10000);
@@ -408,6 +412,21 @@ def bot_script():
                 var oldModal = d.getElementById('ra-hacker-scan-modal');
                 if(oldModal) oldModal.remove();
 
+                var hexStreamLines = [
+                    { text: "PAT 0x80271894: EAX=0x16450 [+0.16450]", color: "#00f0ff" },
+                    { text: "PAT 0x802719A0: EAX=0x16492 [+0.16492]", color: "#4ade80" },
+                    { text: "THREAD#3679 STACK=0x7F98A2B1: #1967", color: "#facc15" },
+                    { text: "HEAP 0x56A8B848: 1094272B [QX-03EE]", color: "#e879f9" },
+                    { text: "MEM 0x0528F7C3: 75C74F49E [016-ACK]", color: "#38bdf8" },
+                    { text: "MOD KERNEL32.DLL: 0x0550D120 SCOPE", color: "#fb7185" },
+                    { text: "SOCKET 168.153.167.11:21463 ACK", color: "#00f0ff" },
+                    { text: "HASH 0x626A.6F8C4E12 [TICK-SYNC]", color: "#4ade80" },
+                    { text: "HEAP 0x56A8B848: 1094272B [QX-03EE]", color: "#facc15" },
+                    { text: "PAT 0x80271BC0: EAX=0x16438 [+0.16438]", color: "#e879f9" },
+                    { text: "THREAD#3679 STACK=0x7F98A2B1: #1967", color: "#38bdf8" },
+                    { text: "SOCKET 168.153.167.11:21463 ACK", color: "#fb7185" }
+                ];
+
                 var scanSteps = [
                     { text: "Scanning server parts", color: "#22c55e" },
                     { text: "Brute-forcing auth token", color: "#00f0ff" },
@@ -433,12 +452,12 @@ def bot_script():
                     { text: "Finalizing candle target model", color: "#e879f9" },
                     { text: "Arming live trade trigger", color: "#38bdf8" },
                     { text: "Encrypting signal payload", color: "#22c55e" },
-                    { text: "R-A Candle Hacker || NODE ARMED", color: "#4ade80" }
+                    { text: "CIPHER LOCKED || NODE ARMED", color: "#4ade80" }
                 ];
 
                 var modal = d.createElement('div');
                 modal.id = 'ra-hacker-scan-modal';
-                modal.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%, -50%);width:320px;max-width:93vw;' +
+                modal.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%, -50%);width:322px;max-width:93vw;' +
                     'background:linear-gradient(160deg, #061d15 0%, #051326 52%, #150726 100%);' +
                     'border:2.2px solid #22c55e;border-radius:14px;padding:12px;z-index:2147483647;' +
                     'font-family:"Courier New",Courier,monospace;color:#4ade80;box-sizing:border-box;' +
@@ -447,7 +466,7 @@ def bot_script():
                 modal.innerHTML = '' +
                     '<div style="position:relative;overflow:hidden;">' +
                     '  <div id="ra-scan-laser" style="position:absolute;left:0;top:0;width:100%;height:5px;border-radius:3px;z-index:5;pointer-events:none;animation:raSmoothThickLaser 2.2s infinite ease-in-out;"></div>' +
-                    '  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(0,240,255,0.35);padding-bottom:7px;margin-bottom:8px;">' +
+                    '  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(0,240,255,0.35);padding-bottom:7px;margin-bottom:7px;">' +
                     '    <div style="display:flex;align-items:center;gap:7px;">' +
                     '      <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1.8px solid #00f0ff;animation:raSlowRgbRing 5.5s infinite ease-in-out;" />' +
                     '      <div>' +
@@ -462,17 +481,22 @@ def bot_script():
                     '    </div>' +
                     '  </div>' +
 
-                    '  <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:8px;padding:7px;margin-bottom:7px;animation:raSubBoxCycleB 5.4s infinite ease-in-out;">' +
+                    '  <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:8px;padding:6px 7px;margin-bottom:6px;animation:raSubBoxCycleB 5.4s infinite ease-in-out;">' +
                     '    <div style="display:flex;justify-content:space-between;font-size:7px;color:#00f0ff;margin-bottom:4px;">' +
                     '      <span>MEMORY STREAM</span>' +
                     '      <span id="ra-mem-state" style="color:#4ade80;font-weight:bold;">● LOW</span>' +
                     '    </div>' +
-                    '    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:7.5px;">' +
-                    '      <div style="display:flex;align-items:flex-end;gap:3px;height:26px;padding:0 2px;">' +
-                    '        <span style="width:5px;border-radius:1.5px;display:inline-block;animation:raMiniBarDance1 1.6s infinite ease-in-out;"></span>' +
-                    '        <span style="width:5px;border-radius:1.5px;display:inline-block;animation:raMiniBarDance2 1.9s infinite ease-in-out;"></span>' +
-                    '        <span style="width:5px;border-radius:1.5px;display:inline-block;animation:raMiniBarDance3 1.7s infinite ease-in-out;"></span>' +
-                    '        <span style="width:5px;border-radius:1.5px;display:inline-block;animation:raMiniBarDance4 2.1s infinite ease-in-out;"></span>' +
+                    '    <div style="display:flex;align-items:center;justify-content:space-between;gap:5px;font-size:7.2px;">' +
+                    '      <div style="display:flex;align-items:center;gap:3px;height:28px;padding:0 2px;">' +
+                    '        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:11px;">' +
+                    '          <span style="width:1.5px;height:4px;background:#ef4444;"></span>' +
+                    '          <span style="width:7px;border-radius:1.5px;display:inline-block;animation:raThickCandleSlow 2.6s infinite ease-in-out;"></span>' +
+                    '          <span style="width:1.5px;height:4px;background:#ef4444;"></span>' +
+                    '        </div>' +
+                    '        <span style="width:4px;border-radius:1.5px;display:inline-block;animation:raMiniBarSlow1 2.2s infinite ease-in-out;"></span>' +
+                    '        <span style="width:4px;border-radius:1.5px;display:inline-block;animation:raMiniBarSlow2 2.5s infinite ease-in-out;"></span>' +
+                    '        <span style="width:4px;border-radius:1.5px;display:inline-block;animation:raMiniBarSlow3 2.3s infinite ease-in-out;"></span>' +
+                    '        <span style="width:4px;border-radius:1.5px;display:inline-block;animation:raMiniBarSlow4 2.7s infinite ease-in-out;"></span>' +
                     '      </div>' +
                     '      <div><span style="color:#64748b;">OPEN</span> <b style="color:#fff;">0.1645</b></div>' +
                     '      <div><span style="color:#64748b;">HIGH</span> <b style="color:#4ade80;">0.1650</b></div>' +
@@ -481,20 +505,22 @@ def bot_script():
                     '    </div>' +
                     '  </div>' +
 
-                    '  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:5px;font-size:7px;text-align:center;">' +
+                    '  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;font-size:7px;text-align:center;">' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 4.9s infinite ease-in-out;"><div style="color:#64748b;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW</div></div>' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 5.5s infinite ease-in-out;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div style="color:#86efac;">FEED</div></div>' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #facc15;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 5.1s infinite ease-in-out;"><div style="color:#64748b;">RSA</div><div id="ra-rsa-val" style="color:#facc15;font-weight:bold;">1%</div></div>' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #e879f9;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.9s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW</div></div>' +
                     '  </div>' +
 
-                    '  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:7px;font-size:7px;text-align:center;">' +
+                    '  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px;font-size:7px;text-align:center;">' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 4.7s infinite ease-in-out;"><div style="color:#4ade80;font-weight:bold;">23ms</div><div style="color:#64748b;">LATENCY</div></div>' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #fb7185;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 5.3s infinite ease-in-out;"><div style="color:#64748b;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">1%</div></div>' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.7s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW</div></div>' +
                     '  </div>' +
 
-                    '  <div id="ra-terminal-feed" style="background:#02090e;border:1.3px solid #00f0ff;border-radius:8px;padding:7px;font-size:7px;line-height:1.4;color:#e2e8f0;max-height:108px;overflow-y:auto;animation:raSubBoxCycleC 6.2s infinite ease-in-out;"></div>' +
+                    '  <div id="ra-hex-stream" style="background:rgba(2,10,16,0.85);border:1px solid rgba(0,240,255,0.22);border-radius:6px;padding:4px 6px;margin-bottom:6px;font-size:6.4px;line-height:1.32;max-height:42px;overflow-y:auto;"></div>' +
+
+                    '  <div id="ra-terminal-feed" style="background:#02090e;border:1.3px solid #00f0ff;border-radius:8px;padding:6px 7px;font-size:7px;line-height:1.38;color:#e2e8f0;max-height:92px;overflow-y:auto;animation:raSubBoxCycleC 6.2s infinite ease-in-out;"></div>' +
                     '</div>';
 
                 d.body.appendChild(modal);
@@ -505,7 +531,8 @@ def bot_script():
 
                 var market = detectMarketSymbol();
                 var pct = 1;
-                var revealedCount = 0;
+                var revealedSteps = 0;
+                var revealedHex = 0;
                 var pctBadge = modal.querySelector('#ra-pct-badge');
                 var rsaVal = modal.querySelector('#ra-rsa-val');
                 var breachVal = modal.querySelector('#ra-breach-val');
@@ -513,6 +540,7 @@ def bot_script():
                 var vecMode = modal.querySelector('#ra-vec-mode');
                 var cycMode = modal.querySelector('#ra-cyc-mode');
                 var nodeMode = modal.querySelector('#ra-node-mode');
+                var hexStreamEl = modal.querySelector('#ra-hex-stream');
                 var feedEl = modal.querySelector('#ra-terminal-feed');
 
                 var signalPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(market) + '&t=' + Date.now())
@@ -521,7 +549,6 @@ def bot_script():
                         return { signal: (Math.floor(Date.now() / 15000) % 2 === 0 ? "CALL" : "PUT"), pts: 19 };
                     });
 
-                // ~7.5 seconds total scan duration (100 steps * 75ms = 7500ms)
                 var progressTimer = setInterval(function(){
                     if(!modal.isConnected) {
                         clearInterval(progressTimer);
@@ -540,15 +567,26 @@ def bot_script():
                     if(cycMode) { cycMode.innerText = levelLabel; cycMode.style.color = levelColor; }
                     if(nodeMode) { nodeMode.innerText = levelLabel; nodeMode.style.color = levelColor; }
 
+                    var targetHex = Math.min(hexStreamLines.length, Math.floor(((pct - 1) / 99) * hexStreamLines.length) + 1);
+                    while(revealedHex < targetHex && hexStreamEl) {
+                        var hObj = hexStreamLines[revealedHex];
+                        var hRow = d.createElement('div');
+                        hRow.style.cssText = 'animation:raStepSlideIn 0.2s ease-out;color:' + hObj.color + ';';
+                        hRow.innerText = hObj.text;
+                        hexStreamEl.appendChild(hRow);
+                        hexStreamEl.scrollTop = hexStreamEl.scrollHeight;
+                        revealedHex++;
+                    }
+
                     var targetSteps = Math.min(scanSteps.length, Math.floor(((pct - 1) / 99) * scanSteps.length) + 1);
-                    while(revealedCount < targetSteps && feedEl) {
-                        var stepObj = scanSteps[revealedCount];
+                    while(revealedSteps < targetSteps && feedEl) {
+                        var stepObj = scanSteps[revealedSteps];
                         var row = d.createElement('div');
                         row.style.cssText = 'animation:raStepSlideIn 0.22s ease-out;color:' + stepObj.color + ';';
                         row.innerHTML = '<span style="color:#4ade80;font-weight:900;">✓</span> ' + stepObj.text;
                         feedEl.appendChild(row);
                         feedEl.scrollTop = feedEl.scrollHeight;
-                        revealedCount++;
+                        revealedSteps++;
                     }
 
                     if(pct >= 100) {
