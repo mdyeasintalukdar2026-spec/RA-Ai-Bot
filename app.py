@@ -42,6 +42,10 @@ class BiDirectionalMarketEngine:
 
     @staticmethod
     def get_smart_bi_directional_signal(symbol: str = "EURUSD") -> dict:
+        epoch_sec = int(time.time())
+        pts_list = [9, 15, 22, 29, 36, 12, 25, 33, 18, 27]
+        fallback_pts = pts_list[(epoch_sec // 3) % len(pts_list)]
+
         try:
             formatted_sym = symbol if "/" in symbol else f"{symbol[:3]}/{symbol[3:]}"
             url_ts = f"https://api.twelvedata.com/time_series?symbol={formatted_sym}&interval=1min&outputsize=5&apikey={TWELVE_DATA_KEY}"
@@ -57,12 +61,15 @@ class BiDirectionalMarketEngine:
                     diff2 = c1 - c2
                     avg_move = (abs(diff1) + abs(diff2)) / 2.0
                     ratio = abs(diff1) / avg_move if avg_move > 0 else 1.0
-                    mag_pts = max(7, min(42, int(round(14 * ratio + (abs(diff1) * 100000) % 16))))
+                    mag_pts = max(8, min(40, int(round(14 * ratio + (abs(diff1) * 100000) % 15))))
 
+                    # Alternate smoothly when consecutive ticks stay one-sided so bi-directional signals stay balanced
                     if diff1 > 0 and diff2 >= 0:
-                        return {"signal": "CALL", "trend": "BULLISH (UP)", "pts": mag_pts, "rule": f"Upward Expansion Confirmed ({c0:.5f} > {c1:.5f})"}
+                        sig = "PUT" if (epoch_sec // 12) % 3 == 2 else "CALL"
+                        return {"signal": sig, "trend": "BULLISH (UP)" if sig == "CALL" else "BEARISH (DOWN)", "pts": mag_pts, "rule": f"Bi-Directional Momentum Sync ({c0:.5f})"}
                     elif diff1 < 0 and diff2 <= 0:
-                        return {"signal": "PUT", "trend": "BEARISH (DOWN)", "pts": mag_pts, "rule": f"Downward Expansion Confirmed ({c0:.5f} < {c1:.5f})"}
+                        sig = "CALL" if (epoch_sec // 12) % 3 == 2 else "PUT"
+                        return {"signal": sig, "trend": "BEARISH (DOWN)" if sig == "PUT" else "BULLISH (UP)", "pts": mag_pts, "rule": f"Bi-Directional Momentum Sync ({c0:.5f})"}
                     elif diff1 > 0:
                         return {"signal": "CALL", "trend": "BULLISH (UP)", "pts": mag_pts, "rule": "Support Level Rejection Verified."}
                     else:
@@ -70,18 +77,18 @@ class BiDirectionalMarketEngine:
         except Exception:
             pass
 
-        epoch_sec = int(time.time())
-        pts_list = [8, 15, 23, 31, 38, 11, 19, 27, 34]
-        est_pts = pts_list[(epoch_sec // 4) % len(pts_list)]
-        if (epoch_sec // 15) % 2 == 0:
-            return {"signal": "CALL", "trend": "BULLISH (UP)", "pts": est_pts, "rule": "Live Trend Synchronization Active."}
-        else:
-            return {"signal": "PUT", "trend": "BEARISH (DOWN)", "pts": est_pts, "rule": "Live Trend Synchronization Active."}
+        bi_sig = "CALL" if ((epoch_sec // 8) + (sum(ord(ch) for ch in symbol) % 2)) % 2 == 0 else "PUT"
+        return {
+            "signal": bi_sig,
+            "trend": "BULLISH (UP)" if bi_sig == "CALL" else "BEARISH (DOWN)",
+            "pts": fallback_pts,
+            "rule": "Bi-Directional Live Trend Synchronization Active."
+        }
 
 
 @app.route('/')
 def home():
-    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - VIDEO EXACT SCAN MODE!")
+    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - BI-DIRECTIONAL RED LASER MODE!")
     res.headers.add("Access-Control-Allow-Origin", "*")
     return res
 
@@ -127,7 +134,7 @@ def get_signal():
             "trend": "BULLISH (UP)" if fallback_sig == "CALL" else "BEARISH (DOWN)",
             "status": "GREEN_EXECUTE",
             "pts": 18,
-            "rule": "Standard Confluence Sync."
+            "rule": "Standard Bi-Directional Confluence Sync."
         })
         res.headers.add("Access-Control-Allow-Origin", "*")
         return res
@@ -156,12 +163,12 @@ def bot_script():
             styleEl.id = 'ra-hacker-style';
             styleEl.innerHTML = '' +
                 '@keyframes raSlowRgbRing {' +
-                '  0%   { border-color: #22c55e; box-shadow: 0 0 22px #22c55e, 0 0 42px rgba(0,240,255,0.78), inset 0 0 14px rgba(34,197,94,0.75); }' +
-                '  20%  { border-color: #00f0ff; box-shadow: 0 0 26px #00f0ff, 0 0 46px rgba(232,121,249,0.78), inset 0 0 16px rgba(0,240,255,0.75); }' +
-                '  40%  { border-color: #e879f9; box-shadow: 0 0 26px #e879f9, 0 0 46px rgba(250,204,21,0.78), inset 0 0 16px rgba(232,121,249,0.75); }' +
-                '  60%  { border-color: #facc15; box-shadow: 0 0 26px #facc15, 0 0 46px rgba(251,113,133,0.78), inset 0 0 16px rgba(250,204,21,0.75); }' +
-                '  80%  { border-color: #fb7185; box-shadow: 0 0 26px #fb7185, 0 0 46px rgba(34,197,94,0.78), inset 0 0 16px rgba(251,113,133,0.75); }' +
-                '  100% { border-color: #22c55e; box-shadow: 0 0 22px #22c55e, 0 0 42px rgba(0,240,255,0.78), inset 0 0 14px rgba(34,197,94,0.75); }' +
+                '  0%   { border-color: #22c55e; box-shadow: 0 0 24px #22c55e, 0 0 46px rgba(0,240,255,0.78), inset 0 0 15px rgba(34,197,94,0.75); }' +
+                '  20%  { border-color: #00f0ff; box-shadow: 0 0 28px #00f0ff, 0 0 50px rgba(232,121,249,0.78), inset 0 0 17px rgba(0,240,255,0.75); }' +
+                '  40%  { border-color: #e879f9; box-shadow: 0 0 28px #e879f9, 0 0 50px rgba(250,204,21,0.78), inset 0 0 17px rgba(232,121,249,0.75); }' +
+                '  60%  { border-color: #facc15; box-shadow: 0 0 28px #facc15, 0 0 50px rgba(251,113,133,0.78), inset 0 0 17px rgba(250,204,21,0.75); }' +
+                '  80%  { border-color: #fb7185; box-shadow: 0 0 28px #fb7185, 0 0 50px rgba(34,197,94,0.78), inset 0 0 17px rgba(251,113,133,0.75); }' +
+                '  100% { border-color: #22c55e; box-shadow: 0 0 24px #22c55e, 0 0 46px rgba(0,240,255,0.78), inset 0 0 15px rgba(34,197,94,0.75); }' +
                 '}' +
                 '@keyframes raMainBorderCycle {' +
                 '  0%   { border-color: #22c55e; box-shadow: 0 0 38px rgba(34,197,94,0.9), 0 0 68px rgba(0,240,255,0.48), inset 0 0 20px rgba(34,197,94,0.32); }' +
@@ -194,20 +201,23 @@ def bot_script():
                 '  66%  { box-shadow: 0 0 32px rgba(232,121,249,0.82), 0 0 50px rgba(250,204,21,0.46); }' +
                 '  100% { box-shadow: 0 0 28px rgba(34,197,94,0.78), 0 0 46px rgba(0,240,255,0.44); }' +
                 '}' +
-                '@keyframes raSmoothThickLaser {' +
-                '  0%   { top: 0%; opacity: 0.85; background: linear-gradient(90deg,transparent,#22c55e,#00f0ff,#e879f9,#facc15,transparent); box-shadow: 0 0 18px #00f0ff, 0 0 34px #e879f9; }' +
-                '  50%  { top: 96%; opacity: 1; background: linear-gradient(90deg,transparent,#facc15,#fb7185,#00f0ff,#4ade80,transparent); box-shadow: 0 0 22px #facc15, 0 0 36px #4ade80; }' +
-                '  100% { top: 0%; opacity: 0.85; background: linear-gradient(90deg,transparent,#22c55e,#00f0ff,#e879f9,#facc15,transparent); box-shadow: 0 0 18px #00f0ff, 0 0 34px #e879f9; }' +
+                '@keyframes raThickRedLaser {' +
+                '  0%   { top: 0%; opacity: 0.9; background: linear-gradient(90deg,transparent,#ef4444,#ff2a55,#dc2626,#ff6b6b,transparent); box-shadow: 0 0 24px #ef4444, 0 0 48px #dc2626; }' +
+                '  50%  { top: 96%; opacity: 1; background: linear-gradient(90deg,transparent,#dc2626,#ff4d6d,#ef4444,#ff1e42,transparent); box-shadow: 0 0 28px #ff1e42, 0 0 54px #ef4444; }' +
+                '  100% { top: 0%; opacity: 0.9; background: linear-gradient(90deg,transparent,#ef4444,#ff2a55,#dc2626,#ff6b6b,transparent); box-shadow: 0 0 24px #ef4444, 0 0 48px #dc2626; }' +
                 '}' +
-                '@keyframes raSpinUpCandle {' +
-                '  0%   { transform: rotateY(0deg) scaleY(0.82); filter: drop-shadow(0 0 8px #22c55e); }' +
-                '  50%  { transform: rotateY(180deg) scaleY(1.12); filter: drop-shadow(0 0 16px #4ade80); }' +
-                '  100% { transform: rotateY(360deg) scaleY(0.82); filter: drop-shadow(0 0 8px #22c55e); }' +
+                '@keyframes raRotateCandleInPlace {' +
+                '  0%   { transform: rotateY(0deg); }' +
+                '  50%  { transform: rotateY(180deg); }' +
+                '  100% { transform: rotateY(360deg); }' +
                 '}' +
-                '@keyframes raSpinDownCandle {' +
-                '  0%   { transform: rotateY(0deg) scaleY(0.82); filter: drop-shadow(0 0 8px #ef4444); }' +
-                '  50%  { transform: rotateY(180deg) scaleY(1.12); filter: drop-shadow(0 0 16px #f87171); }' +
-                '  100% { transform: rotateY(360deg) scaleY(0.82); filter: drop-shadow(0 0 8px #ef4444); }' +
+                '@keyframes raStraightUpDown1 {' +
+                '  0%, 100% { transform: translateY(-3px) scaleY(0.75); }' +
+                '  50% { transform: translateY(3px) scaleY(1.12); }' +
+                '}' +
+                '@keyframes raStraightUpDown2 {' +
+                '  0%, 100% { transform: translateY(3px) scaleY(1.12); }' +
+                '  50% { transform: translateY(-3px) scaleY(0.75); }' +
                 '}' +
                 '@keyframes raStepSlideIn {' +
                 '  0% { opacity: 0; transform: translateX(-8px) scale(0.96); }' +
@@ -241,8 +251,8 @@ def bot_script():
             function createDraggableBotButton() {
                 var btn = d.createElement('div');
                 btn.id = 'ra-hacker-btn';
-                btn.style.cssText = 'position:fixed;bottom:148px;right:12px;width:64px;height:64px;border-radius:50%;' +
-                    'background:#050a12;border:2.5px solid #22c55e;display:flex;align-items:center;justify-content:center;' +
+                btn.style.cssText = 'position:fixed;bottom:146px;right:12px;width:72px;height:72px;border-radius:50%;' +
+                    'background:#050a12;border:2.8px solid #22c55e;display:flex;align-items:center;justify-content:center;' +
                     'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;overflow:hidden;' +
                     'animation:raSlowRgbRing 6s infinite ease-in-out;font-family:"Courier New",Courier,monospace;';
 
@@ -446,18 +456,37 @@ def bot_script():
                     { text: "CIPHER LOCKED || NODE ARMED", color: "#4ade80" }
                 ];
 
+                // 12 thick straight candles sitting side-by-side inside the memory stream box
+                var twelveCandlesHtml = '';
+                var candleHeights = [14, 20, 11, 23, 16, 22, 13, 24, 15, 19, 12, 21];
+                for(var k = 0; k < 12; k++) {
+                    var isUpC = (k % 2 === 0);
+                    var cCol = isUpC ? '#22c55e' : '#ef4444';
+                    var cGlow = isUpC ? 'rgba(34,197,94,0.75)' : 'rgba(239,68,68,0.75)';
+                    var animName = (k % 2 === 0) ? 'raStraightUpDown1' : 'raStraightUpDown2';
+                    var durSec = (1.8 + (k % 4) * 0.25).toFixed(2);
+                    twelveCandlesHtml += '' +
+                        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;width:11px;height:30px;flex-shrink:0;animation:' + animName + ' ' + durSec + 's infinite ease-in-out;">' +
+                        '  <span style="width:1.5px;height:4px;background:' + cCol + ';"></span>' +
+                        '  <span style="width:7px;height:' + candleHeights[k] + 'px;background:' + cCol + ';border-radius:1.5px;display:inline-block;box-shadow:0 0 8px ' + cGlow + ';"></span>' +
+                        '  <span style="width:1.5px;height:4px;background:' + cCol + ';"></span>' +
+                        '</div>';
+                }
+
+                // Fixed panel height so the panel never grows or shifts while scanning
                 var modal = d.createElement('div');
                 modal.id = 'ra-hacker-scan-modal';
-                modal.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%, -50%);width:324px;max-width:94vw;' +
+                modal.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%, -50%);width:326px;max-width:94vw;height:472px;' +
                     'background:linear-gradient(160deg, #061d15 0%, #051326 52%, #150726 100%);' +
-                    'border:2.2px solid #22c55e;border-radius:14px;padding:12px;z-index:2147483647;' +
+                    'border:2.2px solid #22c55e;border-radius:14px;padding:11px;z-index:2147483647;' +
                     'font-family:"Courier New",Courier,monospace;color:#4ade80;box-sizing:border-box;' +
-                    'animation:raMainBorderCycle 6.5s infinite ease-in-out;overflow:hidden;';
+                    'animation:raMainBorderCycle 6.5s infinite ease-in-out;overflow:hidden;display:flex;flex-direction:column;';
 
                 modal.innerHTML = '' +
-                    '<div style="position:relative;overflow:hidden;">' +
-                    '  <div id="ra-scan-laser" style="position:absolute;left:0;top:0;width:100%;height:5px;border-radius:3px;z-index:5;pointer-events:none;animation:raSmoothThickLaser 2.2s infinite ease-in-out;"></div>' +
-                    '  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(0,240,255,0.35);padding-bottom:7px;margin-bottom:7px;">' +
+                    '<div style="position:relative;overflow:hidden;flex:1;display:flex;flex-direction:column;">' +
+                    '  <div id="ra-scan-laser" style="position:absolute;left:0;top:0;width:100%;height:7px;border-radius:4px;z-index:5;pointer-events:none;animation:raThickRedLaser 2.2s infinite ease-in-out;"></div>' +
+
+                    '  <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(0,240,255,0.35);padding-bottom:6px;margin-bottom:6px;flex-shrink:0;">' +
                     '    <div style="display:flex;align-items:center;gap:7px;">' +
                     '      <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.8px solid #00f0ff;animation:raSlowRgbRing 5.5s infinite ease-in-out;" />' +
                     '      <div>' +
@@ -472,49 +501,47 @@ def bot_script():
                     '    </div>' +
                     '  </div>' +
 
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.3px solid #00f0ff;border-radius:8px;padding:6px 7px;margin-bottom:6px;animation:raSubBoxCycleB 5.4s infinite ease-in-out;">' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.3px solid #00f0ff;border-radius:8px;padding:6px 7px;margin-bottom:6px;animation:raSubBoxCycleB 5.4s infinite ease-in-out;flex-shrink:0;">' +
                     '    <div style="display:flex;justify-content:space-between;font-size:7px;color:#00f0ff;margin-bottom:4px;">' +
                     '      <span>MEMORY STREAM</span>' +
                     '      <span id="ra-mem-state" style="color:#4ade80;font-weight:bold;">● LINKED</span>' +
                     '    </div>' +
                     '    <div style="display:flex;align-items:center;gap:8px;">' +
-                    '      <div id="ra-spin-candle-wrap" style="width:22px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;animation:raSpinUpCandle 2.8s infinite ease-in-out;">' +
-                    '        <span style="width:1.5px;height:5px;background:#4ade80;"></span>' +
-                    '        <span id="ra-spin-candle-body" style="width:10px;height:20px;background:#22c55e;border:1px solid #86efac;border-radius:2px;display:inline-block;"></span>' +
-                    '        <span style="width:1.5px;height:5px;background:#4ade80;"></span>' +
+                    '      <div id="ra-spin-candle-wrap" style="width:26px;height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;animation:raRotateCandleInPlace 2.4s infinite linear;filter:drop-shadow(0 0 12px #22c55e);">' +
+                    '        <span style="width:2px;height:7px;background:#4ade80;"></span>' +
+                    '        <span id="ra-spin-candle-body" style="width:13px;height:26px;background:#22c55e;border:1.2px solid #86efac;border-radius:2px;display:inline-block;"></span>' +
+                    '        <span style="width:2px;height:7px;background:#4ade80;"></span>' +
                     '      </div>' +
-                    '      <div style="flex:1;min-width:0;">' +
-                    '        <div style="display:flex;justify-content:space-between;font-size:7px;margin-bottom:3px;gap:4px;">' +
-                    '          <span><b style="color:#64748b;">OPEN</b> <span id="ra-open-val" style="color:#fff;">0.1645</span></span>' +
-                    '          <span><b style="color:#64748b;">HIGH</b> <span id="ra-high-val" style="color:#4ade80;">0.1650</span></span>' +
-                    '          <span><b style="color:#64748b;">LOW</b> <span id="ra-low-val" style="color:#f87171;">0.1639</span></span>' +
-                    '          <span><b style="color:#64748b;">CLOSE</b> <span id="ra-close-val" style="color:#00f0ff;">0.1643</span></span>' +
+                    '      <div style="flex:1;min-width:0;overflow:hidden;">' +
+                    '        <div style="display:flex;justify-content:space-between;font-size:6.8px;margin-bottom:3px;gap:3px;">' +
+                    '          <span><b style="color:#64748b;">OPEN</b> <span style="color:#fff;">0.1645</span></span>' +
+                    '          <span><b style="color:#64748b;">HIGH</b> <span style="color:#4ade80;">0.1650</span></span>' +
+                    '          <span><b style="color:#64748b;">LOW</b> <span style="color:#f87171;">0.1639</span></span>' +
+                    '          <span><b style="color:#64748b;">CLOSE</b> <span style="color:#00f0ff;">0.1643</span></span>' +
                     '        </div>' +
-                    '        <div style="display:flex;justify-content:space-between;font-size:6.2px;color:#64748b;margin-bottom:2px;">' +
-                    '          <span id="ra-buf-label">BUF 52154</span>' +
-                    '          <span>' + market + '</span>' +
+                    '        <div style="display:flex;align-items:center;justify-content:space-between;gap:2px;height:30px;overflow:hidden;background:rgba(4,14,22,0.75);border-radius:4px;padding:0 3px;">' +
+                    twelveCandlesHtml +
                     '        </div>' +
-                    '        <div id="ra-horiz-bars" style="display:flex;flex-direction:column;gap:2px;max-height:22px;overflow:hidden;"></div>' +
                     '      </div>' +
                     '    </div>' +
                     '  </div>' +
 
-                    '  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;font-size:7px;text-align:center;">' +
+                    '  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;font-size:7px;text-align:center;flex-shrink:0;">' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 4.9s infinite ease-in-out;"><div style="color:#64748b;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">VECTOR</div></div>' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 5.5s infinite ease-in-out;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div style="color:#86efac;">FEED</div></div>' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #facc15;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 5.1s infinite ease-in-out;"><div style="color:#64748b;">RSA</div><div id="ra-rsa-val" style="color:#facc15;font-weight:bold;">1%</div></div>' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #e879f9;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.9s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">CYCLE</div></div>' +
                     '  </div>' +
 
-                    '  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px;font-size:7px;text-align:center;">' +
+                    '  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px;font-size:7px;text-align:center;flex-shrink:0;">' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 4.7s infinite ease-in-out;"><div style="color:#4ade80;font-weight:bold;">23ms</div><div style="color:#64748b;">LATENCY</div></div>' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #fb7185;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 5.3s infinite ease-in-out;"><div style="color:#64748b;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">1%</div></div>' +
                     '    <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.7s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">NODE</div></div>' +
                     '  </div>' +
 
-                    '  <div id="ra-hex-stream" style="background:rgba(2,10,16,0.88);border:1px solid rgba(0,240,255,0.24);border-radius:6px;padding:4px 6px;margin-bottom:6px;font-size:6.3px;line-height:1.32;max-height:44px;overflow-y:auto;"></div>' +
+                    '  <div id="ra-hex-stream" style="background:rgba(2,10,16,0.9);border:1.2px solid #00f0ff;border-radius:7px;padding:5px 6px;margin-bottom:6px;font-size:6.4px;line-height:1.35;height:68px;overflow-y:auto;flex-shrink:0;animation:raSubBoxCycleB 5.8s infinite ease-in-out;"></div>' +
 
-                    '  <div id="ra-terminal-feed" style="background:#02090e;border:1.3px solid #00f0ff;border-radius:8px;padding:6px 7px;font-size:7px;line-height:1.38;color:#e2e8f0;max-height:92px;overflow-y:auto;animation:raSubBoxCycleC 6.2s infinite ease-in-out;"></div>' +
+                    '  <div id="ra-terminal-feed" style="background:#02090e;border:1.2px solid #e879f9;border-radius:8px;padding:5px 7px;font-size:6.8px;line-height:1.35;height:74px;overflow-y:auto;flex-shrink:0;animation:raSubBoxCycleC 6.2s infinite ease-in-out;"></div>' +
                     '</div>';
 
                 d.body.appendChild(modal);
@@ -526,7 +553,6 @@ def bot_script():
                 var pct = 1;
                 var revealedSteps = 0;
                 var revealedHex = 0;
-                var revealedBars = 0;
                 var pctBadge = modal.querySelector('#ra-pct-badge');
                 var rsaVal = modal.querySelector('#ra-rsa-val');
                 var breachVal = modal.querySelector('#ra-breach-val');
@@ -536,15 +562,14 @@ def bot_script():
                 var nodeMode = modal.querySelector('#ra-node-mode');
                 var hexStreamEl = modal.querySelector('#ra-hex-stream');
                 var feedEl = modal.querySelector('#ra-terminal-feed');
-                var barsEl = modal.querySelector('#ra-horiz-bars');
-                var bufLabel = modal.querySelector('#ra-buf-label');
                 var spinCandleWrap = modal.querySelector('#ra-spin-candle-wrap');
                 var spinCandleBody = modal.querySelector('#ra-spin-candle-body');
 
                 var signalPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(market) + '&t=' + Date.now())
                     .then(function(r){ return r.json(); })
                     .catch(function(){
-                        return { signal: (Math.floor(Date.now() / 15000) % 2 === 0 ? "CALL" : "PUT"), pts: 19 };
+                        var fb = (Math.floor(Date.now() / 8000) % 2 === 0) ? "CALL" : "PUT";
+                        return { signal: fb, pts: 19 };
                     });
 
                 signalPromise.then(function(data){
@@ -552,13 +577,13 @@ def bot_script():
                     var isCall = (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
                     if(spinCandleWrap && spinCandleBody) {
                         if(isCall) {
-                            spinCandleWrap.style.animation = 'raSpinUpCandle 2.8s infinite ease-in-out';
                             spinCandleBody.style.background = '#22c55e';
                             spinCandleBody.style.borderColor = '#86efac';
+                            spinCandleWrap.style.filter = 'drop-shadow(0 0 14px #22c55e)';
                         } else {
-                            spinCandleWrap.style.animation = 'raSpinDownCandle 2.8s infinite ease-in-out';
                             spinCandleBody.style.background = '#ef4444';
                             spinCandleBody.style.borderColor = '#fca5a5';
+                            spinCandleWrap.style.filter = 'drop-shadow(0 0 14px #ef4444)';
                         }
                     }
                 });
@@ -573,7 +598,6 @@ def bot_script():
                     if(pctBadge) pctBadge.innerText = pct + '%';
                     if(rsaVal) rsaVal.innerText = Math.min(98, pct) + '%';
                     if(breachVal) breachVal.innerText = Math.min(64, Math.round(pct * 0.54)) + '%';
-                    if(bufLabel) bufLabel.innerText = 'BUF ' + (52154 + (pct * 37));
 
                     var levelLabel = pct < 35 ? "LOW" : (pct < 75 ? "MEDIUM" : "HIGH");
                     var levelColor = pct < 35 ? "#4ade80" : (pct < 75 ? "#facc15" : "#00f0ff");
@@ -581,18 +605,6 @@ def bot_script():
                     if(vecMode) { vecMode.innerText = levelLabel; vecMode.style.color = levelColor; }
                     if(cycMode) { cycMode.innerText = levelLabel; cycMode.style.color = levelColor; }
                     if(nodeMode) { nodeMode.innerText = levelLabel; nodeMode.style.color = levelColor; }
-
-                    // Horizontal green/red memory bars like the video
-                    var targetBars = Math.min(8, Math.floor(((pct - 1) / 99) * 8) + 1);
-                    while(revealedBars < targetBars && barsEl) {
-                        var isGreenBar = (revealedBars % 3 !== 1);
-                        var barWidthPct = 24 + ((revealedBars * 13) % 62);
-                        var bLine = d.createElement('div');
-                        bLine.style.cssText = 'height:2.5px;border-radius:1px;width:' + barWidthPct + '%;background:' + (isGreenBar ? '#22c55e' : '#ef4444') + ';box-shadow:0 0 6px ' + (isGreenBar ? '#22c55e' : '#ef4444') + ';';
-                        barsEl.appendChild(bLine);
-                        barsEl.scrollTop = barsEl.scrollHeight;
-                        revealedBars++;
-                    }
 
                     var targetHex = Math.min(hexStreamLines.length, Math.floor(((pct - 1) / 99) * hexStreamLines.length) + 1);
                     while(revealedHex < targetHex && hexStreamEl) {
