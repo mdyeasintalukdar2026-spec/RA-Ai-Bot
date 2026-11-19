@@ -252,8 +252,8 @@ def bot_script():
             }
 
             function generateTradeReachEstimate(isCall, seedNum) {
-                var heights = [54, 68, 82, 96, 112, 76, 88];
-                var pipsList = [14, 19, 24, 29, 35, 17, 27];
+                var heights = [52, 66, 80, 94, 108, 74, 86];
+                var pipsList = [12, 18, 23, 28, 34, 16, 26];
                 var idx = Math.abs(seedNum) % heights.length;
                 return {
                     boxHeight: heights[idx],
