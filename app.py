@@ -43,7 +43,7 @@ class BiDirectionalMarketEngine:
     @staticmethod
     def get_smart_bi_directional_signal(symbol: str = "EURUSD") -> dict:
         epoch_sec = int(time.time())
-        pts_list = [9, 15, 22, 29, 36, 12, 25, 33, 18, 27]
+        pts_list = [9, 15, 22, 29, 36, 12, 25, 33, 18, 27, 14, 31]
         fallback_pts = pts_list[(epoch_sec // 3) % len(pts_list)]
 
         try:
@@ -64,7 +64,7 @@ class BiDirectionalMarketEngine:
                     mag_pts = max(8, min(40, int(round(14 * ratio + (abs(diff1) * 100000) % 15))))
 
                     if diff1 > 0 and diff2 > 0:
-                        sig = "PUT" if (epoch_sec // 5) % 2 == 1 else "CALL"
+                        sig = "PUT" if (epoch_sec // 4) % 2 == 1 else "CALL"
                         return {
                             "signal": sig,
                             "trend": "BULLISH (UP)" if sig == "CALL" else "BEARISH (DOWN)",
@@ -72,7 +72,7 @@ class BiDirectionalMarketEngine:
                             "rule": f"Bi-Directional Momentum Sync ({c0:.5f})"
                         }
                     elif diff1 < 0 and diff2 < 0:
-                        sig = "CALL" if (epoch_sec // 5) % 2 == 1 else "PUT"
+                        sig = "CALL" if (epoch_sec // 4) % 2 == 1 else "PUT"
                         return {
                             "signal": sig,
                             "trend": "BEARISH (DOWN)" if sig == "PUT" else "BULLISH (UP)",
@@ -97,7 +97,7 @@ class BiDirectionalMarketEngine:
             pass
 
         sym_hash = sum(ord(ch) for ch in symbol)
-        bi_sig = "CALL" if ((epoch_sec // 5) + sym_hash) % 2 == 0 else "PUT"
+        bi_sig = "CALL" if ((epoch_sec // 4) + sym_hash + (epoch_sec % 3)) % 2 == 0 else "PUT"
         return {
             "signal": bi_sig,
             "trend": "BULLISH (UP)" if bi_sig == "CALL" else "BEARISH (DOWN)",
@@ -148,7 +148,8 @@ def get_signal():
         return res
     except Exception as e:
         logger.error(f"Signal Error: {e}")
-        fallback_sig = "CALL" if (int(time.time()) // 5) % 2 == 0 else "PUT"
+        now_s = int(time.time())
+        fallback_sig = "CALL" if (now_s // 4) % 2 == 0 else "PUT"
         res = jsonify({
             "signal": fallback_sig,
             "trend": "BULLISH (UP)" if fallback_sig == "CALL" else "BEARISH (DOWN)",
@@ -171,7 +172,7 @@ def bot_script():
                 "dr-tracker-panel", "dr-tracker-btn", "dr-scan-modal",
                 "dr-candle-projection", "dr-next-signal-popup", "dr-hacker-style",
                 "ra-hacker-btn", "ra-hacker-scan-modal", "ra-hacker-signal-popup",
-                "ra-hacker-login-modal", "ra-hacker-style"
+                "ra-hacker-login-modal", "ra-bg-blur-overlay", "ra-hacker-style"
             ].forEach(function(id){
                 var el = d.getElementById(id);
                 if(el) el.remove();
@@ -197,56 +198,70 @@ def bot_script():
                 '  100% { transform: rotate(360deg); }' +
                 '}' +
                 '@keyframes raBotGlowCycle {' +
-                '  0%   { box-shadow: 0 0 18px #22c55e, 0 0 34px rgba(34,197,94,0.85), inset 0 0 12px rgba(34,197,94,0.65); border-color: #22c55e; }' +
-                '  25%  { box-shadow: 0 0 20px #00f0ff, 0 0 38px rgba(0,240,255,0.88), inset 0 0 12px rgba(0,240,255,0.65); border-color: #00f0ff; }' +
-                '  50%  { box-shadow: 0 0 20px #e879f9, 0 0 38px rgba(232,121,249,0.88), inset 0 0 12px rgba(232,121,249,0.65); border-color: #e879f9; }' +
-                '  75%  { box-shadow: 0 0 20px #facc15, 0 0 38px rgba(250,204,21,0.88), inset 0 0 12px rgba(250,204,21,0.65); border-color: #facc15; }' +
-                '  100% { box-shadow: 0 0 18px #22c55e, 0 0 34px rgba(34,197,94,0.85), inset 0 0 12px rgba(34,197,94,0.65); border-color: #22c55e; }' +
+                '  0%   { box-shadow: 0 0 22px #22c55e, 0 0 44px rgba(34,197,94,0.92), inset 0 0 14px rgba(34,197,94,0.75); border-color: #22c55e; }' +
+                '  25%  { box-shadow: 0 0 24px #00f0ff, 0 0 48px rgba(0,240,255,0.95), inset 0 0 14px rgba(0,240,255,0.75); border-color: #00f0ff; }' +
+                '  50%  { box-shadow: 0 0 24px #e879f9, 0 0 48px rgba(232,121,249,0.95), inset 0 0 14px rgba(232,121,249,0.75); border-color: #e879f9; }' +
+                '  75%  { box-shadow: 0 0 24px #facc15, 0 0 48px rgba(250,204,21,0.95), inset 0 0 14px rgba(250,204,21,0.75); border-color: #facc15; }' +
+                '  100% { box-shadow: 0 0 22px #22c55e, 0 0 44px rgba(34,197,94,0.92), inset 0 0 14px rgba(34,197,94,0.75); border-color: #22c55e; }' +
                 '}' +
-                '@keyframes raLoginBoxGlow {' +
-                '  0%   { border-color: #22c55e; box-shadow: 0 0 26px rgba(34,197,94,0.75), 0 0 52px rgba(0,240,255,0.32), inset 0 0 14px rgba(34,197,94,0.22); }' +
-                '  33%  { border-color: #00f0ff; box-shadow: 0 0 28px rgba(0,240,255,0.78), 0 0 56px rgba(232,121,249,0.34), inset 0 0 14px rgba(0,240,255,0.22); }' +
-                '  66%  { border-color: #e879f9; box-shadow: 0 0 28px rgba(232,121,249,0.78), 0 0 56px rgba(250,204,21,0.34), inset 0 0 14px rgba(232,121,249,0.22); }' +
-                '  100% { border-color: #22c55e; box-shadow: 0 0 26px rgba(34,197,94,0.75), 0 0 52px rgba(0,240,255,0.32), inset 0 0 14px rgba(34,197,94,0.22); }' +
+                '@keyframes raLoginFastBorder {' +
+                '  0%   { border-color: #22c55e; box-shadow: 0 0 26px rgba(34,197,94,0.95), 0 0 54px rgba(0,240,255,0.55); }' +
+                '  25%  { border-color: #00f0ff; box-shadow: 0 0 30px rgba(0,240,255,0.98), 0 0 60px rgba(232,121,249,0.58); }' +
+                '  50%  { border-color: #e879f9; box-shadow: 0 0 30px rgba(232,121,249,0.98), 0 0 60px rgba(250,204,21,0.58); }' +
+                '  75%  { border-color: #facc15; box-shadow: 0 0 30px rgba(250,204,21,0.98), 0 0 60px rgba(34,197,94,0.58); }' +
+                '  100% { border-color: #22c55e; box-shadow: 0 0 26px rgba(34,197,94,0.95), 0 0 54px rgba(0,240,255,0.55); }' +
                 '}' +
-                '@keyframes raTelegramCardGlow {' +
-                '  0%   { border-color: #facc15; box-shadow: 0 0 14px rgba(250,204,21,0.62), inset 0 0 8px rgba(250,204,21,0.2); }' +
-                '  33%  { border-color: #4ade80; box-shadow: 0 0 16px rgba(74,222,128,0.68), inset 0 0 8px rgba(74,222,128,0.22); }' +
-                '  66%  { border-color: #38bdf8; box-shadow: 0 0 16px rgba(56,189,248,0.68), inset 0 0 8px rgba(56,189,248,0.22); }' +
-                '  100% { border-color: #facc15; box-shadow: 0 0 14px rgba(250,204,21,0.62), inset 0 0 8px rgba(250,204,21,0.2); }' +
+                '@keyframes raTelegramSlowBorder {' +
+                '  0%   { border-color: #facc15; box-shadow: 0 0 16px rgba(250,204,21,0.82), inset 0 0 10px rgba(250,204,21,0.32); }' +
+                '  25%  { border-color: #4ade80; box-shadow: 0 0 18px rgba(74,222,128,0.88), inset 0 0 10px rgba(74,222,128,0.34); }' +
+                '  50%  { border-color: #38bdf8; box-shadow: 0 0 18px rgba(56,189,248,0.88), inset 0 0 10px rgba(56,189,248,0.34); }' +
+                '  75%  { border-color: #e879f9; box-shadow: 0 0 18px rgba(232,121,249,0.88), inset 0 0 10px rgba(232,121,249,0.34); }' +
+                '  100% { border-color: #facc15; box-shadow: 0 0 16px rgba(250,204,21,0.82), inset 0 0 10px rgba(250,204,21,0.32); }' +
                 '}' +
-                '@keyframes raMainBorderCycle {' +
-                '  0%   { border-color: #22c55e; box-shadow: 0 0 44px rgba(34,197,94,0.98), 0 0 84px rgba(0,240,255,0.62), inset 0 0 24px rgba(34,197,94,0.4); }' +
-                '  25%  { border-color: #00f0ff; box-shadow: 0 0 48px rgba(0,240,255,0.98), 0 0 88px rgba(232,121,249,0.62), inset 0 0 26px rgba(0,240,255,0.4); }' +
-                '  50%  { border-color: #e879f9; box-shadow: 0 0 48px rgba(232,121,249,0.98), 0 0 88px rgba(250,204,21,0.62), inset 0 0 26px rgba(232,121,249,0.4); }' +
-                '  75%  { border-color: #facc15; box-shadow: 0 0 48px rgba(250,204,21,0.98), 0 0 88px rgba(56,189,248,0.62), inset 0 0 26px rgba(250,204,21,0.4); }' +
-                '  100% { border-color: #22c55e; box-shadow: 0 0 44px rgba(34,197,94,0.98), 0 0 84px rgba(0,240,255,0.62), inset 0 0 24px rgba(34,197,94,0.4); }' +
+                '@keyframes raScanBoxSlowBorder {' +
+                '  0%   { border-color: #22c55e; box-shadow: 0 0 42px rgba(34,197,94,0.96), 0 0 80px rgba(0,240,255,0.58), inset 0 0 22px rgba(34,197,94,0.38); }' +
+                '  25%  { border-color: #00f0ff; box-shadow: 0 0 46px rgba(0,240,255,0.98), 0 0 86px rgba(232,121,249,0.62), inset 0 0 24px rgba(0,240,255,0.42); }' +
+                '  50%  { border-color: #e879f9; box-shadow: 0 0 46px rgba(232,121,249,0.98), 0 0 86px rgba(250,204,21,0.62), inset 0 0 24px rgba(232,121,249,0.42); }' +
+                '  75%  { border-color: #facc15; box-shadow: 0 0 46px rgba(250,204,21,0.98), 0 0 86px rgba(56,189,248,0.62), inset 0 0 24px rgba(250,204,21,0.42); }' +
+                '  100% { border-color: #22c55e; box-shadow: 0 0 42px rgba(34,197,94,0.96), 0 0 80px rgba(0,240,255,0.58), inset 0 0 22px rgba(34,197,94,0.38); }' +
+                '}' +
+                '@keyframes raHeaderAvatarGlow {' +
+                '  0%   { border-color: #00f0ff; box-shadow: 0 0 18px rgba(0,240,255,0.95), 0 0 32px rgba(34,197,94,0.65); }' +
+                '  33%  { border-color: #e879f9; box-shadow: 0 0 20px rgba(232,121,249,0.98), 0 0 34px rgba(250,204,21,0.7); }' +
+                '  66%  { border-color: #facc15; box-shadow: 0 0 20px rgba(250,204,21,0.98), 0 0 34px rgba(0,240,255,0.7); }' +
+                '  100% { border-color: #00f0ff; box-shadow: 0 0 18px rgba(0,240,255,0.95), 0 0 32px rgba(34,197,94,0.65); }' +
                 '}' +
                 '@keyframes raSubBoxCycleA {' +
-                '  0%   { border-color: rgba(34,197,94,0.98); box-shadow: 0 0 18px rgba(34,197,94,0.72), inset 0 0 10px rgba(34,197,94,0.35); }' +
-                '  33%  { border-color: rgba(232,121,249,0.98); box-shadow: 0 0 22px rgba(232,121,249,0.75), inset 0 0 12px rgba(232,121,249,0.35); }' +
-                '  66%  { border-color: rgba(250,204,21,0.98); box-shadow: 0 0 22px rgba(250,204,21,0.75), inset 0 0 12px rgba(250,204,21,0.35); }' +
-                '  100% { border-color: rgba(34,197,94,0.98); box-shadow: 0 0 18px rgba(34,197,94,0.72), inset 0 0 10px rgba(34,197,94,0.35); }' +
+                '  0%   { border-color: rgba(34,197,94,1); box-shadow: 0 0 22px rgba(34,197,94,0.88), inset 0 0 14px rgba(34,197,94,0.45); }' +
+                '  33%  { border-color: rgba(232,121,249,1); box-shadow: 0 0 26px rgba(232,121,249,0.92), inset 0 0 16px rgba(232,121,249,0.48); }' +
+                '  66%  { border-color: rgba(250,204,21,1); box-shadow: 0 0 26px rgba(250,204,21,0.92), inset 0 0 16px rgba(250,204,21,0.48); }' +
+                '  100% { border-color: rgba(34,197,94,1); box-shadow: 0 0 22px rgba(34,197,94,0.88), inset 0 0 14px rgba(34,197,94,0.45); }' +
                 '}' +
                 '@keyframes raSubBoxCycleB {' +
-                '  0%   { border-color: rgba(0,240,255,0.98); box-shadow: 0 0 18px rgba(0,240,255,0.72), inset 0 0 10px rgba(0,240,255,0.35); }' +
-                '  33%  { border-color: rgba(250,204,21,0.98); box-shadow: 0 0 22px rgba(250,204,21,0.75), inset 0 0 12px rgba(250,204,21,0.35); }' +
-                '  66%  { border-color: rgba(74,222,128,0.98); box-shadow: 0 0 22px rgba(74,222,128,0.75), inset 0 0 12px rgba(74,222,128,0.35); }' +
-                '  100% { border-color: rgba(0,240,255,0.98); box-shadow: 0 0 18px rgba(0,240,255,0.72), inset 0 0 10px rgba(0,240,255,0.35); }' +
+                '  0%   { border-color: rgba(0,240,255,1); box-shadow: 0 0 22px rgba(0,240,255,0.88), inset 0 0 14px rgba(0,240,255,0.45); }' +
+                '  33%  { border-color: rgba(250,204,21,1); box-shadow: 0 0 26px rgba(250,204,21,0.92), inset 0 0 16px rgba(250,204,21,0.48); }' +
+                '  66%  { border-color: rgba(74,222,128,1); box-shadow: 0 0 26px rgba(74,222,128,0.92), inset 0 0 16px rgba(74,222,128,0.48); }' +
+                '  100% { border-color: rgba(0,240,255,1); box-shadow: 0 0 22px rgba(0,240,255,0.88), inset 0 0 14px rgba(0,240,255,0.45); }' +
                 '}' +
                 '@keyframes raSubBoxCycleC {' +
-                '  0%   { border-color: rgba(244,63,94,0.98); box-shadow: 0 0 18px rgba(244,63,94,0.72), inset 0 0 10px rgba(244,63,94,0.35); }' +
-                '  33%  { border-color: rgba(56,189,248,0.98); box-shadow: 0 0 22px rgba(56,189,248,0.75), inset 0 0 12px rgba(56,189,248,0.35); }' +
-                '  66%  { border-color: rgba(192,132,252,0.98); box-shadow: 0 0 22px rgba(192,132,252,0.75), inset 0 0 12px rgba(192,132,252,0.35); }' +
-                '  100% { border-color: rgba(244,63,94,0.98); box-shadow: 0 0 18px rgba(244,63,94,0.72), inset 0 0 10px rgba(244,63,94,0.35); }' +
+                '  0%   { border-color: rgba(244,63,94,1); box-shadow: 0 0 22px rgba(244,63,94,0.88), inset 0 0 14px rgba(244,63,94,0.45); }' +
+                '  33%  { border-color: rgba(56,189,248,1); box-shadow: 0 0 26px rgba(56,189,248,0.92), inset 0 0 16px rgba(56,189,248,0.48); }' +
+                '  66%  { border-color: rgba(192,132,252,1); box-shadow: 0 0 26px rgba(192,132,252,0.92), inset 0 0 16px rgba(192,132,252,0.48); }' +
+                '  100% { border-color: rgba(244,63,94,1); box-shadow: 0 0 22px rgba(244,63,94,0.88), inset 0 0 14px rgba(244,63,94,0.45); }' +
+                '}' +
+                '@keyframes raTrackGlowCycle {' +
+                '  0%   { border-color: rgba(0,240,255,0.85); box-shadow: 0 0 20px rgba(0,240,255,0.58), inset 0 0 12px rgba(0,240,255,0.28); }' +
+                '  33%  { border-color: rgba(232,121,249,0.85); box-shadow: 0 0 22px rgba(232,121,249,0.62), inset 0 0 12px rgba(232,121,249,0.3); }' +
+                '  66%  { border-color: rgba(250,204,21,0.85); box-shadow: 0 0 22px rgba(250,204,21,0.62), inset 0 0 12px rgba(250,204,21,0.3); }' +
+                '  100% { border-color: rgba(0,240,255,0.85); box-shadow: 0 0 20px rgba(0,240,255,0.58), inset 0 0 12px rgba(0,240,255,0.28); }' +
                 '}' +
                 '@keyframes raPopupGreenGlow {' +
-                '  0%, 100% { border-color: #4ade80; box-shadow: 0 0 34px rgba(34,197,94,0.98), 0 0 68px rgba(74,222,128,0.82), inset 0 0 20px rgba(34,197,94,0.5); }' +
-                '  50% { border-color: #86efac; box-shadow: 0 0 46px rgba(34,197,94,1), 0 0 88px rgba(0,240,255,0.72), inset 0 0 26px rgba(74,222,128,0.6); }' +
+                '  0%, 100% { border-color: #4ade80; box-shadow: 0 0 38px rgba(34,197,94,1), 0 0 74px rgba(74,222,128,0.88), inset 0 0 22px rgba(34,197,94,0.55); }' +
+                '  50% { border-color: #86efac; box-shadow: 0 0 50px rgba(34,197,94,1), 0 0 94px rgba(0,240,255,0.78), inset 0 0 28px rgba(74,222,128,0.65); }' +
                 '}' +
                 '@keyframes raPopupRedGlow {' +
-                '  0%, 100% { border-color: #f87171; box-shadow: 0 0 34px rgba(239,68,68,0.98), 0 0 68px rgba(248,113,113,0.82), inset 0 0 20px rgba(239,68,68,0.5); }' +
-                '  50% { border-color: #fca5a5; box-shadow: 0 0 46px rgba(239,68,68,1), 0 0 88px rgba(251,113,133,0.72), inset 0 0 26px rgba(248,113,113,0.6); }' +
+                '  0%, 100% { border-color: #f87171; box-shadow: 0 0 38px rgba(239,68,68,1), 0 0 74px rgba(248,113,113,0.88), inset 0 0 22px rgba(239,68,68,0.55); }' +
+                '  50% { border-color: #fca5a5; box-shadow: 0 0 50px rgba(239,68,68,1), 0 0 94px rgba(251,113,133,0.78), inset 0 0 28px rgba(248,113,113,0.65); }' +
                 '}' +
                 '@keyframes raHeroCandleSpinGlow {' +
                 '  0%   { transform: rotateY(0deg); }' +
@@ -262,6 +277,22 @@ def bot_script():
                 '}';
             d.head.appendChild(styleEl);
 
+            function setBrokerBackgroundBlur(enableBlur) {
+                var existing = d.getElementById('ra-bg-blur-overlay');
+                if(enableBlur) {
+                    if(!existing) {
+                        var blurLayer = d.createElement('div');
+                        blurLayer.id = 'ra-bg-blur-overlay';
+                        blurLayer.style.cssText = 'position:fixed;inset:0;z-index:2147483640;' +
+                            'backdrop-filter:blur(4.5px);-webkit-backdrop-filter:blur(4.5px);' +
+                            'background:rgba(2,8,15,0.28);pointer-events:none;transition:opacity 0.25s ease;';
+                        d.body.appendChild(blurLayer);
+                    }
+                } else if(existing) {
+                    existing.remove();
+                }
+            }
+
             function applyHeroCandleColor(isCall) {
                 var heroCandleBox = d.getElementById('ra-hero-candle-box');
                 var heroCandleBody = d.getElementById('ra-hero-candle-body');
@@ -272,21 +303,21 @@ def bot_script():
                 if(isCall) {
                     heroCandleBody.style.background = '#22c55e';
                     heroCandleBody.style.borderColor = '#86efac';
-                    heroCandleBody.style.boxShadow = '0 0 22px rgba(34,197,94,1), 0 0 42px rgba(74,222,128,0.9)';
+                    heroCandleBody.style.boxShadow = '0 0 26px rgba(34,197,94,1), 0 0 48px rgba(74,222,128,0.95)';
                     heroWickTop.style.background = '#4ade80';
                     heroWickBot.style.background = '#4ade80';
-                    heroCandleBox.style.borderColor = '#22c55e';
-                    heroCandleBox.style.background = 'rgba(34,197,94,0.16)';
-                    heroCandleBox.style.boxShadow = '0 0 24px rgba(34,197,94,0.95), 0 0 42px rgba(74,222,128,0.75)';
+                    heroCandleBox.style.borderColor = '#4ade80';
+                    heroCandleBox.style.background = 'rgba(34,197,94,0.2)';
+                    heroCandleBox.style.boxShadow = '0 0 28px rgba(34,197,94,1), 0 0 50px rgba(74,222,128,0.85)';
                 } else {
                     heroCandleBody.style.background = '#ef4444';
                     heroCandleBody.style.borderColor = '#fca5a5';
-                    heroCandleBody.style.boxShadow = '0 0 22px rgba(239,68,68,1), 0 0 42px rgba(248,113,113,0.9)';
+                    heroCandleBody.style.boxShadow = '0 0 26px rgba(239,68,68,1), 0 0 48px rgba(248,113,113,0.95)';
                     heroWickTop.style.background = '#f87171';
                     heroWickBot.style.background = '#f87171';
-                    heroCandleBox.style.borderColor = '#ef4444';
-                    heroCandleBox.style.background = 'rgba(239,68,68,0.16)';
-                    heroCandleBox.style.boxShadow = '0 0 24px rgba(239,68,68,0.95), 0 0 42px rgba(248,113,113,0.75)';
+                    heroCandleBox.style.borderColor = '#f87171';
+                    heroCandleBox.style.background = 'rgba(239,68,68,0.2)';
+                    heroCandleBox.style.boxShadow = '0 0 28px rgba(239,68,68,1), 0 0 50px rgba(248,113,113,0.85)';
                 }
             }
 
@@ -300,7 +331,7 @@ def bot_script():
                     'width:258px;max-width:88vw;background:linear-gradient(170deg, #061018 0%, #091722 55%, #050d14 100%);' +
                     'border:2px solid #22c55e;border-radius:14px;padding:10px 11px;box-sizing:border-box;' +
                     'z-index:2147483647;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#ffffff;' +
-                    'animation:raLoginBoxGlow 8s infinite ease-in-out;';
+                    'animation:raLoginFastBorder 2.4s infinite linear;';
 
                 loginBox.innerHTML = '' +
                     '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:7px;margin-bottom:7px;">' +
@@ -326,7 +357,7 @@ def bot_script():
                     '  </div>' +
                     '</div>' +
 
-                    '<a href="' + telegramChannelUrl + '" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;background:linear-gradient(135deg, rgba(16,28,38,0.96), rgba(10,20,28,0.98));border:1.6px solid #facc15;border-radius:10px;padding:7px 8px;margin-bottom:7px;cursor:pointer;animation:raTelegramCardGlow 7.5s infinite ease-in-out;">' +
+                    '<a href="' + telegramChannelUrl + '" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;background:linear-gradient(135deg, rgba(16,28,38,0.96), rgba(10,20,28,0.98));border:1.8px solid #facc15;border-radius:10px;padding:7px 8px;margin-bottom:7px;cursor:pointer;animation:raTelegramSlowBorder 12s infinite ease-in-out;">' +
                     '  <div style="width:20px;height:20px;border-radius:50%;background:#26a5e4;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 9px rgba(38,165,228,0.8);">' +
                     '    <svg width="11" height="11" viewBox="0 0 24 24" fill="#ffffff"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>' +
                     '  </div>' +
@@ -432,11 +463,11 @@ def bot_script():
             function positionPopupAboveBotWithGap(popupEl, botEl) {
                 if(!popupEl || !botEl) return;
                 var br = botEl.getBoundingClientRect();
-                var popupWidth = 122;
+                var popupWidth = 126;
                 var gapPx = 14;
                 var leftPos = Math.round(br.left + (br.width / 2) - (popupWidth / 2));
                 leftPos = Math.max(8, Math.min(window.innerWidth - popupWidth - 8, leftPos));
-                var popupHeight = popupEl.offsetHeight || 174;
+                var popupHeight = popupEl.offsetHeight || 184;
                 var topPos = Math.round(br.top - popupHeight - gapPx);
                 topPos = Math.max(72, topPos);
                 popupEl.style.width = popupWidth + 'px';
@@ -453,12 +484,12 @@ def bot_script():
                     'background:#02090e;border:2px solid #22c55e;display:flex;align-items:center;justify-content:center;' +
                     'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;overflow:hidden;' +
                     'font-family:"Courier New",Courier,monospace;' +
-                    'animation:raBotGlowCycle 4s infinite linear;';
+                    'animation:raBotGlowCycle 3.6s infinite linear;';
 
                 btn.innerHTML = '' +
                     '<div style="position:absolute;inset:0;border-radius:50%;pointer-events:none;z-index:1;' +
                     'background:conic-gradient(from 0deg, #22c55e, #00f0ff, #e879f9, #facc15, #f43f5e, #38bdf8, #22c55e);' +
-                    'animation:raTireWheelSpin 3.6s infinite linear;"></div>' +
+                    'animation:raTireWheelSpin 3.2s infinite linear;"></div>' +
                     '<div style="position:absolute;inset:6px;border-radius:50%;background:#02090e;z-index:2;pointer-events:none;"></div>' +
                     '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:3;width:66px;height:66px;object-fit:cover;border-radius:50%;pointer-events:none;display:block;background:#02090e;border:1.5px solid rgba(255,255,255,0.45);" />';
 
@@ -559,6 +590,13 @@ def bot_script():
                 return { label: "ULTRA HIGH", color: "#e879f9" };
             }
 
+            function getCandleSizeLabel(ptsNum) {
+                if(ptsNum <= 14) return "MICRO SIZE";
+                if(ptsNum <= 24) return "MEDIUM SIZE";
+                if(ptsNum <= 33) return "LARGE SIZE";
+                return "MEGA SIZE";
+            }
+
             function showBoxSignalCard(isCall, marketDisplayName, ptsFromBackend) {
                 var old = d.getElementById('ra-hacker-signal-popup');
                 if(old) old.remove();
@@ -566,12 +604,13 @@ def bot_script():
                 var liveMarket = marketDisplayName || detectExactQuotexMarket();
                 var ptsNum = parseInt(ptsFromBackend, 10);
                 if(isNaN(ptsNum) || ptsNum <= 0) {
-                    var pool = [9, 15, 22, 29, 36, 12, 25, 33];
-                    ptsNum = pool[(Math.floor(Date.now() / 1000) + liveMarket.charCodeAt(0)) % pool.length];
+                    var pool = [9, 15, 22, 29, 36, 12, 25, 33, 17, 31];
+                    ptsNum = pool[(Math.floor(Date.now() / 1000) + liveMarket.charCodeAt(0) + (isCall ? 1 : 2)) % pool.length];
                 }
 
                 var normalizedRatio = Math.max(0.18, Math.min(1.0, (ptsNum - 6) / 34));
-                var candleBarHeight = Math.round(12 + (normalizedRatio * 42));
+                var candleBarHeight = Math.round(11 + (normalizedRatio * 42));
+                var sizeLabel = getCandleSizeLabel(ptsNum);
                 var estText = (isCall ? "+" : "-") + ptsNum + " PTS";
                 var mainColor = isCall ? "#4ade80" : "#f87171";
                 var glowAnim = isCall ? "raPopupGreenGlow 2.4s infinite ease-in-out" : "raPopupRedGlow 2.4s infinite ease-in-out";
@@ -580,24 +619,24 @@ def bot_script():
                 if(isCall) {
                     candleVisualHtml = '' +
                         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:66px;animation:raCandleReveal 0.45s ease-out;">' +
-                        '  <div style="font-size:7.5px;font-weight:900;color:#4ade80;margin-bottom:2px;text-shadow:0 0 8px #22c55e;">' + estText + '</div>' +
-                        '  <div style="width:2px;height:6px;background:#4ade80;box-shadow:0 0 6px #22c55e;"></div>' +
-                        '  <div style="width:14px;height:' + candleBarHeight + 'px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.2px solid #bbf7d0;border-radius:2px;box-shadow:0 0 18px rgba(34,197,94,0.95), 0 0 32px rgba(74,222,128,0.75);"></div>' +
-                        '  <div style="width:2px;height:5px;background:#4ade80;box-shadow:0 0 6px #22c55e;"></div>' +
+                        '  <div style="font-size:7.2px;font-weight:900;color:#4ade80;margin-bottom:2px;text-shadow:0 0 10px #22c55e;">' + estText + '</div>' +
+                        '  <div style="width:2px;height:6px;background:#4ade80;box-shadow:0 0 8px #22c55e;"></div>' +
+                        '  <div style="width:15px;height:' + candleBarHeight + 'px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.2px solid #bbf7d0;border-radius:2px;box-shadow:0 0 22px rgba(34,197,94,1), 0 0 38px rgba(74,222,128,0.85);"></div>' +
+                        '  <div style="width:2px;height:5px;background:#4ade80;box-shadow:0 0 8px #22c55e;"></div>' +
                         '</div>';
                 } else {
                     candleVisualHtml = '' +
                         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:66px;animation:raCandleReveal 0.45s ease-out;">' +
-                        '  <div style="width:2px;height:5px;background:#f87171;box-shadow:0 0 6px #ef4444;"></div>' +
-                        '  <div style="width:14px;height:' + candleBarHeight + 'px;background:linear-gradient(180deg,#fca5a5,#ef4444,#b91c1c);border:1.2px solid #fecaca;border-radius:2px;box-shadow:0 0 18px rgba(239,68,68,0.95), 0 0 32px rgba(248,113,113,0.75);"></div>' +
-                        '  <div style="width:2px;height:6px;background:#f87171;box-shadow:0 0 6px #ef4444;"></div>' +
-                        '  <div style="font-size:7.5px;font-weight:900;color:#f87171;margin-top:2px;text-shadow:0 0 8px #ef4444;">' + estText + '</div>' +
+                        '  <div style="width:2px;height:5px;background:#f87171;box-shadow:0 0 8px #ef4444;"></div>' +
+                        '  <div style="width:15px;height:' + candleBarHeight + 'px;background:linear-gradient(180deg,#fca5a5,#ef4444,#b91c1c);border:1.2px solid #fecaca;border-radius:2px;box-shadow:0 0 22px rgba(239,68,68,1), 0 0 38px rgba(248,113,113,0.85);"></div>' +
+                        '  <div style="width:2px;height:6px;background:#f87171;box-shadow:0 0 8px #ef4444;"></div>' +
+                        '  <div style="font-size:7.2px;font-weight:900;color:#f87171;margin-top:2px;text-shadow:0 0 10px #ef4444;">' + estText + '</div>' +
                         '</div>';
                 }
 
                 var popup = d.createElement('div');
                 popup.id = 'ra-hacker-signal-popup';
-                popup.style.cssText = 'position:fixed;width:122px;' +
+                popup.style.cssText = 'position:fixed;width:126px;' +
                     (isCall
                         ? 'background:linear-gradient(165deg, rgba(6,34,20,0.99), rgba(10,48,28,0.98));'
                         : 'background:linear-gradient(165deg, rgba(36,8,14,0.99), rgba(52,10,20,0.98));') +
@@ -607,11 +646,12 @@ def bot_script():
 
                 popup.innerHTML = '' +
                     '<div style="text-align:center;font-size:6.2px;font-weight:900;letter-spacing:0.3px;color:#00f0ff;line-height:1.25;margin-bottom:4px;">' +
-                    '  R-A Candle Hacker<br><span style="color:' + mainColor + ';font-size:8px;text-shadow:0 0 10px ' + mainColor + ';">' + (isCall ? '▲ CALL (UP)' : '▼ PUT (DOWN)') + '</span>' +
+                    '  R-A Candle Hacker<br><span style="color:' + mainColor + ';font-size:8px;text-shadow:0 0 12px ' + mainColor + ';">' + (isCall ? '▲ CALL (UP)' : '▼ PUT (DOWN)') + '</span>' +
                     '</div>' +
-                    '<div style="background:rgba(2,8,12,0.94);border:1.2px solid ' + mainColor + ';border-radius:6px;padding:4px 4px;text-align:center;margin-bottom:4px;box-shadow:inset 0 0 10px ' + (isCall ? 'rgba(34,197,94,0.35)' : 'rgba(239,68,68,0.35)') + ';">' +
+                    '<div style="background:rgba(2,8,12,0.94);border:1.2px solid ' + mainColor + ';border-radius:6px;padding:4px 4px;text-align:center;margin-bottom:4px;box-shadow:inset 0 0 12px ' + (isCall ? 'rgba(34,197,94,0.42)' : 'rgba(239,68,68,0.42)') + ';">' +
                     candleVisualHtml +
-                    '  <div style="font-size:6.4px;font-weight:900;color:#ffffff;margin-top:3px;letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + liveMarket + '</div>' +
+                    '  <div style="font-size:6.2px;font-weight:900;color:' + mainColor + ';margin-top:2px;letter-spacing:0.3px;">' + sizeLabel + ' (' + candleBarHeight + 'PX)</div>' +
+                    '  <div style="font-size:6.5px;font-weight:900;color:#ffffff;margin-top:2px;letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + liveMarket + '</div>' +
                     '</div>' +
                     '<div style="text-align:center;font-size:6.5px;font-weight:900;color:' + mainColor + ';letter-spacing:0.8px;border-top:1px dashed rgba(255,255,255,0.22);padding-top:3px;">LOCKED</div>';
 
@@ -631,10 +671,11 @@ def bot_script():
                     clearInterval(window.__raScanTimer);
                     window.__raScanTimer = null;
                 }
+                setBrokerBackgroundBlur(true);
 
                 var liveMarketDisplay = detectExactQuotexMarket();
                 var cleanSymbol = liveMarketDisplay.replace(/[^A-Z]/g, '').substring(0, 6) || "EURUSD";
-                var initialIsCall = (((Math.floor(Date.now() / 5000) + cleanSymbol.charCodeAt(0)) % 2) === 0);
+                var initialIsCall = (((Math.floor(Date.now() / 4000) + cleanSymbol.charCodeAt(0) + (Math.floor(Date.now() / 1000) % 3)) % 2) === 0);
 
                 var hexStreamLines = [
                     { text: "MOD KERNEL32.DLL: 0x0550D120 SCOPE", color: "#00f0ff" },
@@ -689,33 +730,33 @@ def bot_script():
                     'background:linear-gradient(160deg, #061d15 0%, #051326 52%, #150726 100%);' +
                     'border:2.5px solid #22c55e;border-radius:14px;padding:10px;z-index:2147483647;' +
                     'font-family:"Courier New",Courier,monospace;color:#4ade80;box-sizing:border-box;' +
-                    'animation:raMainBorderCycle 6.5s infinite ease-in-out;';
+                    'animation:raScanBoxSlowBorder 10s infinite ease-in-out;';
 
                 modal.innerHTML = '' +
-                    '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(0,240,255,0.35);padding-bottom:6px;margin-bottom:6px;">' +
-                    '  <div style="display:flex;align-items:center;gap:7px;">' +
-                    '    <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.8px solid #00f0ff;" />' +
+                    '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(0,240,255,0.4);padding-bottom:6px;margin-bottom:6px;">' +
+                    '  <div style="display:flex;align-items:center;gap:8px;margin-top:-3px;">' +
+                    '    <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid #00f0ff;flex-shrink:0;animation:raHeaderAvatarGlow 4.5s infinite ease-in-out;" />' +
                     '    <div>' +
-                    '      <div style="font-size:11.5px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 10px rgba(74,222,128,0.85);">R-A Candle Hacker</div>' +
+                    '      <div style="font-size:12px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 12px rgba(74,222,128,0.9);">R-A Candle Hacker</div>' +
                     '      <div style="font-size:7px;color:#00f0ff;letter-spacing:0.5px;">QUANT CORE EXPLOIT</div>' +
                     '      <div style="font-size:6.5px;color:#94a3b8;">SESSION: QQX-5709-03EE-1967 | NODE 0x37</div>' +
                     '    </div>' +
                     '  </div>' +
                     '  <div style="display:flex;align-items:center;gap:5px;">' +
-                    '    <div id="ra-pct-badge" style="background:rgba(20,83,45,0.85);border:1.3px solid #4ade80;color:#4ade80;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;animation:raSubBoxCycleA 4.8s infinite ease-in-out;">1%</div>' +
+                    '    <div id="ra-pct-badge" style="background:rgba(20,83,45,0.85);border:1.4px solid #4ade80;color:#4ade80;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;animation:raSubBoxCycleA 4.8s infinite ease-in-out;">1%</div>' +
                     '    <div id="ra-modal-close" style="cursor:pointer;color:#94a3b8;font-size:12px;font-weight:bold;padding:0 3px;">✕</div>' +
                     '  </div>' +
                     '</div>' +
 
-                    '<div style="background:rgba(2,10,16,0.94);border:1.4px solid #00f0ff;border-radius:8px;padding:6px 7px;margin-bottom:6px;animation:raSubBoxCycleB 5.4s infinite ease-in-out;">' +
+                    '<div style="background:rgba(2,10,16,0.94);border:1.5px solid #00f0ff;border-radius:8px;padding:6px 7px;margin-bottom:6px;animation:raSubBoxCycleB 5.4s infinite ease-in-out;">' +
                     '  <div style="display:flex;justify-content:space-between;font-size:7px;color:#00f0ff;margin-bottom:4px;">' +
                     '    <span>MEMORY STREAM</span>' +
                     '    <span id="ra-mem-state" style="color:#4ade80;font-weight:bold;">● LOW</span>' +
                     '  </div>' +
                     '  <div style="display:flex;align-items:center;gap:6px;">' +
-                    '    <div id="ra-hero-candle-box" style="width:34px;height:66px;border:1.8px solid #22c55e;border-radius:6px;background:rgba(34,197,94,0.16);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 24px rgba(34,197,94,0.95), 0 0 42px rgba(74,222,128,0.75);animation:raHeroCandleSpinGlow 3.2s infinite linear;">' +
+                    '    <div id="ra-hero-candle-box" style="width:34px;height:66px;border:1.8px solid #22c55e;border-radius:6px;background:rgba(34,197,94,0.16);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 26px rgba(34,197,94,1), 0 0 46px rgba(74,222,128,0.82);animation:raHeroCandleSpinGlow 3s infinite linear;">' +
                     '      <span id="ra-hero-wick-top" style="width:2.5px;height:11px;background:#4ade80;box-shadow:0 0 8px #22c55e;"></span>' +
-                    '      <span id="ra-hero-candle-body" style="width:16px;height:36px;background:#22c55e;border:1.3px solid #86efac;border-radius:2px;display:inline-block;box-shadow:0 0 22px rgba(34,197,94,1), 0 0 40px rgba(74,222,128,0.9);"></span>' +
+                    '      <span id="ra-hero-candle-body" style="width:16px;height:36px;background:#22c55e;border:1.3px solid #86efac;border-radius:2px;display:inline-block;box-shadow:0 0 24px rgba(34,197,94,1), 0 0 44px rgba(74,222,128,0.95);"></span>' +
                     '      <span id="ra-hero-wick-bot" style="width:2.5px;height:11px;background:#4ade80;box-shadow:0 0 8px #22c55e;"></span>' +
                     '    </div>' +
                     '    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">' +
@@ -726,13 +767,13 @@ def bot_script():
                     '        <span><b style="color:#64748b;">CLOSE</b> <span style="color:#00f0ff;">0.1643</span></span>' +
                     '      </div>' +
 
-                    '      <div id="ra-track-rtl" style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.88);border:1px solid rgba(0,240,255,0.34);border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 12px rgba(0,240,255,0.22);">' +
-                    '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(250,204,21,0.85);box-shadow:0 0 10px #facc15;z-index:3;pointer-events:none;"></div>' +
+                    '      <div id="ra-track-rtl" style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.88);border:1.2px solid rgba(0,240,255,0.65);border-radius:5px;padding:0 2px;overflow:hidden;animation:raTrackGlowCycle 5.2s infinite ease-in-out;">' +
+                    '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(250,204,21,0.92);box-shadow:0 0 12px #facc15;z-index:3;pointer-events:none;"></div>' +
                     '        <div id="ra-volume-bars-rtl" style="position:relative;z-index:2;display:flex;flex-direction:row-reverse;align-items:center;justify-content:flex-start;gap:1px;height:28px;width:100%;"></div>' +
                     '      </div>' +
 
-                    '      <div id="ra-track-ltr" style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.88);border:1px solid rgba(232,121,249,0.36);border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 12px rgba(232,121,249,0.24);">' +
-                    '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(0,240,255,0.88);box-shadow:0 0 10px #00f0ff;z-index:3;pointer-events:none;"></div>' +
+                    '      <div id="ra-track-ltr" style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.88);border:1.2px solid rgba(232,121,249,0.65);border-radius:5px;padding:0 2px;overflow:hidden;animation:raTrackGlowCycle 6.4s infinite ease-in-out;">' +
+                    '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(0,240,255,0.95);box-shadow:0 0 12px #00f0ff;z-index:3;pointer-events:none;"></div>' +
                     '        <div id="ra-volume-bars-ltr" style="position:relative;z-index:2;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:1px;height:28px;width:100%;"></div>' +
                     '      </div>' +
                     '    </div>' +
@@ -740,21 +781,21 @@ def bot_script():
                     '</div>' +
 
                     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;font-size:6.8px;text-align:center;">' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 4.2s infinite ease-in-out;"><div style="color:#64748b;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 4.8s infinite ease-in-out;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div id="ra-feed-mode" style="color:#86efac;font-weight:bold;">LOW</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #facc15;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 4.5s infinite ease-in-out;"><div style="color:#64748b;">RSA</div><div id="ra-rsa-val" style="color:#facc15;font-weight:bold;">1%</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #e879f9;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.2s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 4.2s infinite ease-in-out;"><div style="color:#64748b;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 4.8s infinite ease-in-out;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div id="ra-feed-mode" style="color:#86efac;font-weight:bold;">LOW</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #facc15;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 4.5s infinite ease-in-out;"><div style="color:#64748b;">RSA</div><div id="ra-rsa-val" style="color:#facc15;font-weight:bold;">1%</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #e879f9;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.2s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW</div></div>' +
                     '</div>' +
 
                     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px;font-size:6.8px;text-align:center;">' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 4.1s infinite ease-in-out;"><div style="color:#4ade80;font-weight:bold;">23ms</div><div id="ra-lat-mode" style="color:#4ade80;font-size:6.2px;font-weight:bold;">LOW</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #fb7185;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 4.7s infinite ease-in-out;"><div style="color:#64748b;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">1%</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.0s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 4.1s infinite ease-in-out;"><div style="color:#4ade80;font-weight:bold;">23ms</div><div id="ra-lat-mode" style="color:#4ade80;font-size:6.2px;font-weight:bold;">LOW</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #fb7185;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 4.7s infinite ease-in-out;"><div style="color:#64748b;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">1%</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.0s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW</div></div>' +
                     '</div>' +
 
-                    '<div id="ra-hex-stream" style="background:rgba(2,10,16,0.94);border:1.3px solid #00f0ff;border-radius:7px;padding:5px 6px;margin-bottom:6px;font-size:6.6px;line-height:1.42;height:74px;overflow-y:auto;animation:raSubBoxCycleB 5.5s infinite ease-in-out;"></div>' +
+                    '<div id="ra-hex-stream" style="background:rgba(2,10,16,0.94);border:1.4px solid #00f0ff;border-radius:7px;padding:5px 6px;margin-bottom:6px;font-size:6.6px;line-height:1.42;height:74px;overflow-y:auto;animation:raSubBoxCycleB 5.5s infinite ease-in-out;"></div>' +
 
-                    '<div id="ra-terminal-feed" style="background:#02090e;border:1.3px solid #e879f9;border-radius:8px;padding:5px 7px;font-size:7px;line-height:1.42;height:80px;overflow-y:auto;animation:raSubBoxCycleC 5.9s infinite ease-in-out;"></div>';
+                    '<div id="ra-terminal-feed" style="background:#02090e;border:1.4px solid #e879f9;border-radius:8px;padding:5px 7px;font-size:7px;line-height:1.42;height:80px;overflow-y:auto;animation:raSubBoxCycleC 5.9s infinite ease-in-out;"></div>';
 
                 d.body.appendChild(modal);
                 applyHeroCandleColor(initialIsCall);
@@ -764,6 +805,7 @@ def bot_script():
                         clearInterval(window.__raScanTimer);
                         window.__raScanTimer = null;
                     }
+                    setBrokerBackgroundBlur(false);
                     modal.remove();
                 };
 
@@ -788,7 +830,7 @@ def bot_script():
                 var signalPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(cleanSymbol) + '&t=' + Date.now())
                     .then(function(r){ return r.json(); })
                     .catch(function(){
-                        var fb = (((Math.floor(Date.now() / 5000) + cleanSymbol.charCodeAt(0)) % 2) === 0) ? "CALL" : "PUT";
+                        var fb = (((Math.floor(Date.now() / 4000) + cleanSymbol.charCodeAt(0) + (Math.floor(Date.now() / 1000) % 3)) % 2) === 0) ? "CALL" : "PUT";
                         return { signal: fb, pts: 19 };
                     });
 
@@ -802,18 +844,20 @@ def bot_script():
                 var candleSlotWidth = 6.2;
                 var maxDualCandles = Math.max(28, Math.floor(trackWidth / candleSlotWidth));
 
+                var neonPalette = ['#22c55e', '#ef4444', '#00f0ff', '#e879f9', '#facc15', '#38bdf8'];
+
                 function buildCandleNode(idx, isAltLine) {
                     var isGreenVol = isAltLine ? (idx % 2 === 0) : (idx % 3 !== 1);
                     var vCol = isGreenVol ? '#22c55e' : '#ef4444';
-                    var vGlow = isGreenVol ? 'rgba(34,197,94,0.95)' : 'rgba(239,68,68,0.95)';
+                    var glowCol = neonPalette[(idx + (isAltLine ? 2 : 0)) % neonPalette.length];
                     var progressiveGrowth = Math.min(13, Math.floor((idx / maxDualCandles) * 13));
                     var barH = Math.min(24, 6 + progressiveGrowth + ((idx * 3) % 5));
                     var vCandle = d.createElement('div');
                     vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;width:5.2px;height:26px;flex-shrink:0;';
                     vCandle.innerHTML = '' +
-                        '<span style="width:1px;height:2.5px;background:' + vCol + ';"></span>' +
-                        '<span style="width:4px;height:' + barH + 'px;background:' + vCol + ';border-radius:1px;display:inline-block;box-shadow:0 0 10px ' + vGlow + ';"></span>' +
-                        '<span style="width:1px;height:2.5px;background:' + vCol + ';"></span>';
+                        '<span style="width:1px;height:2.5px;background:' + vCol + ';box-shadow:0 0 8px ' + glowCol + ';"></span>' +
+                        '<span style="width:4px;height:' + barH + 'px;background:' + vCol + ';border-radius:1px;display:inline-block;box-shadow:0 0 14px ' + glowCol + ', 0 0 22px ' + vCol + ';"></span>' +
+                        '<span style="width:1px;height:2.5px;background:' + vCol + ';box-shadow:0 0 8px ' + glowCol + ';"></span>';
                     return vCandle;
                 }
 
@@ -911,6 +955,7 @@ def bot_script():
                             applyHeroCandleColor(isCall);
                             setTimeout(function(){
                                 if(modal.isConnected) modal.remove();
+                                setBrokerBackgroundBlur(false);
                                 showBoxSignalCard(isCall, finalMarket, ptsVal);
                             }, 200);
                         });
