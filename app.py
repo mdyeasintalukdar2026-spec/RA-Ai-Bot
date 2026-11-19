@@ -14,6 +14,7 @@ QX_API_KEY = os.environ.get("QX_API_KEY", "qx_live_1xxOcsg5_3vEavHfZwAkGufh9NLLW
 FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "dbcaa19r01qqr3s0pf60dbcaa19r01qqr3s0pf6g")
 TWELVE_DATA_KEY = os.environ.get("TWELVE_DATA_KEY", "8f5d4d4fce7f44e5bda54420591411c8")
 TIMEZONE_OFFSET = float(os.environ.get("QX_TZ", "6"))
+ACCESS_PASSKEY = os.environ.get("BOT_ACCESS_PASSKEY", "RA-HACKER-2026")
 
 http_session = requests.Session()
 if QX_API_KEY:
@@ -63,12 +64,11 @@ class BiDirectionalMarketEngine:
                     ratio = abs(diff1) / avg_move if avg_move > 0 else 1.0
                     mag_pts = max(8, min(40, int(round(14 * ratio + (abs(diff1) * 100000) % 15))))
 
-                    # Ensure balanced bi-directional CALL & PUT generation without staying one-sided
                     if diff1 > 0 and diff2 >= 0:
-                        sig = "PUT" if (epoch_sec // 7) % 2 == 1 else "CALL"
+                        sig = "PUT" if (epoch_sec // 12) % 3 == 2 else "CALL"
                         return {"signal": sig, "trend": "BULLISH (UP)" if sig == "CALL" else "BEARISH (DOWN)", "pts": mag_pts, "rule": f"Bi-Directional Momentum Sync ({c0:.5f})"}
                     elif diff1 < 0 and diff2 <= 0:
-                        sig = "CALL" if (epoch_sec // 7) % 2 == 1 else "PUT"
+                        sig = "CALL" if (epoch_sec // 12) % 3 == 2 else "PUT"
                         return {"signal": sig, "trend": "BEARISH (DOWN)" if sig == "PUT" else "BULLISH (UP)", "pts": mag_pts, "rule": f"Bi-Directional Momentum Sync ({c0:.5f})"}
                     elif diff1 > 0:
                         return {"signal": "CALL", "trend": "BULLISH (UP)", "pts": mag_pts, "rule": "Support Level Rejection Verified."}
@@ -77,7 +77,7 @@ class BiDirectionalMarketEngine:
         except Exception:
             pass
 
-        bi_sig = "CALL" if ((epoch_sec // 6) + (sum(ord(ch) for ch in symbol) % 2)) % 2 == 0 else "PUT"
+        bi_sig = "CALL" if ((epoch_sec // 8) + (sum(ord(ch) for ch in symbol) % 2)) % 2 == 0 else "PUT"
         return {
             "signal": bi_sig,
             "trend": "BULLISH (UP)" if bi_sig == "CALL" else "BEARISH (DOWN)",
@@ -88,7 +88,7 @@ class BiDirectionalMarketEngine:
 
 @app.route('/')
 def home():
-    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - LOCKED GATE + BI-DIRECTIONAL ENGINE!")
+    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - SECURED LOCK & BI-DIRECTIONAL ENGINE!")
     res.headers.add("Access-Control-Allow-Origin", "*")
     return res
 
@@ -158,21 +158,21 @@ def bot_script():
             });
 
             var renderServerUrl = "https://ra-ai-bot.onrender.com";
-            var botAvatarUrl = "https://i.postimg.cc/Fz3xjQGZ/file-000000001cc082119080b22d35ecbaaa.png";
-            var communityAvatarUrl = "https://i.postimg.cc/k5NBY37k/file-0000000016a482119619e0cb99151c28.png";
+            var botAvatarUrl = "https://i.postimg.cc/k5NBY37k/file-0000000016a482119619e0cb99151c28.png";
+            var communityAvatarUrl = "https://i.postimg.cc/834.png";
             var telegramChannelUrl = "https://t.me/+x1QYA_1-sSs0NTk1";
-            var VALID_ACCESS_KEYS = ["RA-CANDLE-PRO-2026"];
-            var AUTH_STORAGE_KEY = "ra_candle_hacker_unlocked_v1";
+            var validPasskey = "__VALID_PASSKEY__";
+            var authStorageKey = "ra_candle_hacker_unlocked_v1";
 
             var styleEl = d.createElement('style');
             styleEl.id = 'ra-hacker-style';
             styleEl.innerHTML = '' +
-                '@keyframes raPerSecBorderSpin {' +
-                '  0%   { transform: rotate(0deg); filter: hue-rotate(0deg) drop-shadow(0 0 18px #22c55e) drop-shadow(0 0 38px #00f0ff); }' +
-                '  25%  { transform: rotate(90deg); filter: hue-rotate(90deg) drop-shadow(0 0 22px #00f0ff) drop-shadow(0 0 42px #e879f9); }' +
-                '  50%  { transform: rotate(180deg); filter: hue-rotate(180deg) drop-shadow(0 0 22px #e879f9) drop-shadow(0 0 42px #facc15); }' +
-                '  75%  { transform: rotate(270deg); filter: hue-rotate(270deg) drop-shadow(0 0 22px #facc15) drop-shadow(0 0 42px #fb7185); }' +
-                '  100% { transform: rotate(360deg); filter: hue-rotate(360deg) drop-shadow(0 0 18px #22c55e) drop-shadow(0 0 38px #00f0ff); }' +
+                '@keyframes raOuterRingSpinGlow {' +
+                '  0%   { transform: rotate(0deg); border-top-color:#22c55e; border-right-color:#00f0ff; border-bottom-color:#e879f9; border-left-color:#facc15; box-shadow: 0 0 22px rgba(34,197,94,0.95), 0 0 42px rgba(0,240,255,0.75); }' +
+                '  25%  { transform: rotate(90deg); border-top-color:#00f0ff; border-right-color:#e879f9; border-bottom-color:#facc15; border-left-color:#fb7185; box-shadow: 0 0 24px rgba(0,240,255,0.95), 0 0 46px rgba(232,121,249,0.75); }' +
+                '  50%  { transform: rotate(180deg); border-top-color:#e879f9; border-right-color:#facc15; border-bottom-color:#fb7185; border-left-color:#22c55e; box-shadow: 0 0 24px rgba(232,121,249,0.95), 0 0 46px rgba(250,204,21,0.75); }' +
+                '  75%  { transform: rotate(270deg); border-top-color:#facc15; border-right-color:#fb7185; border-bottom-color:#22c55e; border-left-color:#00f0ff; box-shadow: 0 0 24px rgba(250,204,21,0.95), 0 0 46px rgba(251,113,133,0.75); }' +
+                '  100% { transform: rotate(360deg); border-top-color:#22c55e; border-right-color:#00f0ff; border-bottom-color:#e879f9; border-left-color:#facc15; box-shadow: 0 0 22px rgba(34,197,94,0.95), 0 0 42px rgba(0,240,255,0.75); }' +
                 '}' +
                 '@keyframes raMainBorderCycle {' +
                 '  0%   { border-color: #22c55e; box-shadow: 0 0 44px rgba(34,197,94,0.98), 0 0 84px rgba(0,240,255,0.62), inset 0 0 24px rgba(34,197,94,0.4); }' +
@@ -230,17 +230,17 @@ def bot_script():
                 '}';
             d.head.appendChild(styleEl);
 
-            function isBotUnlocked() {
+            function isAlreadyUnlocked() {
                 try {
-                    return localStorage.getItem(AUTH_STORAGE_KEY) === "1";
+                    return window.localStorage && window.localStorage.getItem(authStorageKey) === "true";
                 } catch(e) {
                     return false;
                 }
             }
 
-            function markBotUnlocked() {
+            function markAsUnlocked() {
                 try {
-                    localStorage.setItem(AUTH_STORAGE_KEY, "1");
+                    if(window.localStorage) window.localStorage.setItem(authStorageKey, "true");
                 } catch(e) {}
             }
 
@@ -259,24 +259,22 @@ def bot_script():
                 popupEl.style.top = topPos + 'px';
             }
 
-            // Outer ring sits strictly around the circular image without covering the image itself
+            // Clean outer spinning glow ring separated from the avatar image
             function createDraggableBotButton() {
                 if(d.getElementById('ra-hacker-btn')) return;
 
                 var btn = d.createElement('div');
                 btn.id = 'ra-hacker-btn';
-                btn.style.cssText = 'position:fixed;bottom:146px;right:12px;width:82px;height:82px;border-radius:50%;' +
+                btn.style.cssText = 'position:fixed;bottom:146px;right:12px;width:78px;height:78px;border-radius:50%;' +
                     'background:transparent;display:flex;align-items:center;justify-content:center;' +
                     'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;' +
                     'font-family:"Courier New",Courier,monospace;';
 
                 btn.innerHTML = '' +
                     '<div style="position:absolute;inset:0;border-radius:50%;pointer-events:none;' +
-                    'background:repeating-conic-gradient(#22c55e 0deg 12deg, #00f0ff 12deg 24deg, #e879f9 24deg 36deg, #facc15 36deg 48deg, #fb7185 48deg 60deg, #38bdf8 60deg 72deg);' +
-                    '-webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6.5px));' +
-                    'mask:radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6.5px));' +
-                    'animation:raPerSecBorderSpin 4s infinite linear;"></div>' +
-                    '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:2;width:66px;height:66px;object-fit:cover;border-radius:50%;pointer-events:none;display:block;background:#050a12;" />';
+                    'border:4px solid #22c55e;box-sizing:border-box;' +
+                    'animation:raOuterRingSpinGlow 4s infinite linear;"></div>' +
+                    '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:2;width:64px;height:64px;object-fit:cover;border-radius:50%;pointer-events:none;display:block;background:#050a12;" />';
 
                 d.body.appendChild(btn);
 
@@ -331,105 +329,99 @@ def bot_script():
                 d.addEventListener('touchend', onEnd);
             }
 
-            // Compact Password Gate Panel shown immediately on first bookmark launch
-            function openPasswordGatePanel() {
-                var oldGate = d.getElementById('ra-hacker-auth-modal');
-                if(oldGate) oldGate.remove();
+            function showPasswordLockModal() {
+                if(d.getElementById('ra-hacker-auth-modal')) return;
 
-                var gate = d.createElement('div');
-                gate.id = 'ra-hacker-auth-modal';
-                gate.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%, -50%);width:296px;max-width:90vw;' +
+                var modal = d.createElement('div');
+                modal.id = 'ra-hacker-auth-modal';
+                modal.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%, -50%);width:296px;max-width:90vw;' +
                     'background:linear-gradient(165deg, #061b14 0%, #061122 55%, #140724 100%);' +
-                    'border:2.2px solid #22c55e;border-radius:14px;padding:11px;z-index:2147483647;' +
+                    'border:2.2px solid #22c55e;border-radius:14px;padding:12px;z-index:2147483647;' +
                     'font-family:"Courier New",Courier,monospace;color:#e2e8f0;box-sizing:border-box;' +
-                    'animation:raMainBorderCycle 5.5s infinite ease-in-out;';
+                    'animation:raMainBorderCycle 5s infinite ease-in-out;';
 
-                gate.innerHTML = '' +
-                    '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(0,240,255,0.28);padding-bottom:7px;margin-bottom:8px;">' +
+                modal.innerHTML = '' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(0,240,255,0.28);padding-bottom:8px;margin-bottom:9px;">' +
                     '  <div style="display:flex;align-items:center;gap:8px;">' +
-                    '    <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.8px solid #22c55e;box-shadow:0 0 12px rgba(34,197,94,0.8);" />' +
+                    '    <div style="position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                    '      <div style="position:absolute;inset:0;border-radius:50%;border:2.2px solid #22c55e;animation:raOuterRingSpinGlow 4s infinite linear;"></div>' +
+                    '      <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:2;width:30px;height:30px;border-radius:50%;object-fit:cover;display:block;" />' +
+                    '    </div>' +
                     '    <div>' +
-                    '      <div style="font-size:11px;font-weight:900;color:#4ade80;letter-spacing:0.4px;">R-A Candle Hacker</div>' +
-                    '      <div style="font-size:7px;color:#00f0ff;letter-spacing:0.6px;margin-top:1px;">SECURE ACCESS GATE</div>' +
+                    '      <div style="font-size:10.5px;font-weight:900;color:#4ade80;letter-spacing:0.5px;">R-A CANDLE HACKER</div>' +
+                    '      <div style="font-size:7px;color:#00f0ff;letter-spacing:0.6px;">SECURE ACCESS</div>' +
                     '    </div>' +
                     '  </div>' +
-                    '  <div id="ra-gate-close" style="cursor:pointer;color:#94a3b8;font-size:13px;font-weight:bold;padding:0 4px;">✕</div>' +
+                    '  <div id="ra-auth-close" style="cursor:pointer;color:#94a3b8;font-size:13px;font-weight:bold;padding:2px 5px;">✕</div>' +
                     '</div>' +
 
-                    '<a href="' + telegramChannelUrl + '" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:8px;text-decoration:none;' +
-                    'background:rgba(10,20,38,0.92);border:1.5px solid #facc15;border-radius:10px;padding:7px 8px;margin-bottom:8px;' +
-                    'box-shadow:0 0 14px rgba(250,204,21,0.45);animation:raSubBoxCycleA 4.8s infinite ease-in-out;">' +
-                    '  <img src="' + communityAvatarUrl + '" alt="R-A Trading Community" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:1.5px solid #facc15;flex-shrink:0;" />' +
-                    '  <div style="flex:1;min-width:0;">' +
-                    '    <div style="font-size:8.5px;font-weight:900;color:#ffffff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">R-A Trading Community</div>' +
-                    '    <div style="font-size:6.8px;color:#38bdf8;margin-top:2px;">✈ Click to Join Telegram</div>' +
-                    '  </div>' +
-                    '</a>' +
+                    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
+                    '  <img src="' + communityAvatarUrl + '" alt="R-A Trading Community" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:1.8px solid #facc15;flex-shrink:0;box-shadow:0 0 12px rgba(250,204,21,0.55);" />' +
+                    '  <a href="' + telegramChannelUrl + '" target="_blank" rel="noopener noreferrer" style="flex:1;text-decoration:none;display:block;' +
+                    '    background:rgba(8,18,32,0.92);border:1.6px solid #facc15;border-radius:8px;padding:6px 8px;text-align:center;' +
+                    '    box-shadow:0 0 14px rgba(250,204,21,0.45);animation:raSubBoxCycleA 4.5s infinite ease-in-out;">' +
+                    '    <div style="font-size:9px;font-weight:900;color:#ffffff;">R-A Trading Community</div>' +
+                    '    <div style="font-size:7px;color:#38bdf8;margin-top:2px;">✈ Click to Join Telegram</div>' +
+                    '  </a>' +
+                    '</div>' +
 
-                    '<div style="font-size:7.2px;color:#94a3b8;margin-bottom:4px;letter-spacing:0.4px;">Bot Access Key</div>' +
-                    '<input id="ra-pass-input" type="password" placeholder="Enter Access Password" autocomplete="off" style="' +
-                    'width:100%;box-sizing:border-box;background:rgba(3,10,18,0.95);border:1.6px solid rgba(0,240,255,0.55);' +
-                    'border-radius:8px;padding:8px 9px;color:#ffffff;font-family:\'Courier New\',monospace;font-size:9px;outline:none;margin-bottom:6px;transition:all 0.2s ease;" />' +
+                    '<div style="font-size:7.5px;color:#94a3b8;margin-bottom:4px;letter-spacing:0.4px;">Bot Access Key</div>' +
+                    '<input id="ra-passkey-input" type="password" placeholder="Enter Access Password" autocomplete="off" ' +
+                    '  style="width:100%;box-sizing:border-box;background:#040c16;border:1.6px solid #334155;border-radius:8px;' +
+                    '  padding:8px 10px;color:#ffffff;font-family:\'Courier New\',monospace;font-size:9.5px;outline:none;margin-bottom:6px;" />' +
 
-                    '<div id="ra-pass-status" style="min-height:14px;font-size:7.4px;font-weight:900;text-align:center;margin-bottom:7px;letter-spacing:0.4px;"></div>' +
+                    '<div id="ra-passkey-status" style="min-height:14px;font-size:7.8px;font-weight:bold;text-align:center;margin-bottom:8px;color:#94a3b8;"></div>' +
 
-                    '<button id="ra-activate-btn" type="button" style="' +
-                    'width:100%;border:none;border-radius:9px;padding:8px 10px;cursor:pointer;' +
-                    'background:linear-gradient(90deg, #ef4444 0%, #f59e0b 48%, #22c55e 100%);' +
-                    'color:#ffffff;font-family:\'Courier New\',monospace;font-size:9.5px;font-weight:900;letter-spacing:0.8px;' +
-                    'box-shadow:0 0 16px rgba(34,197,94,0.65);">ACTIVATE BOT</button>';
+                    '<button id="ra-activate-btn" type="button" style="width:100%;border:none;border-radius:9px;padding:9px 10px;' +
+                    '  background:linear-gradient(90deg, #dc2626 0%, #16a34a 100%);color:#ffffff;font-family:\'Courier New\',monospace;' +
+                    '  font-size:10px;font-weight:900;letter-spacing:0.8px;cursor:pointer;box-shadow:0 0 16px rgba(34,197,94,0.45);">ACTIVATE BOT</button>';
 
-                d.body.appendChild(gate);
+                d.body.appendChild(modal);
 
-                var passInput = gate.querySelector('#ra-pass-input');
-                var statusEl = gate.querySelector('#ra-pass-status');
-                var activateBtn = gate.querySelector('#ra-activate-btn');
-                var closeBtn = gate.querySelector('#ra-gate-close');
-                var busyVerifying = false;
+                var inputEl = modal.querySelector('#ra-passkey-input');
+                var statusEl = modal.querySelector('#ra-passkey-status');
+                var activateBtn = modal.querySelector('#ra-activate-btn');
+                var closeBtn = modal.querySelector('#ra-auth-close');
+                var verifying = false;
 
                 closeBtn.onclick = function() {
-                    if(!busyVerifying) gate.remove();
+                    modal.remove();
                 };
 
-                function submitPasswordCheck() {
-                    if(busyVerifying) return;
-                    var entered = (passInput.value || "").trim();
-                    var isValid = VALID_ACCESS_KEYS.indexOf(entered) !== -1;
+                function verifyPasskey() {
+                    if(verifying) return;
+                    var entered = (inputEl.value || '').trim();
 
-                    if(!isValid) {
-                        passInput.style.borderColor = "#ef4444";
-                        passInput.style.background = "rgba(69,10,10,0.75)";
-                        passInput.style.boxShadow = "0 0 14px rgba(239,68,68,0.9)";
-                        statusEl.style.color = "#f87171";
-                        statusEl.innerText = "✖ INCORRECT PASSWORD";
-                        return;
-                    }
-
-                    busyVerifying = true;
-                    passInput.style.borderColor = "#22c55e";
-                    passInput.style.background = "rgba(5,46,22,0.75)";
-                    passInput.style.boxShadow = "0 0 14px rgba(34,197,94,0.85)";
-                    statusEl.style.color = "#00f0ff";
-                    statusEl.innerText = "⟳ VERIFYING & PROCESSING...";
-
-                    setTimeout(function(){
-                        statusEl.style.color = "#4ade80";
-                        statusEl.innerText = "✔ SUCCESSFUL — UNLOCKING BOT";
-                        markBotUnlocked();
+                    if(entered === validPasskey) {
+                        verifying = true;
+                        inputEl.style.borderColor = '#4ade80';
+                        inputEl.style.boxShadow = '0 0 12px rgba(74,222,128,0.6)';
+                        activateBtn.disabled = true;
+                        activateBtn.style.opacity = '0.85';
+                        statusEl.style.color = '#38bdf8';
+                        statusEl.innerText = 'Verifying & processing...';
 
                         setTimeout(function(){
-                            if(gate.isConnected) gate.remove();
-                            createDraggableBotButton();
-                        }, 700);
-                    }, 2200);
+                            statusEl.style.color = '#4ade80';
+                            statusEl.innerText = 'Successful!';
+                            markAsUnlocked();
+
+                            setTimeout(function(){
+                                if(modal.parentNode) modal.remove();
+                                createDraggableBotButton();
+                            }, 650);
+                        }, 2400);
+                    } else {
+                        inputEl.style.borderColor = '#ef4444';
+                        inputEl.style.boxShadow = '0 0 14px rgba(239,68,68,0.85)';
+                        statusEl.style.color = '#f87171';
+                        statusEl.innerText = 'Incorrect password!';
+                    }
                 }
 
-                activateBtn.onclick = submitPasswordCheck;
-                passInput.addEventListener('keydown', function(ev){
-                    if(ev.key === 'Enter') {
-                        ev.preventDefault();
-                        submitPasswordCheck();
-                    }
+                activateBtn.onclick = verifyPasskey;
+                inputEl.addEventListener('keydown', function(ev) {
+                    if(ev.key === 'Enter') verifyPasskey();
                 });
             }
 
@@ -629,7 +621,10 @@ def bot_script():
                 modal.innerHTML = '' +
                     '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(0,240,255,0.35);padding-bottom:6px;margin-bottom:6px;">' +
                     '  <div style="display:flex;align-items:center;gap:7px;">' +
-                    '    <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.8px solid #00f0ff;" />' +
+                    '    <div style="position:relative;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">' +
+                    '      <div style="position:absolute;inset:0;border-radius:50%;border:2px solid #00f0ff;animation:raOuterRingSpinGlow 4s infinite linear;"></div>' +
+                    '      <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:2;width:28px;height:28px;border-radius:50%;object-fit:cover;display:block;" />' +
+                    '    </div>' +
                     '    <div>' +
                     '      <div style="font-size:11.5px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 10px rgba(74,222,128,0.85);">R-A Candle Hacker</div>' +
                     '      <div style="font-size:7px;color:#00f0ff;letter-spacing:0.5px;">QUANT CORE EXPLOIT</div>' +
@@ -722,7 +717,7 @@ def bot_script():
                 var signalPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(cleanSymbol) + '&t=' + Date.now())
                     .then(function(r){ return r.json(); })
                     .catch(function(){
-                        var fb = (Math.floor(Date.now() / 6000) % 2 === 0) ? "CALL" : "PUT";
+                        var fb = (Math.floor(Date.now() / 8000) % 2 === 0) ? "CALL" : "PUT";
                         return { signal: fb, pts: 19 };
                     });
 
@@ -864,16 +859,16 @@ def bot_script():
                 requestAnimationFrame(ultraSmoothTick);
             }
 
-            if(isBotUnlocked()) {
+            if(isAlreadyUnlocked()) {
                 createDraggableBotButton();
             } else {
-                openPasswordGatePanel();
+                showPasswordLockModal();
             }
         } catch(err) {
             console.error("R-A Candle Hacker Error:", err);
         }
     })();
-    """
+    """.replace("__VALID_PASSKEY__", ACCESS_PASSKEY.replace("\\", "\\\\").replace('"', '\\"'))
     res = make_response(js)
     res.headers['Content-Type'] = 'application/javascript'
     res.headers['Access-Control-Allow-Origin'] = '*'
