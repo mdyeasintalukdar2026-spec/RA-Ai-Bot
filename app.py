@@ -87,7 +87,7 @@ class BiDirectionalMarketEngine:
 
 @app.route('/')
 def home():
-    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - DUAL SYMMETRIC CANDLE STREAM!")
+    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - ULTRA SMOOTH EDGE-TO-EDGE CANDLES!")
     res.headers.add("Access-Control-Allow-Origin", "*")
     return res
 
@@ -161,59 +161,56 @@ def bot_script():
             var styleEl = d.createElement('style');
             styleEl.id = 'ra-hacker-style';
             styleEl.innerHTML = '' +
-                '@keyframes raBotRingSpin {' +
-                '  0%   { border-color: #22c55e; box-shadow: 0 0 24px #22c55e, 0 0 48px rgba(0,240,255,0.85), inset 0 0 16px rgba(34,197,94,0.8); }' +
-                '  25%  { border-color: #00f0ff; box-shadow: 0 0 28px #00f0ff, 0 0 54px rgba(232,121,249,0.88), inset 0 0 18px rgba(0,240,255,0.8); }' +
-                '  50%  { border-color: #e879f9; box-shadow: 0 0 28px #e879f9, 0 0 54px rgba(250,204,21,0.88), inset 0 0 18px rgba(232,121,249,0.8); }' +
-                '  75%  { border-color: #facc15; box-shadow: 0 0 28px #facc15, 0 0 54px rgba(251,113,133,0.88), inset 0 0 18px rgba(250,204,21,0.8); }' +
-                '  100% { border-color: #22c55e; box-shadow: 0 0 24px #22c55e, 0 0 48px rgba(0,240,255,0.85), inset 0 0 16px rgba(34,197,94,0.8); }' +
+                '@keyframes raTireWheelSpin {' +
+                '  0%   { transform: rotate(0deg); filter: hue-rotate(0deg) drop-shadow(0 0 18px #22c55e) drop-shadow(0 0 36px #00f0ff); }' +
+                '  50%  { transform: rotate(180deg); filter: hue-rotate(180deg) drop-shadow(0 0 22px #e879f9) drop-shadow(0 0 42px #facc15); }' +
+                '  100% { transform: rotate(360deg); filter: hue-rotate(360deg) drop-shadow(0 0 18px #22c55e) drop-shadow(0 0 36px #00f0ff); }' +
                 '}' +
                 '@keyframes raMainBorderCycle {' +
-                '  0%   { border-color: #22c55e; box-shadow: 0 0 42px rgba(34,197,94,0.96), 0 0 78px rgba(0,240,255,0.55), inset 0 0 22px rgba(34,197,94,0.36); }' +
-                '  25%  { border-color: #00f0ff; box-shadow: 0 0 46px rgba(0,240,255,0.96), 0 0 82px rgba(232,121,249,0.55), inset 0 0 24px rgba(0,240,255,0.36); }' +
-                '  50%  { border-color: #e879f9; box-shadow: 0 0 46px rgba(232,121,249,0.96), 0 0 82px rgba(250,204,21,0.55), inset 0 0 24px rgba(232,121,249,0.36); }' +
-                '  75%  { border-color: #facc15; box-shadow: 0 0 46px rgba(250,204,21,0.96), 0 0 82px rgba(56,189,248,0.55), inset 0 0 24px rgba(250,204,21,0.36); }' +
-                '  100% { border-color: #22c55e; box-shadow: 0 0 42px rgba(34,197,94,0.96), 0 0 78px rgba(0,240,255,0.55), inset 0 0 22px rgba(34,197,94,0.36); }' +
+                '  0%   { border-color: #22c55e; box-shadow: 0 0 44px rgba(34,197,94,0.98), 0 0 84px rgba(0,240,255,0.62), inset 0 0 24px rgba(34,197,94,0.4); }' +
+                '  25%  { border-color: #00f0ff; box-shadow: 0 0 48px rgba(0,240,255,0.98), 0 0 88px rgba(232,121,249,0.62), inset 0 0 26px rgba(0,240,255,0.4); }' +
+                '  50%  { border-color: #e879f9; box-shadow: 0 0 48px rgba(232,121,249,0.98), 0 0 88px rgba(250,204,21,0.62), inset 0 0 26px rgba(232,121,249,0.4); }' +
+                '  75%  { border-color: #facc15; box-shadow: 0 0 48px rgba(250,204,21,0.98), 0 0 88px rgba(56,189,248,0.62), inset 0 0 26px rgba(250,204,21,0.4); }' +
+                '  100% { border-color: #22c55e; box-shadow: 0 0 44px rgba(34,197,94,0.98), 0 0 84px rgba(0,240,255,0.62), inset 0 0 24px rgba(34,197,94,0.4); }' +
                 '}' +
                 '@keyframes raSubBoxCycleA {' +
-                '  0%   { border-color: rgba(34,197,94,0.95); box-shadow: 0 0 16px rgba(34,197,94,0.62), inset 0 0 9px rgba(34,197,94,0.3); }' +
-                '  33%  { border-color: rgba(232,121,249,0.95); box-shadow: 0 0 19px rgba(232,121,249,0.65), inset 0 0 10px rgba(232,121,249,0.3); }' +
-                '  66%  { border-color: rgba(250,204,21,0.95); box-shadow: 0 0 19px rgba(250,204,21,0.65), inset 0 0 10px rgba(250,204,21,0.3); }' +
-                '  100% { border-color: rgba(34,197,94,0.95); box-shadow: 0 0 16px rgba(34,197,94,0.62), inset 0 0 9px rgba(34,197,94,0.3); }' +
+                '  0%   { border-color: rgba(34,197,94,0.98); box-shadow: 0 0 18px rgba(34,197,94,0.72), inset 0 0 10px rgba(34,197,94,0.35); }' +
+                '  33%  { border-color: rgba(232,121,249,0.98); box-shadow: 0 0 22px rgba(232,121,249,0.75), inset 0 0 12px rgba(232,121,249,0.35); }' +
+                '  66%  { border-color: rgba(250,204,21,0.98); box-shadow: 0 0 22px rgba(250,204,21,0.75), inset 0 0 12px rgba(250,204,21,0.35); }' +
+                '  100% { border-color: rgba(34,197,94,0.98); box-shadow: 0 0 18px rgba(34,197,94,0.72), inset 0 0 10px rgba(34,197,94,0.35); }' +
                 '}' +
                 '@keyframes raSubBoxCycleB {' +
-                '  0%   { border-color: rgba(0,240,255,0.95); box-shadow: 0 0 16px rgba(0,240,255,0.62), inset 0 0 9px rgba(0,240,255,0.3); }' +
-                '  33%  { border-color: rgba(250,204,21,0.95); box-shadow: 0 0 19px rgba(250,204,21,0.65), inset 0 0 10px rgba(250,204,21,0.3); }' +
-                '  66%  { border-color: rgba(74,222,128,0.95); box-shadow: 0 0 19px rgba(74,222,128,0.65), inset 0 0 10px rgba(74,222,128,0.3); }' +
-                '  100% { border-color: rgba(0,240,255,0.95); box-shadow: 0 0 16px rgba(0,240,255,0.62), inset 0 0 9px rgba(0,240,255,0.3); }' +
+                '  0%   { border-color: rgba(0,240,255,0.98); box-shadow: 0 0 18px rgba(0,240,255,0.72), inset 0 0 10px rgba(0,240,255,0.35); }' +
+                '  33%  { border-color: rgba(250,204,21,0.98); box-shadow: 0 0 22px rgba(250,204,21,0.75), inset 0 0 12px rgba(250,204,21,0.35); }' +
+                '  66%  { border-color: rgba(74,222,128,0.98); box-shadow: 0 0 22px rgba(74,222,128,0.75), inset 0 0 12px rgba(74,222,128,0.35); }' +
+                '  100% { border-color: rgba(0,240,255,0.98); box-shadow: 0 0 18px rgba(0,240,255,0.72), inset 0 0 10px rgba(0,240,255,0.35); }' +
                 '}' +
                 '@keyframes raSubBoxCycleC {' +
-                '  0%   { border-color: rgba(244,63,94,0.95); box-shadow: 0 0 16px rgba(244,63,94,0.62), inset 0 0 9px rgba(244,63,94,0.3); }' +
-                '  33%  { border-color: rgba(56,189,248,0.95); box-shadow: 0 0 19px rgba(56,189,248,0.65), inset 0 0 10px rgba(56,189,248,0.3); }' +
-                '  66%  { border-color: rgba(192,132,252,0.95); box-shadow: 0 0 19px rgba(192,132,252,0.65), inset 0 0 10px rgba(192,132,252,0.3); }' +
-                '  100% { border-color: rgba(244,63,94,0.95); box-shadow: 0 0 16px rgba(244,63,94,0.62), inset 0 0 9px rgba(244,63,94,0.3); }' +
+                '  0%   { border-color: rgba(244,63,94,0.98); box-shadow: 0 0 18px rgba(244,63,94,0.72), inset 0 0 10px rgba(244,63,94,0.35); }' +
+                '  33%  { border-color: rgba(56,189,248,0.98); box-shadow: 0 0 22px rgba(56,189,248,0.75), inset 0 0 12px rgba(56,189,248,0.35); }' +
+                '  66%  { border-color: rgba(192,132,252,0.98); box-shadow: 0 0 22px rgba(192,132,252,0.75), inset 0 0 12px rgba(192,132,252,0.35); }' +
+                '  100% { border-color: rgba(244,63,94,0.98); box-shadow: 0 0 18px rgba(244,63,94,0.72), inset 0 0 10px rgba(244,63,94,0.35); }' +
                 '}' +
                 '@keyframes raPopupGreenGlow {' +
-                '  0%, 100% { border-color: #4ade80; box-shadow: 0 0 34px rgba(34,197,94,0.98), 0 0 68px rgba(74,222,128,0.8), inset 0 0 20px rgba(34,197,94,0.48); }' +
-                '  50% { border-color: #86efac; box-shadow: 0 0 46px rgba(34,197,94,1), 0 0 86px rgba(0,240,255,0.7), inset 0 0 26px rgba(74,222,128,0.58); }' +
+                '  0%, 100% { border-color: #4ade80; box-shadow: 0 0 34px rgba(34,197,94,0.98), 0 0 68px rgba(74,222,128,0.82), inset 0 0 20px rgba(34,197,94,0.5); }' +
+                '  50% { border-color: #86efac; box-shadow: 0 0 46px rgba(34,197,94,1), 0 0 88px rgba(0,240,255,0.72), inset 0 0 26px rgba(74,222,128,0.6); }' +
                 '}' +
                 '@keyframes raPopupRedGlow {' +
-                '  0%, 100% { border-color: #f87171; box-shadow: 0 0 34px rgba(239,68,68,0.98), 0 0 68px rgba(248,113,113,0.8), inset 0 0 20px rgba(239,68,68,0.48); }' +
-                '  50% { border-color: #fca5a5; box-shadow: 0 0 46px rgba(239,68,68,1), 0 0 86px rgba(251,113,133,0.7), inset 0 0 26px rgba(248,113,113,0.58); }' +
+                '  0%, 100% { border-color: #f87171; box-shadow: 0 0 34px rgba(239,68,68,0.98), 0 0 68px rgba(248,113,113,0.82), inset 0 0 20px rgba(239,68,68,0.5); }' +
+                '  50% { border-color: #fca5a5; box-shadow: 0 0 46px rgba(239,68,68,1), 0 0 88px rgba(251,113,133,0.72), inset 0 0 26px rgba(248,113,113,0.6); }' +
                 '}' +
                 '@keyframes raHeroCandleSpinGlow {' +
-                '  0%   { transform: rotateY(0deg) scale(1); filter: brightness(1.05) saturate(1.25); }' +
-                '  50%  { transform: rotateY(180deg) scale(1.06); filter: brightness(1.45) saturate(1.65); }' +
-                '  100% { transform: rotateY(360deg) scale(1); filter: brightness(1.05) saturate(1.25); }' +
+                '  0%   { transform: rotateY(0deg) scale(1); filter: brightness(1.08) saturate(1.3); }' +
+                '  50%  { transform: rotateY(180deg) scale(1.07); filter: brightness(1.5) saturate(1.7); }' +
+                '  100% { transform: rotateY(360deg) scale(1); filter: brightness(1.08) saturate(1.3); }' +
                 '}' +
-                '@keyframes raCandleTwinkle {' +
-                '  0%   { transform: scaleY(0.25); opacity: 0.45; filter: brightness(1.05); }' +
-                '  55%  { transform: scaleY(1.15); opacity: 1; filter: brightness(1.55); }' +
-                '  100% { transform: scaleY(1); opacity: 1; filter: brightness(1.2); }' +
+                '@keyframes raUltraSmoothCandle {' +
+                '  0%   { opacity: 0.25; transform: scaleY(0.35); filter: brightness(1.65); }' +
+                '  100% { opacity: 1; transform: scaleY(1); filter: brightness(1.22); }' +
                 '}' +
                 '@keyframes raStepSlideIn {' +
-                '  0% { opacity: 0; transform: translateX(-8px) scale(0.96); }' +
-                '  100% { opacity: 1; transform: translateX(0) scale(1); }' +
+                '  0% { opacity: 0; transform: translateX(-6px); }' +
+                '  100% { opacity: 1; transform: translateX(0); }' +
                 '}' +
                 '@keyframes raCandleReveal {' +
                 '  0% { transform: scaleY(0.15); opacity: 0.35; }' +
@@ -240,16 +237,22 @@ def bot_script():
                 popupEl.style.top = topPos + 'px';
             }
 
+            // Thick tire-tread spinning border around the circular bot icon
             function createDraggableBotButton() {
                 var btn = d.createElement('div');
                 btn.id = 'ra-hacker-btn';
-                btn.style.cssText = 'position:fixed;bottom:146px;right:12px;width:72px;height:72px;border-radius:50%;' +
-                    'background:#050a12;border:3px solid #22c55e;display:flex;align-items:center;justify-content:center;' +
-                    'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;overflow:hidden;' +
-                    'animation:raBotRingSpin 5.5s infinite ease-in-out;font-family:"Courier New",Courier,monospace;';
+                btn.style.cssText = 'position:fixed;bottom:146px;right:12px;width:82px;height:82px;border-radius:50%;' +
+                    'background:transparent;display:flex;align-items:center;justify-content:center;' +
+                    'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;' +
+                    'font-family:"Courier New",Courier,monospace;';
 
                 btn.innerHTML = '' +
-                    '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:100%;height:100%;object-fit:cover;border-radius:50%;pointer-events:none;display:block;" />';
+                    '<div style="position:absolute;inset:0;border-radius:50%;pointer-events:none;' +
+                    'background:repeating-conic-gradient(#22c55e 0deg 10deg, #00f0ff 10deg 20deg, #e879f9 20deg 30deg, #facc15 30deg 40deg, #fb7185 40deg 50deg, #38bdf8 50deg 60deg);' +
+                    '-webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6.5px));' +
+                    'mask:radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6.5px));' +
+                    'animation:raTireWheelSpin 4.5s infinite linear;"></div>' +
+                    '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:2;width:66px;height:66px;object-fit:cover;border-radius:50%;pointer-events:none;display:block;border:1.5px solid rgba(255,255,255,0.35);" />';
 
                 d.body.appendChild(btn);
 
@@ -452,9 +455,11 @@ def bot_script():
                     { text: "MEM 0x0528F7C3: 75C74F49E [016-ACK]", color: "#00f0ff" },
                     { text: "PAT 0x802719A0: EAX=0x16492 [+0.16492]", color: "#4ade80" },
                     { text: "HASH 0x9412A8C1: 0x0550D120 [STREAM]", color: "#facc15" },
-                    { text: "THREAD#3679 STACK=0x7F98A2B1: #1967", color: "#e879f9" },
-                    { text: "HEAP 0x56A8B848: 1094272B [QX-03EE]", color: "#38bdf8" },
-                    { text: "SOCKET 168.153.167.11:21463 ACK", color: "#fb7185" }
+                    { text: "KERNEL WICK MATRIX: 0xA91F84C0 [SYNC]", color: "#e879f9" },
+                    { text: "ORDER BOOK DELTA: +0.00042 [BID-ASK]", color: "#38bdf8" },
+                    { text: "LIQUIDITY POOL DEPTH: 0x882E11B4", color: "#fb7185" },
+                    { text: "SESSION ENTROPY LOCK: 99.4% [VERIFIED]", color: "#4ade80" },
+                    { text: "SOCKET BRIDGE 0x37: LATENCY 23ms OK", color: "#00f0ff" }
                 ];
 
                 var scanSteps = [
@@ -481,44 +486,45 @@ def bot_script():
                     { text: "Stabilizing socket stream", color: "#facc15" },
                     { text: "Benchmarking execution path", color: "#e879f9" },
                     { text: "Confirming breakout threshold", color: "#38bdf8" },
-                    { text: "Finalizing candle target model", color: "#fb7185" },
+                    { text: "Scanning imbalance & fair value gaps", color: "#fb7185" },
+                    { text: "Cross-checking multi-timeframe bias", color: "#4ade80" },
+                    { text: "Finalizing candle target model", color: "#00f0ff" },
                     { text: "CIPHER LOCKED || NODE ARMED", color: "#4ade80" }
                 ];
 
-                // Slightly enlarged panel with clean smooth layout and no laser beam
                 var modal = d.createElement('div');
                 modal.id = 'ra-hacker-scan-modal';
-                modal.style.cssText = 'position:fixed;top:47%;left:50%;transform:translate(-50%, -50%);width:334px;max-width:95vw;' +
+                modal.style.cssText = 'position:fixed;top:47%;left:50%;transform:translate(-50%, -50%);width:336px;max-width:95vw;' +
                     'background:linear-gradient(160deg, #061d15 0%, #051326 52%, #150726 100%);' +
-                    'border:2.4px solid #22c55e;border-radius:14px;padding:10px;z-index:2147483647;' +
+                    'border:2.5px solid #22c55e;border-radius:14px;padding:10px;z-index:2147483647;' +
                     'font-family:"Courier New",Courier,monospace;color:#4ade80;box-sizing:border-box;' +
                     'animation:raMainBorderCycle 6.5s infinite ease-in-out;';
 
                 modal.innerHTML = '' +
                     '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(0,240,255,0.35);padding-bottom:6px;margin-bottom:6px;">' +
                     '  <div style="display:flex;align-items:center;gap:7px;">' +
-                    '    <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.8px solid #00f0ff;animation:raBotRingSpin 5.5s infinite ease-in-out;" />' +
+                    '    <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.8px solid #00f0ff;" />' +
                     '    <div>' +
-                    '      <div style="font-size:11.5px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 8px rgba(74,222,128,0.65);">R-A Candle Hacker</div>' +
+                    '      <div style="font-size:11.5px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 10px rgba(74,222,128,0.85);">R-A Candle Hacker</div>' +
                     '      <div style="font-size:7px;color:#00f0ff;letter-spacing:0.5px;">QUANT CORE EXPLOIT</div>' +
                     '      <div style="font-size:6.5px;color:#94a3b8;">SESSION: QQX-5709-03EE-1967 | NODE 0x37</div>' +
                     '    </div>' +
                     '  </div>' +
                     '  <div style="display:flex;align-items:center;gap:5px;">' +
-                    '    <div id="ra-pct-badge" style="background:rgba(20,83,45,0.85);border:1.2px solid #4ade80;color:#4ade80;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;animation:raSubBoxCycleA 4.8s infinite ease-in-out;">1%</div>' +
+                    '    <div id="ra-pct-badge" style="background:rgba(20,83,45,0.85);border:1.3px solid #4ade80;color:#4ade80;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;animation:raSubBoxCycleA 4.8s infinite ease-in-out;">1%</div>' +
                     '    <div id="ra-modal-close" style="cursor:pointer;color:#94a3b8;font-size:12px;font-weight:bold;padding:0 3px;">✕</div>' +
                     '  </div>' +
                     '</div>' +
 
-                    '<div style="background:rgba(2,10,16,0.92);border:1.3px solid #00f0ff;border-radius:8px;padding:6px 7px;margin-bottom:6px;animation:raSubBoxCycleB 5.4s infinite ease-in-out;">' +
+                    '<div style="background:rgba(2,10,16,0.94);border:1.4px solid #00f0ff;border-radius:8px;padding:6px 7px;margin-bottom:6px;animation:raSubBoxCycleB 5.4s infinite ease-in-out;">' +
                     '  <div style="display:flex;justify-content:space-between;font-size:7px;color:#00f0ff;margin-bottom:4px;">' +
                     '    <span>MEMORY STREAM</span>' +
                     '    <span id="ra-mem-state" style="color:#4ade80;font-weight:bold;">● LOW</span>' +
                     '  </div>' +
                     '  <div style="display:flex;align-items:center;gap:6px;">' +
-                    '    <div id="ra-hero-candle-box" style="width:34px;height:66px;border:1.8px solid #22c55e;border-radius:6px;background:rgba(34,197,94,0.14);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 22px rgba(34,197,94,0.9), 0 0 36px rgba(74,222,128,0.65);animation:raHeroCandleSpinGlow 3.2s infinite linear;">' +
+                    '    <div id="ra-hero-candle-box" style="width:34px;height:66px;border:1.8px solid #22c55e;border-radius:6px;background:rgba(34,197,94,0.16);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 24px rgba(34,197,94,0.95), 0 0 42px rgba(74,222,128,0.75);animation:raHeroCandleSpinGlow 3.2s infinite linear;">' +
                     '      <span id="ra-hero-wick-top" style="width:2.5px;height:11px;background:#4ade80;box-shadow:0 0 8px #22c55e;"></span>' +
-                    '      <span id="ra-hero-candle-body" style="width:16px;height:36px;background:#22c55e;border:1.3px solid #86efac;border-radius:2px;display:inline-block;box-shadow:0 0 20px rgba(34,197,94,1), 0 0 36px rgba(74,222,128,0.85);"></span>' +
+                    '      <span id="ra-hero-candle-body" style="width:16px;height:36px;background:#22c55e;border:1.3px solid #86efac;border-radius:2px;display:inline-block;box-shadow:0 0 22px rgba(34,197,94,1), 0 0 40px rgba(74,222,128,0.9);"></span>' +
                     '      <span id="ra-hero-wick-bot" style="width:2.5px;height:11px;background:#4ade80;box-shadow:0 0 8px #22c55e;"></span>' +
                     '    </div>' +
                     '    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">' +
@@ -529,35 +535,35 @@ def bot_script():
                     '        <span><b style="color:#64748b;">CLOSE</b> <span style="color:#00f0ff;">0.1643</span></span>' +
                     '      </div>' +
 
-                    '      <div style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.86);border:1px solid rgba(0,240,255,0.28);border-radius:5px;padding:0 3px;">' +
-                    '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(250,204,21,0.8);box-shadow:0 0 8px #facc15;z-index:3;pointer-events:none;"></div>' +
-                    '        <div id="ra-volume-bars-rtl" style="position:relative;z-index:2;display:flex;flex-direction:row-reverse;align-items:center;justify-content:flex-start;gap:2px;height:28px;width:100%;"></div>' +
+                    '      <div id="ra-track-rtl" style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.88);border:1px solid rgba(0,240,255,0.34);border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 12px rgba(0,240,255,0.22);">' +
+                    '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(250,204,21,0.85);box-shadow:0 0 10px #facc15;z-index:3;pointer-events:none;"></div>' +
+                    '        <div id="ra-volume-bars-rtl" style="position:relative;z-index:2;display:flex;flex-direction:row-reverse;align-items:center;justify-content:flex-start;gap:1px;height:28px;width:100%;"></div>' +
                     '      </div>' +
 
-                    '      <div style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.86);border:1px solid rgba(232,121,249,0.32);border-radius:5px;padding:0 3px;">' +
-                    '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(0,240,255,0.82);box-shadow:0 0 8px #00f0ff;z-index:3;pointer-events:none;"></div>' +
-                    '        <div id="ra-volume-bars-ltr" style="position:relative;z-index:2;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:2px;height:28px;width:100%;"></div>' +
+                    '      <div id="ra-track-ltr" style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.88);border:1px solid rgba(232,121,249,0.36);border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 12px rgba(232,121,249,0.24);">' +
+                    '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(0,240,255,0.88);box-shadow:0 0 10px #00f0ff;z-index:3;pointer-events:none;"></div>' +
+                    '        <div id="ra-volume-bars-ltr" style="position:relative;z-index:2;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:1px;height:28px;width:100%;"></div>' +
                     '      </div>' +
                     '    </div>' +
                     '  </div>' +
                     '</div>' +
 
                     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;font-size:6.8px;text-align:center;">' +
-                    '  <div style="background:rgba(2,10,16,0.9);border:1.3px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 4.9s infinite ease-in-out;"><div style="color:#64748b;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 5.5s infinite ease-in-out;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div id="ra-feed-mode" style="color:#86efac;font-weight:bold;">LOW</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.9);border:1.3px solid #facc15;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 5.1s infinite ease-in-out;"><div style="color:#64748b;">RSA</div><div id="ra-rsa-val" style="color:#facc15;font-weight:bold;">1%</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.9);border:1.3px solid #e879f9;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.9s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 4.2s infinite ease-in-out;"><div style="color:#64748b;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 4.8s infinite ease-in-out;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div id="ra-feed-mode" style="color:#86efac;font-weight:bold;">LOW</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #facc15;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 4.5s infinite ease-in-out;"><div style="color:#64748b;">RSA</div><div id="ra-rsa-val" style="color:#facc15;font-weight:bold;">1%</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #e879f9;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.2s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW</div></div>' +
                     '</div>' +
 
                     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px;font-size:6.8px;text-align:center;">' +
-                    '  <div style="background:rgba(2,10,16,0.9);border:1.3px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 4.7s infinite ease-in-out;"><div style="color:#4ade80;font-weight:bold;">23ms</div><div id="ra-lat-mode" style="color:#4ade80;font-size:6.2px;font-weight:bold;">LOW</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.9);border:1.3px solid #fb7185;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 5.3s infinite ease-in-out;"><div style="color:#64748b;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">1%</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.9);border:1.3px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.7s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #22c55e;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleB 4.1s infinite ease-in-out;"><div style="color:#4ade80;font-weight:bold;">23ms</div><div id="ra-lat-mode" style="color:#4ade80;font-size:6.2px;font-weight:bold;">LOW</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #fb7185;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleC 4.7s infinite ease-in-out;"><div style="color:#64748b;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">1%</div></div>' +
+                    '  <div style="background:rgba(2,10,16,0.92);border:1.4px solid #00f0ff;border-radius:6px;padding:4px 2px;animation:raSubBoxCycleA 5.0s infinite ease-in-out;"><div style="color:#64748b;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW</div></div>' +
                     '</div>' +
 
-                    '<div id="ra-hex-stream" style="background:rgba(2,10,16,0.9);border:1.2px solid #00f0ff;border-radius:7px;padding:5px 6px;margin-bottom:6px;font-size:6.4px;line-height:1.35;height:66px;overflow-y:auto;animation:raSubBoxCycleB 5.8s infinite ease-in-out;"></div>' +
+                    '<div id="ra-hex-stream" style="background:rgba(2,10,16,0.94);border:1.3px solid #00f0ff;border-radius:7px;padding:5px 6px;margin-bottom:6px;font-size:6.6px;line-height:1.42;height:74px;overflow-y:auto;animation:raSubBoxCycleB 5.5s infinite ease-in-out;"></div>' +
 
-                    '<div id="ra-terminal-feed" style="background:#02090e;border:1.2px solid #e879f9;border-radius:8px;padding:5px 7px;font-size:6.8px;line-height:1.35;height:74px;overflow-y:auto;animation:raSubBoxCycleC 6.2s infinite ease-in-out;"></div>';
+                    '<div id="ra-terminal-feed" style="background:#02090e;border:1.3px solid #e879f9;border-radius:8px;padding:5px 7px;font-size:7px;line-height:1.42;height:80px;overflow-y:auto;animation:raSubBoxCycleC 5.9s infinite ease-in-out;"></div>';
 
                 d.body.appendChild(modal);
 
@@ -601,105 +607,119 @@ def bot_script():
                         if(isCall) {
                             heroCandleBody.style.background = '#22c55e';
                             heroCandleBody.style.borderColor = '#86efac';
-                            heroCandleBody.style.boxShadow = '0 0 22px rgba(34,197,94,1), 0 0 42px rgba(74,222,128,0.95)';
+                            heroCandleBody.style.boxShadow = '0 0 24px rgba(34,197,94,1), 0 0 46px rgba(74,222,128,0.95)';
                             heroWickTop.style.background = '#4ade80';
                             heroWickBot.style.background = '#4ade80';
                             heroCandleBox.style.borderColor = '#4ade80';
-                            heroCandleBox.style.background = 'rgba(34,197,94,0.18)';
-                            heroCandleBox.style.boxShadow = '0 0 24px rgba(34,197,94,0.95), 0 0 42px rgba(74,222,128,0.75)';
+                            heroCandleBox.style.background = 'rgba(34,197,94,0.2)';
+                            heroCandleBox.style.boxShadow = '0 0 26px rgba(34,197,94,0.98), 0 0 48px rgba(74,222,128,0.8)';
                         } else {
                             heroCandleBody.style.background = '#ef4444';
                             heroCandleBody.style.borderColor = '#fca5a5';
-                            heroCandleBody.style.boxShadow = '0 0 22px rgba(239,68,68,1), 0 0 42px rgba(248,113,113,0.95)';
+                            heroCandleBody.style.boxShadow = '0 0 24px rgba(239,68,68,1), 0 0 46px rgba(248,113,113,0.95)';
                             heroWickTop.style.background = '#f87171';
                             heroWickBot.style.background = '#f87171';
                             heroCandleBox.style.borderColor = '#f87171';
-                            heroCandleBox.style.background = 'rgba(239,68,68,0.18)';
-                            heroCandleBox.style.boxShadow = '0 0 24px rgba(239,68,68,0.95), 0 0 42px rgba(248,113,113,0.75)';
+                            heroCandleBox.style.background = 'rgba(239,68,68,0.2)';
+                            heroCandleBox.style.boxShadow = '0 0 26px rgba(239,68,68,0.98), 0 0 48px rgba(248,113,113,0.8)';
                         }
                     }
                 });
 
+                // Measure track width so candles reach all the way from one end to the other by 94%
+                var trackWidth = (barsRtlEl && barsRtlEl.clientWidth) ? barsRtlEl.clientWidth : 230;
+                var candleSlotWidth = 6.2;
+                var maxDualCandles = Math.max(28, Math.floor(trackWidth / candleSlotWidth));
+
                 function buildCandleNode(idx, isAltLine) {
                     var isGreenVol = isAltLine ? (idx % 2 === 0) : (idx % 3 !== 1);
                     var vCol = isGreenVol ? '#22c55e' : '#ef4444';
-                    var vGlow = isGreenVol ? 'rgba(34,197,94,0.95)' : 'rgba(239,68,68,0.95)';
-                    var progressiveGrowth = Math.min(13, Math.floor((idx / 24) * 13));
+                    var vGlow = isGreenVol ? 'rgba(34,197,94,1)' : 'rgba(239,68,68,1)';
+                    var progressiveGrowth = Math.min(13, Math.floor((idx / maxDualCandles) * 13));
                     var barH = Math.min(24, 6 + progressiveGrowth + ((idx * 3) % 5));
                     var vCandle = d.createElement('div');
-                    vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;width:6.5px;height:26px;flex-shrink:0;animation:raCandleTwinkle 0.35s ease-out;';
+                    vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;width:5.2px;height:26px;flex-shrink:0;animation:raUltraSmoothCandle 0.16s cubic-bezier(0.22,1,0.36,1) forwards;';
                     vCandle.innerHTML = '' +
-                        '<span style="width:1px;height:2.5px;background:' + vCol + ';box-shadow:0 0 5px ' + vGlow + ';"></span>' +
-                        '<span style="width:5px;height:' + barH + 'px;background:' + vCol + ';border-radius:1px;display:inline-block;box-shadow:0 0 11px ' + vGlow + ';"></span>' +
-                        '<span style="width:1px;height:2.5px;background:' + vCol + ';box-shadow:0 0 5px ' + vGlow + ';"></span>';
+                        '<span style="width:1px;height:2.5px;background:' + vCol + ';box-shadow:0 0 6px ' + vGlow + ';"></span>' +
+                        '<span style="width:4px;height:' + barH + 'px;background:' + vCol + ';border-radius:1px;display:inline-block;box-shadow:0 0 12px ' + vGlow + ', 0 0 20px ' + vGlow + ';"></span>' +
+                        '<span style="width:1px;height:2.5px;background:' + vCol + ';box-shadow:0 0 6px ' + vGlow + ';"></span>';
                     return vCandle;
                 }
 
-                var progressTimer = setInterval(function(){
-                    if(!modal.isConnected) {
-                        clearInterval(progressTimer);
-                        return;
+                var scanStartTime = performance.now();
+                var scanDurationMs = 7200;
+                var finishedScan = false;
+
+                function ultraSmoothTick(nowTs) {
+                    if(!modal.isConnected || finishedScan) return;
+
+                    var elapsed = nowTs - scanStartTime;
+                    var rawRatio = Math.min(1, elapsed / scanDurationMs);
+                    var nextPct = Math.max(1, Math.min(100, Math.floor(rawRatio * 99) + 1));
+
+                    if(nextPct !== pct) {
+                        pct = nextPct;
+                        if(pctBadge) pctBadge.innerText = pct + '%';
+                        if(rsaVal) rsaVal.innerText = Math.min(98, pct) + '%';
+                        if(breachVal) breachVal.innerText = Math.min(64, Math.round(pct * 0.54)) + '%';
+
+                        var sVec = Math.min(100, pct + 18);
+                        var sFeed = Math.min(100, Math.max(5, pct - 14));
+                        var sCyc = Math.min(100, Math.round((pct * 1.15) % 101));
+                        var sLat = Math.min(100, Math.max(8, pct + 6));
+                        var sNode = Math.min(100, Math.max(4, pct - 24));
+                        var sMem = Math.min(100, pct + 10);
+
+                        var tVec = getTierFromScore(sVec);
+                        var tFeed = getTierFromScore(sFeed);
+                        var tCyc = getTierFromScore(sCyc);
+                        var tLat = getTierFromScore(sLat);
+                        var tNode = getTierFromScore(sNode);
+                        var tMem = getTierFromScore(sMem);
+
+                        if(vecMode) { vecMode.innerText = tVec.label; vecMode.style.color = tVec.color; }
+                        if(feedMode) { feedMode.innerText = tFeed.label; feedMode.style.color = tFeed.color; }
+                        if(cycMode) { cycMode.innerText = tCyc.label; cycMode.style.color = tCyc.color; }
+                        if(latMode) { latMode.innerText = tLat.label; latMode.style.color = tLat.color; }
+                        if(nodeMode) { nodeMode.innerText = tNode.label; nodeMode.style.color = tNode.color; }
+                        if(memState) { memState.innerText = "● " + tMem.label; memState.style.color = tMem.color; }
                     }
-                    pct += 1;
-                    if(pct > 100) pct = 100;
-                    if(pctBadge) pctBadge.innerText = pct + '%';
-                    if(rsaVal) rsaVal.innerText = Math.min(98, pct) + '%';
-                    if(breachVal) breachVal.innerText = Math.min(64, Math.round(pct * 0.54)) + '%';
 
-                    var sVec = Math.min(100, pct + 18);
-                    var sFeed = Math.min(100, Math.max(5, pct - 14));
-                    var sCyc = Math.min(100, Math.round((pct * 1.15) % 101));
-                    var sLat = Math.min(100, Math.max(8, pct + 6));
-                    var sNode = Math.min(100, Math.max(4, pct - 24));
-                    var sMem = Math.min(100, pct + 10);
-
-                    var tVec = getTierFromScore(sVec);
-                    var tFeed = getTierFromScore(sFeed);
-                    var tCyc = getTierFromScore(sCyc);
-                    var tLat = getTierFromScore(sLat);
-                    var tNode = getTierFromScore(sNode);
-                    var tMem = getTierFromScore(sMem);
-
-                    if(vecMode) { vecMode.innerText = tVec.label; vecMode.style.color = tVec.color; }
-                    if(feedMode) { feedMode.innerText = tFeed.label; feedMode.style.color = tFeed.color; }
-                    if(cycMode) { cycMode.innerText = tCyc.label; cycMode.style.color = tCyc.color; }
-                    if(latMode) { latMode.innerText = tLat.label; latMode.style.color = tLat.color; }
-                    if(nodeMode) { nodeMode.innerText = tNode.label; nodeMode.style.color = tNode.color; }
-                    if(memState) { memState.innerText = "● " + tMem.label; memState.style.color = tMem.color; }
-
-                    // Simultaneous right-to-left & left-to-right candle growth completing together at 100%
-                    var maxDualCandles = 25;
-                    var targetDualCount = Math.min(maxDualCandles, Math.max(1, Math.ceil((pct / 100) * maxDualCandles)));
+                    // Candles reach full edge-to-edge completion around 94% progress
+                    var candleProgress = Math.min(1, rawRatio / 0.94);
+                    var targetDualCount = Math.min(maxDualCandles, Math.floor(candleProgress * maxDualCandles) + (rawRatio > 0.01 ? 1 : 0));
                     while(revealedDualBars < targetDualCount) {
                         if(barsRtlEl) barsRtlEl.appendChild(buildCandleNode(revealedDualBars, false));
                         if(barsLtrEl) barsLtrEl.appendChild(buildCandleNode(revealedDualBars, true));
                         revealedDualBars++;
                     }
 
-                    var targetHex = Math.min(hexStreamLines.length, Math.floor(((pct - 1) / 99) * hexStreamLines.length) + 1);
+                    var targetHex = Math.min(hexStreamLines.length, Math.floor(rawRatio * hexStreamLines.length) + 1);
                     while(revealedHex < targetHex && hexStreamEl) {
                         var hObj = hexStreamLines[revealedHex];
                         var hRow = d.createElement('div');
-                        hRow.style.cssText = 'animation:raStepSlideIn 0.2s ease-out;color:' + hObj.color + ';';
+                        hRow.style.cssText = 'animation:raStepSlideIn 0.16s ease-out;color:' + hObj.color + ';';
                         hRow.innerText = hObj.text;
                         hexStreamEl.appendChild(hRow);
                         hexStreamEl.scrollTop = hexStreamEl.scrollHeight;
                         revealedHex++;
                     }
 
-                    var targetSteps = Math.min(scanSteps.length, Math.floor(((pct - 1) / 99) * scanSteps.length) + 1);
+                    var targetSteps = Math.min(scanSteps.length, Math.floor(rawRatio * scanSteps.length) + 1);
                     while(revealedSteps < targetSteps && feedEl) {
                         var stepObj = scanSteps[revealedSteps];
                         var row = d.createElement('div');
-                        row.style.cssText = 'animation:raStepSlideIn 0.22s ease-out;color:' + stepObj.color + ';';
+                        row.style.cssText = 'animation:raStepSlideIn 0.16s ease-out;color:' + stepObj.color + ';';
                         row.innerHTML = '<span style="color:#4ade80;font-weight:900;">✓</span> ' + stepObj.text;
                         feedEl.appendChild(row);
                         feedEl.scrollTop = feedEl.scrollHeight;
                         revealedSteps++;
                     }
 
-                    if(pct >= 100) {
-                        clearInterval(progressTimer);
+                    if(rawRatio >= 1) {
+                        finishedScan = true;
+                        pct = 100;
+                        if(pctBadge) pctBadge.innerText = '100%';
                         var finalMarket = detectExactQuotexMarket();
                         signalPromise.then(function(data){
                             var sig = String(data.signal || 'CALL').toUpperCase();
@@ -709,10 +729,15 @@ def bot_script():
                                 if(modal.isConnected) modal.remove();
                                 showBoxSignalCard(isCall, finalMarket, ptsVal);
                                 triggerBrokerTradeClick(isCall);
-                            }, 250);
+                            }, 220);
                         });
+                        return;
                     }
-                }, 75);
+
+                    requestAnimationFrame(ultraSmoothTick);
+                }
+
+                requestAnimationFrame(ultraSmoothTick);
             }
 
             createDraggableBotButton();
