@@ -79,7 +79,7 @@ class BiDirectionalMarketEngine:
 
 @app.route('/')
 def home():
-    res = make_response("DR CANDLE TRACKER ENGINE ACTIVE - HIGH FX LIVE CANDLE MODE!")
+    res = make_response("DR CANDLE TRACKER ENGINE ACTIVE - PRECISION LIVE CANDLE MODE!")
     res.headers.add("Access-Control-Allow-Origin", "*")
     return res
 
@@ -155,10 +155,10 @@ def bot_script():
                 '  100% { border-color: #22c55e; box-shadow: 0 0 18px #22c55e, 0 0 34px #00f0ff, inset 0 0 12px rgba(34,197,94,0.65); }' +
                 '}' +
                 '@keyframes drHyperFrame {' +
-                '  0% { border-color: #22c55e; box-shadow: 0 0 28px rgba(34,197,94,0.7), 0 0 48px rgba(0,240,255,0.28), inset 0 0 16px rgba(34,197,94,0.24); }' +
-                '  33% { border-color: #00f0ff; box-shadow: 0 0 32px rgba(0,240,255,0.75), 0 0 52px rgba(232,121,249,0.3), inset 0 0 18px rgba(0,240,255,0.25); }' +
-                '  66% { border-color: #e879f9; box-shadow: 0 0 32px rgba(232,121,249,0.75), 0 0 52px rgba(250,204,21,0.3), inset 0 0 18px rgba(232,121,249,0.25); }' +
-                '  100% { border-color: #22c55e; box-shadow: 0 0 28px rgba(34,197,94,0.7), 0 0 48px rgba(0,240,255,0.28), inset 0 0 16px rgba(34,197,94,0.24); }' +
+                '  0% { border-color: #22c55e; box-shadow: 0 0 28px rgba(34,197,94,0.75), 0 0 50px rgba(0,240,255,0.3), inset 0 0 16px rgba(34,197,94,0.24); }' +
+                '  33% { border-color: #00f0ff; box-shadow: 0 0 32px rgba(0,240,255,0.8), 0 0 54px rgba(232,121,249,0.32), inset 0 0 18px rgba(0,240,255,0.26); }' +
+                '  66% { border-color: #e879f9; box-shadow: 0 0 32px rgba(232,121,249,0.8), 0 0 54px rgba(250,204,21,0.3), inset 0 0 18px rgba(232,121,249,0.26); }' +
+                '  100% { border-color: #22c55e; box-shadow: 0 0 28px rgba(34,197,94,0.75), 0 0 50px rgba(0,240,255,0.3), inset 0 0 16px rgba(34,197,94,0.24); }' +
                 '}' +
                 '@keyframes drLaserSweep {' +
                 '  0% { top: 0%; opacity: 0.45; background: linear-gradient(90deg,transparent,#22c55e,#00f0ff,#e879f9,#facc15,transparent); }' +
@@ -189,10 +189,23 @@ def bot_script():
                 '}';
             d.head.appendChild(styleEl);
 
+            function positionPopupAboveBot(popupEl, botEl) {
+                if(!popupEl || !botEl) return;
+                var br = botEl.getBoundingClientRect();
+                var popupWidth = 104;
+                var leftPos = Math.round(br.left + (br.width / 2) - (popupWidth / 2));
+                leftPos = Math.max(8, Math.min(window.innerWidth - popupWidth - 8, leftPos));
+                var topPos = Math.round(br.top - 132);
+                topPos = Math.max(78, Math.min(window.innerHeight - 210, topPos));
+                popupEl.style.width = popupWidth + 'px';
+                popupEl.style.left = leftPos + 'px';
+                popupEl.style.top = topPos + 'px';
+            }
+
             function createDraggableDrButton() {
                 var btn = d.createElement('div');
                 btn.id = 'dr-tracker-btn';
-                btn.style.cssText = 'position:fixed;top:64%;right:12px;width:62px;height:62px;border-radius:50%;' +
+                btn.style.cssText = 'position:fixed;bottom:148px;right:12px;width:62px;height:62px;border-radius:50%;' +
                     'background:radial-gradient(circle at 28% 24%, #103324, #051324 62%, #130724 100%);' +
                     'border:2.5px solid #22c55e;display:flex;align-items:center;justify-content:center;' +
                     'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;' +
@@ -234,6 +247,9 @@ def bot_script():
                     btn.style.top = nextTop + 'px';
                     btn.style.right = 'auto';
                     btn.style.bottom = 'auto';
+
+                    var activePopup = d.getElementById('dr-next-signal-popup');
+                    if(activePopup) positionPopupAboveBot(activePopup, btn);
                 }
 
                 function onEnd(e) {
@@ -265,59 +281,59 @@ def bot_script():
                 return "EURUSD";
             }
 
-            function detectExactLiveCandleStart() {
-                var livePriceY = null;
-                var liveCandleX = null;
+            function detectExactLiveCandleOrigin() {
+                var timerBadgeX = null;
+                var timerBadgeY = null;
+                var priceLineY = null;
+                var verticalLineX = null;
 
                 try {
-                    var all = d.querySelectorAll('div, span, text, rect, circle, line');
+                    var all = d.querySelectorAll('div, span, text, rect, circle, line, path');
                     for(var i = 0; i < all.length; i++) {
                         var el = all[i];
                         var r = el.getBoundingClientRect();
                         if(r.width === 0 || r.height === 0) continue;
                         var txt = (el.innerText || el.textContent || '').trim();
 
-                        // Right-side live price badge (e.g., 127.373 or decimal price inside right axis)
-                        if(/^\d{1,4}\.\d{2,5}$/.test(txt) && r.left > window.innerWidth * 0.72 && r.top > 110 && r.top < window.innerHeight * 0.68) {
-                            livePriceY = r.top + (r.height / 2);
+                        // 1) Active candle countdown badge like 00:46 or 00:06 near the running candle
+                        if(/^00:\d{2}$/.test(txt) && r.left > window.innerWidth * 0.25 && r.left < window.innerWidth * 0.88 && r.top > 95 && r.top < window.innerHeight * 0.72) {
+                            timerBadgeX = r.left + (r.width * 0.2);
+                            timerBadgeY = r.top + (r.height * 0.5);
                         }
 
-                        // Countdown timer badge near running candle (e.g., 00:15 / 00:52)
-                        if(/^00:\d{2}$/.test(txt) && r.left > window.innerWidth * 0.30 && r.left < window.innerWidth * 0.85 && r.top > 110 && r.top < window.innerHeight * 0.70) {
-                            liveCandleX = r.left + (r.width * 0.25);
-                            if(livePriceY === null) {
-                                livePriceY = r.top + (r.height / 2);
-                            }
+                        // 2) Right-axis current price pill (e.g. 0.16460 or 127.271)
+                        if(/^\d{1,4}\.\d{2,5}$/.test(txt) && r.left > window.innerWidth * 0.72 && r.top > 95 && r.top < window.innerHeight * 0.72) {
+                            priceLineY = r.top + (r.height * 0.5);
                         }
                     }
 
-                    // Fallback to vertical crosshair/current candle line if X wasn't found via timer
-                    if(liveCandleX === null) {
-                        var lines = d.querySelectorAll('line');
-                        for(var j = 0; j < lines.length; j++) {
-                            var lr = lines[j].getBoundingClientRect();
-                            if(lr.height > 70 && lr.width < 10 && lr.left > window.innerWidth * 0.35 && lr.left < window.innerWidth * 0.76) {
-                                liveCandleX = lr.left + (lr.width / 2);
-                                break;
-                            }
+                    // 3) Vertical dashed/solid line marking the active/current candle column
+                    var lines = d.querySelectorAll('line');
+                    for(var j = 0; j < lines.length; j++) {
+                        var lr = lines[j].getBoundingClientRect();
+                        if(lr.height > 75 && lr.width < 12 && lr.left > window.innerWidth * 0.30 && lr.left < window.innerWidth * 0.80 && lr.top < window.innerHeight * 0.55) {
+                            verticalLineX = lr.left + (lr.width * 0.5);
                         }
                     }
                 } catch(e) {}
 
+                var finalX = timerBadgeX !== null ? timerBadgeX : (verticalLineX !== null ? verticalLineX : (window.innerWidth * 0.52));
+                var finalY = priceLineY !== null ? priceLineY : (timerBadgeY !== null ? timerBadgeY : (window.innerHeight * 0.38));
+
                 return {
-                    x: liveCandleX !== null ? Math.round(liveCandleX) : Math.round(window.innerWidth * 0.54),
-                    y: livePriceY !== null ? Math.round(livePriceY) : Math.round(window.innerHeight * 0.36)
+                    x: Math.round(finalX),
+                    y: Math.round(finalY)
                 };
             }
 
             function computeCandleProjectionMetrics(isCall, ptsFromBackend, marketName) {
                 var basePts = parseInt(ptsFromBackend, 10);
                 if(isNaN(basePts) || basePts <= 0) {
-                    var fallbackPts = [11, 16, 20, 25, 31, 14, 28];
+                    var fallbackPts = [12, 16, 21, 25, 30, 14, 27];
                     var idx = (Math.floor(Date.now() / 1000) + marketName.charCodeAt(0)) % fallbackPts.length;
                     basePts = fallbackPts[idx];
                 }
-                var heightPx = Math.max(40, Math.min(98, basePts * 2.8));
+                var heightPx = Math.max(44, Math.min(104, basePts * 2.9));
                 return {
                     pts: basePts,
                     heightPx: Math.round(heightPx),
@@ -331,20 +347,19 @@ def bot_script():
                     if(old) old.remove();
                 });
 
-                var anchor = detectExactLiveCandleStart();
+                var anchor = detectExactLiveCandleOrigin();
                 var metrics = computeCandleProjectionMetrics(isCall, ptsFromBackend, marketName);
 
                 var mainColor = isCall ? "#22c55e" : "#ef4444";
                 var borderColor = isCall ? "#4ade80" : "#f87171";
                 var bgFill = isCall ? "rgba(34, 197, 94, 0.18)" : "rgba(239, 68, 68, 0.18)";
-                var boxWidth = 18;
+                var boxWidth = 20;
 
                 var proj = d.createElement('div');
                 proj.id = 'dr-candle-projection';
 
                 if(isCall) {
-                    // Starts right from the live candle level and extends UPWARD
-                    var topPos = Math.max(95, anchor.y - metrics.heightPx);
+                    var topPos = Math.max(92, anchor.y - metrics.heightPx);
                     proj.style.cssText = 'position:fixed;left:' + Math.round(anchor.x - boxWidth / 2) + 'px;' +
                         'top:' + topPos + 'px;width:' + boxWidth + 'px;height:' + metrics.heightPx + 'px;' +
                         'border:2px dashed ' + borderColor + ';background:' + bgFill + ';' +
@@ -354,9 +369,8 @@ def bot_script():
                         '<div style="position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:900;color:' + mainColor + ';">▲</div>' +
                         '<div style="position:absolute;top:-28px;left:50%;transform:translateX(-50%);white-space:nowrap;background:rgba(4,16,9,0.95);border:1px solid ' + borderColor + ';color:' + mainColor + ';font-size:7.5px;font-weight:900;padding:1px 4px;border-radius:3px;">' + metrics.label + '</div>';
                 } else {
-                    // Starts right from the live candle level and extends DOWNWARD
                     var maxBottom = window.innerHeight - 190;
-                    var downHeight = Math.min(metrics.heightPx, Math.max(36, maxBottom - anchor.y));
+                    var downHeight = Math.min(metrics.heightPx, Math.max(38, maxBottom - anchor.y));
                     proj.style.cssText = 'position:fixed;left:' + Math.round(anchor.x - boxWidth / 2) + 'px;' +
                         'top:' + anchor.y + 'px;width:' + boxWidth + 'px;height:' + downHeight + 'px;' +
                         'border:2px dashed ' + borderColor + ';background:' + bgFill + ';' +
@@ -369,14 +383,10 @@ def bot_script():
 
                 d.body.appendChild(proj);
 
-                // Slimmer right-side popup card positioned cleanly beside the live candle without covering trade controls
-                var popupWidth = 102;
-                var pLeft = Math.min(window.innerWidth - popupWidth - 14, Math.max(8, Math.round(anchor.x + 22)));
-                var pTop = Math.min(window.innerHeight - 230, Math.max(95, Math.round(anchor.y - 25)));
-
+                // Popup positioned right above the circular DR TRACKER bot button
                 var popup = d.createElement('div');
                 popup.id = 'dr-next-signal-popup';
-                popup.style.cssText = 'position:fixed;left:' + pLeft + 'px;top:' + pTop + 'px;width:' + popupWidth + 'px;' +
+                popup.style.cssText = 'position:fixed;width:104px;' +
                     'background:linear-gradient(165deg, rgba(6,24,18,0.96), rgba(16,9,30,0.96));' +
                     'border:1.5px solid ' + borderColor + ';border-radius:9px;padding:6px 6px;box-sizing:border-box;' +
                     'z-index:2147483646;pointer-events:none;font-family:"Courier New",monospace;color:#e2e8f0;' +
@@ -394,6 +404,8 @@ def bot_script():
                     '<div style="text-align:center;font-size:6.5px;font-weight:900;color:#4ade80;letter-spacing:0.8px;border-top:1px dashed rgba(0,240,255,0.3);padding-top:3px;">LOCKED</div>';
 
                 d.body.appendChild(popup);
+                var botBtn = d.getElementById('dr-tracker-btn');
+                positionPopupAboveBot(popup, botBtn);
 
                 setTimeout(function(){
                     if(proj.parentNode) proj.remove();
