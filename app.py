@@ -63,11 +63,12 @@ class BiDirectionalMarketEngine:
                     ratio = abs(diff1) / avg_move if avg_move > 0 else 1.0
                     mag_pts = max(8, min(40, int(round(14 * ratio + (abs(diff1) * 100000) % 15))))
 
+                    # Ensure balanced bi-directional CALL & PUT generation without staying one-sided
                     if diff1 > 0 and diff2 >= 0:
-                        sig = "PUT" if (epoch_sec // 12) % 3 == 2 else "CALL"
+                        sig = "PUT" if (epoch_sec // 7) % 2 == 1 else "CALL"
                         return {"signal": sig, "trend": "BULLISH (UP)" if sig == "CALL" else "BEARISH (DOWN)", "pts": mag_pts, "rule": f"Bi-Directional Momentum Sync ({c0:.5f})"}
                     elif diff1 < 0 and diff2 <= 0:
-                        sig = "CALL" if (epoch_sec // 12) % 3 == 2 else "PUT"
+                        sig = "CALL" if (epoch_sec // 7) % 2 == 1 else "PUT"
                         return {"signal": sig, "trend": "BEARISH (DOWN)" if sig == "PUT" else "BULLISH (UP)", "pts": mag_pts, "rule": f"Bi-Directional Momentum Sync ({c0:.5f})"}
                     elif diff1 > 0:
                         return {"signal": "CALL", "trend": "BULLISH (UP)", "pts": mag_pts, "rule": "Support Level Rejection Verified."}
@@ -76,7 +77,7 @@ class BiDirectionalMarketEngine:
         except Exception:
             pass
 
-        bi_sig = "CALL" if ((epoch_sec // 8) + (sum(ord(ch) for ch in symbol) % 2)) % 2 == 0 else "PUT"
+        bi_sig = "CALL" if ((epoch_sec // 6) + (sum(ord(ch) for ch in symbol) % 2)) % 2 == 0 else "PUT"
         return {
             "signal": bi_sig,
             "trend": "BULLISH (UP)" if bi_sig == "CALL" else "BEARISH (DOWN)",
@@ -87,7 +88,7 @@ class BiDirectionalMarketEngine:
 
 @app.route('/')
 def home():
-    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - ULTRA SMOOTH EDGE-TO-EDGE CANDLES!")
+    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - LOCKED GATE + BI-DIRECTIONAL ENGINE!")
     res.headers.add("Access-Control-Allow-Origin", "*")
     return res
 
@@ -149,7 +150,8 @@ def bot_script():
                 "ra-sniper-bot-panel", "ra-sniper-bot-btn", "ra-sniper-bot-style",
                 "dr-tracker-panel", "dr-tracker-btn", "dr-scan-modal",
                 "dr-candle-projection", "dr-next-signal-popup", "dr-hacker-style",
-                "ra-hacker-btn", "ra-hacker-scan-modal", "ra-hacker-signal-popup", "ra-hacker-style"
+                "ra-hacker-btn", "ra-hacker-scan-modal", "ra-hacker-signal-popup",
+                "ra-hacker-auth-modal", "ra-hacker-style"
             ].forEach(function(id){
                 var el = d.getElementById(id);
                 if(el) el.remove();
@@ -157,14 +159,20 @@ def bot_script():
 
             var renderServerUrl = "https://ra-ai-bot.onrender.com";
             var botAvatarUrl = "https://i.postimg.cc/Fz3xjQGZ/file-000000001cc082119080b22d35ecbaaa.png";
+            var communityAvatarUrl = "https://i.postimg.cc/k5NBY37k/file-0000000016a482119619e0cb99151c28.png";
+            var telegramChannelUrl = "https://t.me/+x1QYA_1-sSs0NTk1";
+            var VALID_ACCESS_KEYS = ["RA-CANDLE-PRO-2026"];
+            var AUTH_STORAGE_KEY = "ra_candle_hacker_unlocked_v1";
 
             var styleEl = d.createElement('style');
             styleEl.id = 'ra-hacker-style';
             styleEl.innerHTML = '' +
-                '@keyframes raTireWheelSpin {' +
-                '  0%   { transform: rotate(0deg); filter: hue-rotate(0deg) drop-shadow(0 0 18px #22c55e) drop-shadow(0 0 36px #00f0ff); }' +
+                '@keyframes raPerSecBorderSpin {' +
+                '  0%   { transform: rotate(0deg); filter: hue-rotate(0deg) drop-shadow(0 0 18px #22c55e) drop-shadow(0 0 38px #00f0ff); }' +
+                '  25%  { transform: rotate(90deg); filter: hue-rotate(90deg) drop-shadow(0 0 22px #00f0ff) drop-shadow(0 0 42px #e879f9); }' +
                 '  50%  { transform: rotate(180deg); filter: hue-rotate(180deg) drop-shadow(0 0 22px #e879f9) drop-shadow(0 0 42px #facc15); }' +
-                '  100% { transform: rotate(360deg); filter: hue-rotate(360deg) drop-shadow(0 0 18px #22c55e) drop-shadow(0 0 36px #00f0ff); }' +
+                '  75%  { transform: rotate(270deg); filter: hue-rotate(270deg) drop-shadow(0 0 22px #facc15) drop-shadow(0 0 42px #fb7185); }' +
+                '  100% { transform: rotate(360deg); filter: hue-rotate(360deg) drop-shadow(0 0 18px #22c55e) drop-shadow(0 0 38px #00f0ff); }' +
                 '}' +
                 '@keyframes raMainBorderCycle {' +
                 '  0%   { border-color: #22c55e; box-shadow: 0 0 44px rgba(34,197,94,0.98), 0 0 84px rgba(0,240,255,0.62), inset 0 0 24px rgba(34,197,94,0.4); }' +
@@ -222,6 +230,20 @@ def bot_script():
                 '}';
             d.head.appendChild(styleEl);
 
+            function isBotUnlocked() {
+                try {
+                    return localStorage.getItem(AUTH_STORAGE_KEY) === "1";
+                } catch(e) {
+                    return false;
+                }
+            }
+
+            function markBotUnlocked() {
+                try {
+                    localStorage.setItem(AUTH_STORAGE_KEY, "1");
+                } catch(e) {}
+            }
+
             function positionPopupAboveBotWithGap(popupEl, botEl) {
                 if(!popupEl || !botEl) return;
                 var br = botEl.getBoundingClientRect();
@@ -237,8 +259,10 @@ def bot_script():
                 popupEl.style.top = topPos + 'px';
             }
 
-            // Thick tire-tread spinning border around the circular bot icon
+            // Outer ring sits strictly around the circular image without covering the image itself
             function createDraggableBotButton() {
+                if(d.getElementById('ra-hacker-btn')) return;
+
                 var btn = d.createElement('div');
                 btn.id = 'ra-hacker-btn';
                 btn.style.cssText = 'position:fixed;bottom:146px;right:12px;width:82px;height:82px;border-radius:50%;' +
@@ -248,11 +272,11 @@ def bot_script():
 
                 btn.innerHTML = '' +
                     '<div style="position:absolute;inset:0;border-radius:50%;pointer-events:none;' +
-                    'background:repeating-conic-gradient(#22c55e 0deg 10deg, #00f0ff 10deg 20deg, #e879f9 20deg 30deg, #facc15 30deg 40deg, #fb7185 40deg 50deg, #38bdf8 50deg 60deg);' +
+                    'background:repeating-conic-gradient(#22c55e 0deg 12deg, #00f0ff 12deg 24deg, #e879f9 24deg 36deg, #facc15 36deg 48deg, #fb7185 48deg 60deg, #38bdf8 60deg 72deg);' +
                     '-webkit-mask:radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6.5px));' +
                     'mask:radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6.5px));' +
-                    'animation:raTireWheelSpin 4.5s infinite linear;"></div>' +
-                    '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:2;width:66px;height:66px;object-fit:cover;border-radius:50%;pointer-events:none;display:block;border:1.5px solid rgba(255,255,255,0.35);" />';
+                    'animation:raPerSecBorderSpin 4s infinite linear;"></div>' +
+                    '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:2;width:66px;height:66px;object-fit:cover;border-radius:50%;pointer-events:none;display:block;background:#050a12;" />';
 
                 d.body.appendChild(btn);
 
@@ -305,6 +329,108 @@ def bot_script():
                 d.addEventListener('touchmove', onMove, {passive: true});
                 d.addEventListener('mouseup', onEnd);
                 d.addEventListener('touchend', onEnd);
+            }
+
+            // Compact Password Gate Panel shown immediately on first bookmark launch
+            function openPasswordGatePanel() {
+                var oldGate = d.getElementById('ra-hacker-auth-modal');
+                if(oldGate) oldGate.remove();
+
+                var gate = d.createElement('div');
+                gate.id = 'ra-hacker-auth-modal';
+                gate.style.cssText = 'position:fixed;top:48%;left:50%;transform:translate(-50%, -50%);width:296px;max-width:90vw;' +
+                    'background:linear-gradient(165deg, #061b14 0%, #061122 55%, #140724 100%);' +
+                    'border:2.2px solid #22c55e;border-radius:14px;padding:11px;z-index:2147483647;' +
+                    'font-family:"Courier New",Courier,monospace;color:#e2e8f0;box-sizing:border-box;' +
+                    'animation:raMainBorderCycle 5.5s infinite ease-in-out;';
+
+                gate.innerHTML = '' +
+                    '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(0,240,255,0.28);padding-bottom:7px;margin-bottom:8px;">' +
+                    '  <div style="display:flex;align-items:center;gap:8px;">' +
+                    '    <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:36px;height:36px;border-radius:50%;object-fit:cover;border:1.8px solid #22c55e;box-shadow:0 0 12px rgba(34,197,94,0.8);" />' +
+                    '    <div>' +
+                    '      <div style="font-size:11px;font-weight:900;color:#4ade80;letter-spacing:0.4px;">R-A Candle Hacker</div>' +
+                    '      <div style="font-size:7px;color:#00f0ff;letter-spacing:0.6px;margin-top:1px;">SECURE ACCESS GATE</div>' +
+                    '    </div>' +
+                    '  </div>' +
+                    '  <div id="ra-gate-close" style="cursor:pointer;color:#94a3b8;font-size:13px;font-weight:bold;padding:0 4px;">✕</div>' +
+                    '</div>' +
+
+                    '<a href="' + telegramChannelUrl + '" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:8px;text-decoration:none;' +
+                    'background:rgba(10,20,38,0.92);border:1.5px solid #facc15;border-radius:10px;padding:7px 8px;margin-bottom:8px;' +
+                    'box-shadow:0 0 14px rgba(250,204,21,0.45);animation:raSubBoxCycleA 4.8s infinite ease-in-out;">' +
+                    '  <img src="' + communityAvatarUrl + '" alt="R-A Trading Community" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:1.5px solid #facc15;flex-shrink:0;" />' +
+                    '  <div style="flex:1;min-width:0;">' +
+                    '    <div style="font-size:8.5px;font-weight:900;color:#ffffff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">R-A Trading Community</div>' +
+                    '    <div style="font-size:6.8px;color:#38bdf8;margin-top:2px;">✈ Click to Join Telegram</div>' +
+                    '  </div>' +
+                    '</a>' +
+
+                    '<div style="font-size:7.2px;color:#94a3b8;margin-bottom:4px;letter-spacing:0.4px;">Bot Access Key</div>' +
+                    '<input id="ra-pass-input" type="password" placeholder="Enter Access Password" autocomplete="off" style="' +
+                    'width:100%;box-sizing:border-box;background:rgba(3,10,18,0.95);border:1.6px solid rgba(0,240,255,0.55);' +
+                    'border-radius:8px;padding:8px 9px;color:#ffffff;font-family:\'Courier New\',monospace;font-size:9px;outline:none;margin-bottom:6px;transition:all 0.2s ease;" />' +
+
+                    '<div id="ra-pass-status" style="min-height:14px;font-size:7.4px;font-weight:900;text-align:center;margin-bottom:7px;letter-spacing:0.4px;"></div>' +
+
+                    '<button id="ra-activate-btn" type="button" style="' +
+                    'width:100%;border:none;border-radius:9px;padding:8px 10px;cursor:pointer;' +
+                    'background:linear-gradient(90deg, #ef4444 0%, #f59e0b 48%, #22c55e 100%);' +
+                    'color:#ffffff;font-family:\'Courier New\',monospace;font-size:9.5px;font-weight:900;letter-spacing:0.8px;' +
+                    'box-shadow:0 0 16px rgba(34,197,94,0.65);">ACTIVATE BOT</button>';
+
+                d.body.appendChild(gate);
+
+                var passInput = gate.querySelector('#ra-pass-input');
+                var statusEl = gate.querySelector('#ra-pass-status');
+                var activateBtn = gate.querySelector('#ra-activate-btn');
+                var closeBtn = gate.querySelector('#ra-gate-close');
+                var busyVerifying = false;
+
+                closeBtn.onclick = function() {
+                    if(!busyVerifying) gate.remove();
+                };
+
+                function submitPasswordCheck() {
+                    if(busyVerifying) return;
+                    var entered = (passInput.value || "").trim();
+                    var isValid = VALID_ACCESS_KEYS.indexOf(entered) !== -1;
+
+                    if(!isValid) {
+                        passInput.style.borderColor = "#ef4444";
+                        passInput.style.background = "rgba(69,10,10,0.75)";
+                        passInput.style.boxShadow = "0 0 14px rgba(239,68,68,0.9)";
+                        statusEl.style.color = "#f87171";
+                        statusEl.innerText = "✖ INCORRECT PASSWORD";
+                        return;
+                    }
+
+                    busyVerifying = true;
+                    passInput.style.borderColor = "#22c55e";
+                    passInput.style.background = "rgba(5,46,22,0.75)";
+                    passInput.style.boxShadow = "0 0 14px rgba(34,197,94,0.85)";
+                    statusEl.style.color = "#00f0ff";
+                    statusEl.innerText = "⟳ VERIFYING & PROCESSING...";
+
+                    setTimeout(function(){
+                        statusEl.style.color = "#4ade80";
+                        statusEl.innerText = "✔ SUCCESSFUL — UNLOCKING BOT";
+                        markBotUnlocked();
+
+                        setTimeout(function(){
+                            if(gate.isConnected) gate.remove();
+                            createDraggableBotButton();
+                        }, 700);
+                    }, 2200);
+                }
+
+                activateBtn.onclick = submitPasswordCheck;
+                passInput.addEventListener('keydown', function(ev){
+                    if(ev.key === 'Enter') {
+                        ev.preventDefault();
+                        submitPasswordCheck();
+                    }
+                });
             }
 
             function detectExactQuotexMarket() {
@@ -596,7 +722,7 @@ def bot_script():
                 var signalPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(cleanSymbol) + '&t=' + Date.now())
                     .then(function(r){ return r.json(); })
                     .catch(function(){
-                        var fb = (Math.floor(Date.now() / 8000) % 2 === 0) ? "CALL" : "PUT";
+                        var fb = (Math.floor(Date.now() / 6000) % 2 === 0) ? "CALL" : "PUT";
                         return { signal: fb, pts: 19 };
                     });
 
@@ -626,7 +752,6 @@ def bot_script():
                     }
                 });
 
-                // Measure track width so candles reach all the way from one end to the other by 94%
                 var trackWidth = (barsRtlEl && barsRtlEl.clientWidth) ? barsRtlEl.clientWidth : 230;
                 var candleSlotWidth = 6.2;
                 var maxDualCandles = Math.max(28, Math.floor(trackWidth / candleSlotWidth));
@@ -685,7 +810,6 @@ def bot_script():
                         if(memState) { memState.innerText = "● " + tMem.label; memState.style.color = tMem.color; }
                     }
 
-                    // Candles reach full edge-to-edge completion around 94% progress
                     var candleProgress = Math.min(1, rawRatio / 0.94);
                     var targetDualCount = Math.min(maxDualCandles, Math.floor(candleProgress * maxDualCandles) + (rawRatio > 0.01 ? 1 : 0));
                     while(revealedDualBars < targetDualCount) {
@@ -740,7 +864,11 @@ def bot_script():
                 requestAnimationFrame(ultraSmoothTick);
             }
 
-            createDraggableBotButton();
+            if(isBotUnlocked()) {
+                createDraggableBotButton();
+            } else {
+                openPasswordGatePanel();
+            }
         } catch(err) {
             console.error("R-A Candle Hacker Error:", err);
         }
