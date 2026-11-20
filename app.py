@@ -10,8 +10,6 @@ app = Flask(__name__, static_folder=None)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(name)s: %(message)s')
 logger = logging.getLogger("RA_CANDLE_HACKER_Engine")
 
-JS_BOT_VERSION = "v4.2.0-LIVE"
-
 QX_API_KEY = os.environ.get("QX_API_KEY", "qx_live_1xxOcsg5_3vEavHfZwAkGufh9NLLWJhUqG3T6H6oCEuoDWeJV")
 FINNHUB_API_KEY = os.environ.get("FINNHUB_API_KEY", "dbcaa19r01qqr3s0pf60dbcaa19r01qqr3s0pf6g")
 TWELVE_DATA_KEY = os.environ.get("TWELVE_DATA_KEY", "8f5d4d4fce7f44e5bda54420591411c8")
@@ -119,7 +117,7 @@ class LiveMarketCandleEngine:
 
 @app.route('/')
 def home():
-    res = make_response(f"R-A CANDLE HACKER ENGINE ACTIVE ({JS_BOT_VERSION}) - ULTRA SMOOTH LIVE CANDLES!")
+    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - ULTRA SMOOTH LIVE CANDLES!")
     res.headers.add("Access-Control-Allow-Origin", "*")
     return res
 
@@ -198,7 +196,6 @@ def bot_script():
                 window.__raScanRaf = null;
             }
 
-            var BOT_JS_VERSION = "__BOT_VERSION_PLACEHOLDER__";
             var renderServerUrl = "https://ra-ai-bot.onrender.com";
             var botAvatarUrl = "https://i.postimg.cc/Fz3xjQGZ/file-000000001cc082119080b22d35ecbaaa.png";
             var communityAvatarUrl = "https://i.postimg.cc/k5NBY37k/file-0000000016a482119619e0cb99151c28.png";
@@ -206,8 +203,9 @@ def bot_script():
             var validAccessKey = "Gop Gop2027";
             var sessionFlagName = "__raCandleHackerUnlocked";
 
-            // Audio synthesizer for scanning tick and final pong/poton trade alert
             var audioCtx = null;
+            var lastTickMs = 0;
+
             function ensureAudioContext() {
                 try {
                     var Ctx = window.AudioContext || window.webkitAudioContext;
@@ -224,21 +222,25 @@ def bot_script():
 
             function playTickSound() {
                 try {
+                    var nowMs = Date.now();
+                    if(nowMs - lastTickMs < 130) return;
+                    lastTickMs = nowMs;
+
                     var ctx = ensureAudioContext();
                     if(!ctx) return;
                     var now = ctx.currentTime;
                     var osc = ctx.createOscillator();
                     var gain = ctx.createGain();
                     osc.type = "triangle";
-                    osc.frequency.setValueAtTime(1180, now);
-                    osc.frequency.exponentialRampToValueAtTime(620, now + 0.035);
+                    osc.frequency.setValueAtTime(1040, now);
+                    osc.frequency.exponentialRampToValueAtTime(560, now + 0.032);
                     gain.gain.setValueAtTime(0.001, now);
-                    gain.gain.linearRampToValueAtTime(0.28, now + 0.004);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.042);
+                    gain.gain.linearRampToValueAtTime(0.26, now + 0.004);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.038);
                     osc.connect(gain);
                     gain.connect(ctx.destination);
                     osc.start(now);
-                    osc.stop(now + 0.045);
+                    osc.stop(now + 0.04);
                 } catch(e) {}
             }
 
@@ -322,8 +324,8 @@ def bot_script():
                 '  100% { border-color: #00f0ff; box-shadow: 0 0 18px rgba(0,240,255,0.95), 0 0 30px rgba(74,222,128,0.75); }' +
                 '}' +
                 '@keyframes raGlowPulseBright {' +
-                '  0%, 100% { opacity: 0.88; filter: brightness(1.05); }' +
-                '  50%      { opacity: 1; filter: brightness(1.32); }' +
+                '  0%, 100% { opacity: 0.9; filter: brightness(1.06); }' +
+                '  50%      { opacity: 1; filter: brightness(1.3); }' +
                 '}' +
                 '@keyframes raPopupGreenGlow {' +
                 '  0%, 100% { border-color: #4ade80; box-shadow: 0 0 36px rgba(34,197,94,1), 0 0 68px rgba(74,222,128,0.85); }' +
@@ -415,7 +417,7 @@ def bot_script():
                     '    </div>' +
                     '    <div>' +
                     '      <div style="font-size:11px;font-weight:900;color:#ffffff;letter-spacing:0.2px;line-height:1.15;">R-A Candle Hacker</div>' +
-                    '      <div style="font-size:7px;font-weight:800;color:#00f0ff;letter-spacing:0.5px;margin-top:1px;">SECURE LOGIN • ' + BOT_JS_VERSION + '</div>' +
+                    '      <div style="font-size:7.5px;font-weight:800;color:#f43f5e;letter-spacing:0.7px;margin-top:1px;">SECURE LOGIN</div>' +
                     '    </div>' +
                     '  </div>' +
                     '  <div id="ra-login-close" style="width:20px;height:20px;border-radius:5px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10.5px;color:#cbd5e1;font-weight:bold;">✕</div>' +
@@ -567,8 +569,7 @@ def bot_script():
                     'background:conic-gradient(from 0deg, #22c55e, #00f0ff, #e879f9, #facc15, #f43f5e, #38bdf8, #22c55e);' +
                     'animation:raTireWheelSpin 3s infinite linear;"></div>' +
                     '<div style="position:absolute;inset:6px;border-radius:50%;background:#02090e;z-index:2;pointer-events:none;"></div>' +
-                    '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:3;width:66px;height:66px;object-fit:cover;border-radius:50%;pointer-events:none;display:block;background:#02090e;border:1.5px solid rgba(255,255,255,0.45);" />' +
-                    '<div style="position:absolute;bottom:4px;left:50%;transform:translateX(-50%);z-index:4;background:rgba(2,10,16,0.92);border:1px solid #00f0ff;border-radius:6px;padding:0px 4px;font-size:6px;font-weight:900;color:#4ade80;letter-spacing:0.2px;pointer-events:none;">' + BOT_JS_VERSION + '</div>';
+                    '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:3;width:66px;height:66px;object-fit:cover;border-radius:50%;pointer-events:none;display:block;background:#02090e;border:1.5px solid rgba(255,255,255,0.45);" />';
 
                 d.body.appendChild(btn);
 
@@ -624,7 +625,7 @@ def bot_script():
                 d.addEventListener('touchend', onEnd);
             }
 
-            // Detect any live market pair on Quotex (real or OTC)
+            // Detect any live market pair on Quotex (real, OTC, crypto, commodity)
             function detectExactQuotexMarket() {
                 try {
                     var selectors = [
@@ -641,7 +642,7 @@ def bot_script():
                         for(var i = 0; i < nodes.length; i++) {
                             var raw = (nodes[i].innerText || '').trim();
                             var cleaned = raw.replace(/\s+/g, ' ').trim();
-                            if(/^[A-Z]{3,4}\s*\/\s*[A-Z]{3,4}(\s*\(?(OTC|REAL)\)?)?$/i.test(cleaned)) {
+                            if(/^[A-Z]{2,5}\s*\/\s*[A-Z]{2,5}(\s*\(?(OTC|REAL)\)?)?$/i.test(cleaned)) {
                                 return cleaned.replace(/\s*\/\s*/, '/').toUpperCase();
                             }
                         }
@@ -651,7 +652,7 @@ def bot_script():
                     for(var j = 0; j < allTextEls.length; j++) {
                         if(allTextEls[j].children.length === 0) {
                             var t = (allTextEls[j].innerText || '').trim().replace(/\s+/g, ' ');
-                            if(/^[A-Z]{3,4}\s*\/\s*[A-Z]{3,4}(\s*\(?(OTC|REAL)\)?)?$/i.test(t) && t.length <= 22) {
+                            if(/^[A-Z]{2,5}\s*\/\s*[A-Z]{2,5}(\s*\(?(OTC|REAL)\)?)?$/i.test(t) && t.length <= 24) {
                                 var rect = allTextEls[j].getBoundingClientRect();
                                 if(rect.width > 20 && rect.height > 8 && rect.top > 35 && rect.top < window.innerHeight - 35) {
                                     return t.replace(/\s*\/\s*/, '/').toUpperCase();
@@ -674,11 +675,18 @@ def bot_script():
                 var ptsNum = parseInt(ptsRaw, 10);
                 if(isNaN(ptsNum) || ptsNum <= 0) {
                     var secNow = Math.floor(Date.now() / 1000);
-                    ptsNum = 8 + ((secNow + marketStr.charCodeAt(0) + (isCall ? 3 : 9)) % 33);
+                    var mSum = 0;
+                    for(var k = 0; k < marketStr.length; k++) {
+                        mSum += marketStr.charCodeAt(k);
+                    }
+                    ptsNum = 8 + ((secNow + mSum + (isCall ? 3 : 9)) % 33);
                 }
                 var clampedPts = Math.max(8, Math.min(40, ptsNum));
                 var ratio = (clampedPts - 8) / 32;
                 var candleHeightPx = Math.round(12 + (ratio * 42));
+                var candleWidthPx = Math.round(11 + (ratio * 9));
+                var ptsFontPx = (6.8 + (ratio * 2.2)).toFixed(1);
+                var sizeFontPx = (5.8 + (ratio * 1.4)).toFixed(1);
 
                 var sizeTag = "SMALL SIZE";
                 if(clampedPts <= 14) {
@@ -694,6 +702,9 @@ def bot_script():
                 return {
                     pts: clampedPts,
                     heightPx: candleHeightPx,
+                    widthPx: candleWidthPx,
+                    ptsFontPx: ptsFontPx,
+                    sizeFontPx: sizeFontPx,
                     sizeTag: sizeTag
                 };
             }
@@ -712,18 +723,18 @@ def bot_script():
                 if(isCall) {
                     candleVisualHtml = '' +
                         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:66px;animation:raCandleReveal 0.25s ease-out;">' +
-                        '  <div style="font-size:7.2px;font-weight:900;color:#4ade80;margin-bottom:2px;text-shadow:0 0 10px #22c55e;">' + estText + '</div>' +
+                        '  <div style="font-size:' + metrics.ptsFontPx + 'px;font-weight:900;color:#4ade80;margin-bottom:2px;text-shadow:0 0 10px #22c55e;">' + estText + '</div>' +
                         '  <div style="width:2px;height:6px;background:#4ade80;box-shadow:0 0 10px #22c55e;"></div>' +
-                        '  <div style="width:15px;height:' + metrics.heightPx + 'px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.2px solid #bbf7d0;border-radius:2px;box-shadow:0 0 24px rgba(34,197,94,1), 0 0 42px rgba(74,222,128,0.9);"></div>' +
+                        '  <div style="width:' + metrics.widthPx + 'px;height:' + metrics.heightPx + 'px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.2px solid #bbf7d0;border-radius:2px;box-shadow:0 0 24px rgba(34,197,94,1), 0 0 42px rgba(74,222,128,0.9);"></div>' +
                         '  <div style="width:2px;height:5px;background:#4ade80;box-shadow:0 0 10px #22c55e;"></div>' +
                         '</div>';
                 } else {
                     candleVisualHtml = '' +
                         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:66px;animation:raCandleReveal 0.25s ease-out;">' +
                         '  <div style="width:2px;height:5px;background:#f87171;box-shadow:0 0 10px #ef4444;"></div>' +
-                        '  <div style="width:15px;height:' + metrics.heightPx + 'px;background:linear-gradient(180deg,#fca5a5,#ef4444,#b91c1c);border:1.2px solid #fecaca;border-radius:2px;box-shadow:0 0 24px rgba(239,68,68,1), 0 0 42px rgba(248,113,113,0.9);"></div>' +
+                        '  <div style="width:' + metrics.widthPx + 'px;height:' + metrics.heightPx + 'px;background:linear-gradient(180deg,#fca5a5,#ef4444,#b91c1c);border:1.2px solid #fecaca;border-radius:2px;box-shadow:0 0 24px rgba(239,68,68,1), 0 0 42px rgba(248,113,113,0.9);"></div>' +
                         '  <div style="width:2px;height:6px;background:#f87171;box-shadow:0 0 10px #ef4444;"></div>' +
-                        '  <div style="font-size:7.2px;font-weight:900;color:#f87171;margin-top:2px;text-shadow:0 0 10px #ef4444;">' + estText + '</div>' +
+                        '  <div style="font-size:' + metrics.ptsFontPx + 'px;font-weight:900;color:#f87171;margin-top:2px;text-shadow:0 0 10px #ef4444;">' + estText + '</div>' +
                         '</div>';
                 }
 
@@ -743,7 +754,7 @@ def bot_script():
                     '</div>' +
                     '<div style="background:rgba(2,8,12,0.94);border:1.2px solid ' + mainColor + ';border-radius:6px;padding:5px 4px;text-align:center;margin-bottom:4px;box-shadow:inset 0 0 12px ' + (isCall ? 'rgba(34,197,94,0.42)' : 'rgba(239,68,68,0.42)') + ';">' +
                     candleVisualHtml +
-                    '  <div style="font-size:6.3px;font-weight:900;color:' + mainColor + ';margin-top:3px;letter-spacing:0.25px;">SIZE: ' + metrics.sizeTag + ' (' + metrics.heightPx + 'PX)</div>' +
+                    '  <div style="font-size:' + metrics.sizeFontPx + 'px;font-weight:900;color:' + mainColor + ';margin-top:3px;letter-spacing:0.25px;">SIZE: ' + metrics.sizeTag + ' (' + metrics.heightPx + 'PX)</div>' +
                     '  <div style="font-size:6.6px;font-weight:900;color:#ffffff;margin-top:3px;letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + liveMarket + '</div>' +
                     '</div>' +
                     '<div style="text-align:center;font-size:6.5px;font-weight:900;color:' + mainColor + ';letter-spacing:0.8px;border-top:1px dashed rgba(255,255,255,0.22);padding-top:3px;">LOCKED</div>';
@@ -836,7 +847,7 @@ def bot_script():
                     '    <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid #00f0ff;flex-shrink:0;animation:raHeaderAvatarGlow 4s infinite ease-in-out;" />' +
                     '    <div>' +
                     '      <div style="font-size:12px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 12px rgba(74,222,128,0.9);">R-A Candle Hacker</div>' +
-                    '      <div style="font-size:7px;color:#00f0ff;letter-spacing:0.5px;">QUANT CORE EXPLOIT • ' + BOT_JS_VERSION + '</div>' +
+                    '      <div style="font-size:7px;color:#00f0ff;letter-spacing:0.5px;">QUANT CORE EXPLOIT</div>' +
                     '      <div style="font-size:6.5px;color:#94a3b8;">SESSION: QQX-5709-03EE-1967 | ' + liveMarketDisplay + '</div>' +
                     '    </div>' +
                     '  </div>' +
@@ -848,7 +859,7 @@ def bot_script():
 
                     '<div style="background:rgba(2,10,16,0.94);border:1.5px solid #00f0ff;border-radius:8px;padding:6px 7px;margin-bottom:6px;">' +
                     '  <div style="display:flex;justify-content:space-between;font-size:7px;color:#00f0ff;margin-bottom:4px;">' +
-                    '    <span>MEMORY STREAM • GLOW MODE</span>' +
+                    '    <span>MEMORY STREAM</span>' +
                     '    <span id="ra-mem-state" style="color:#4ade80;font-weight:bold;">● LOW</span>' +
                     '  </div>' +
                     '  <div style="display:flex;align-items:center;gap:6px;">' +
@@ -954,7 +965,7 @@ def bot_script():
                     var progressiveGrowth = Math.min(13, Math.floor((idx / maxDualCandles) * 13));
                     var barH = Math.min(24, 6 + progressiveGrowth + ((idx * 3) % 5));
                     var vCandle = d.createElement('div');
-                    vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;width:5.4px;height:26px;flex-shrink:0;animation:raGlowPulseBright 1.6s infinite ease-in-out;';
+                    vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;width:5.4px;height:26px;flex-shrink:0;';
                     vCandle.innerHTML = '' +
                         '<span style="width:1px;height:2.5px;background:' + vCol + ';"></span>' +
                         '<span style="width:4px;height:' + barH + 'px;background:' + bodyBg + ';border-radius:1px;display:inline-block;box-shadow:' + vGlow + ';"></span>' +
@@ -977,8 +988,7 @@ def bot_script():
                         pct = nextPct;
                         if(pctBadge) pctBadge.innerText = pct + '%';
 
-                        // Play tick sound every 4% step for crisp scanning rhythm
-                        if(pct - lastTickPct >= 4) {
+                        if(pct - lastTickPct >= 5) {
                             lastTickPct = pct;
                             playTickSound();
                         }
@@ -1082,7 +1092,7 @@ def bot_script():
             console.error("R-A Candle Hacker Error:", err);
         }
     })();
-    """.replace("__BOT_VERSION_PLACEHOLDER__", JS_BOT_VERSION)
+    """
     res = make_response(js)
     res.headers['Content-Type'] = 'application/javascript'
     res.headers['Access-Control-Allow-Origin'] = '*'
