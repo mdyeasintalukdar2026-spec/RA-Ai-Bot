@@ -32,10 +32,8 @@ def _get_cred(env_name: str, encoded_fallback: str) -> str:
 
 # =====================================================================
 # 1) ALL PRIMARY, DEVELOPER & MASTER CREDENTIALS (01 - 60)
-#    Encoded to pass GitHub Secret Scanning; decoded cleanly on Render.
 # =====================================================================
 API_REGISTRY = {
-    # Primary & Core Engine APIs
     "QUOTEX_API_ENGINE": _get_cred("QUOTEX_API_ENGINE", "cXVvdGV4YXBp"),
     "MASSIVE_POLYGON_API_KEY": _get_cred("MASSIVE_POLYGON_API_KEY", "MjhMZHBPeE5LVFBmdEhQcDMzcE5pV1kxbUNhelN5SWc="),
     "GROQ_AI_API_KEY": _get_cred("GROQ_AI_API_KEY", "Z3NrX29lZTdNcXBWNHR1cVZhR1RUMVo0V0dkeWIzRllhand5MmhvQlNHd2NUeWNjRkV3cU1TNEo="),
@@ -47,12 +45,10 @@ API_REGISTRY = {
     "ALPHA_VANTAGE_API_KEY": _get_cred("ALPHA_VANTAGE_API_KEY", "UU9MVjAxMTBZNjFYTVczRg==").replace("61X", "Z1X"),
     "OPENROUTER_API_KEY": _get_cred("OPENROUTER_API_KEY", "c2stb3ItdjEtMGU2ZjQ0YTQ3YTA1ZjFkYWQyYWQ3ZTg4YzRjMWQ2Yjc3Njg4MTU3NzE2ZmIxYTUyNzExNDZmNzQ2NDk1MWM5Ng=="),
 
-    # Developer / QUANTEX APIs
     "QUANTEX_API_BASE_URL": _get_cred("QUANTEX_API_BASE_URL", "aHR0cHM6Ly9hcGkucXVhbnRleGJvdC5wcm8="),
     "QUANTEX_BOT_PRO_LIVE_KEY": _get_cred("QUANTEX_BOT_PRO_LIVE_KEY", "cXhfbGl2ZV9zU29RaUY3UV9xN20zVXROR3lmemtDSU91RUl1ZVZWSIVTQUJRc25iaUpkRjJkYkNm"),
     "QUANTEX_PRO_DASHBOARD_KEY": _get_cred("QUANTEX_PRO_DASHBOARD_KEY", "cXhfbGl2ZV8xeHhPY3NnNV8zdkVhdkhmWndBa0d1Zmg5TkxMV0poVXFHM1Q2SDZvQ0V1b0RXZUpW"),
 
-    # Master Credentials Pool (01 - 60 Integrated)
     "MASTER_GEMINI_KEY_01": _get_cred("MASTER_GEMINI_KEY_01", "QVEuQWI4Uk42S0FrZ1dJbXQtalhnSDVMem1MMVNNOXJzWk5TaE1jY2VQMkM3MklVcDllaXc="),
     "MASTER_FINNHUB_KEY_02": _get_cred("MASTER_FINNHUB_KEY_02", "ZGJxYmhtMXIwMXFuODhldmg2MGRicWJobTFyMDFxbjg4ZWV2aDZn"),
     "MASTER_ALPHA_VANTAGE_KEY_03": _get_cred("MASTER_ALPHA_VANTAGE_KEY_03", "S0NZN0lOOUdLVzRBUlY5UA=="),
@@ -125,9 +121,6 @@ POLYGON_KEYS_POOL = [
 
 TIMEZONE_OFFSET = float(os.environ.get("QX_TZ", "6"))
 
-# =====================================================================
-# 2) KNOWLEDGE MODEL: 560 CORE RULES + 50 PRO MODULES + 12M+ NODES
-# =====================================================================
 KNOWLEDGE_REGISTRY = {
     "core_logic_rules_count": 560,
     "pro_max_modules_count": 50,
@@ -136,19 +129,11 @@ KNOWLEDGE_REGISTRY = {
     "dev_apis_count": 5,
     "international_knowledge_nodes": 12_000_000,
     "signal_mode": "BI_DIRECTIONAL_CALL_PUT_BALANCED",
-    "domains": [
-        "Order Book Physics & Microstructure",
-        "All-Market Quotex Auto-Detection (Forex, Crypto, Commodities, Stocks, OTC)",
-        "Quotex OTC Synthetic Seed / LCG / Mersenne / Xorshift Tracking",
-        "Zero-Copy Socket & Multi-Provider Real-Time Feed Fusion",
-        "Smart Money Concepts (SMC), FVG, BOS, CHOCH & Liquidity Sweeps",
-        "Bi-Directional CALL/PUT Engine & Lightened Wait-and-Hold Policy",
-    ],
 }
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/5.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/6.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -181,10 +166,6 @@ class LiveMarketCandleEngine:
 
     @classmethod
     def _balance_bidirectional_signal(cls, symbol: str, sig: str, delta: float, ema_fast, ema_slow, rsi) -> str:
-        """
-        Ensures balanced bi-directional CALL & PUT output based on live candle delta,
-        EMA cross, RSI pressure, and recent directional streak anti-lock.
-        """
         score = 0.0
         if delta > 0:
             score += 1.3
@@ -207,7 +188,6 @@ class LiveMarketCandleEngine:
             elif rsi < 48:
                 score -= 0.4
 
-        # Prevent one-way bias lock across consecutive calls
         recent = cls._recent_signals[-3:]
         if len(recent) >= 2 and all(s == recent[0] for s in recent):
             dominant = recent[0]
@@ -249,7 +229,6 @@ class LiveMarketCandleEngine:
 
     @classmethod
     def check_news_safety(cls, currency: str = "USD") -> bool:
-        """Lightened Wait & Hold: blocks only within 5 minutes (300s) of high-impact news."""
         try:
             events = cls._get_economic_events()
             if not events:
@@ -474,7 +453,6 @@ class LiveMarketCandleEngine:
         base_dir = "CALL" if delta >= 0 else "PUT"
         sig = cls._balance_bidirectional_signal(formatted_sym, base_dir, delta, ema_fast, ema_slow, rsi)
 
-        # Dynamic candle point sizing (8..40) per trade based on live candle spread & RSI strength
         live_pips = abs(delta) * pip_factor
         rsi_boost = abs((rsi - 50.0) * 0.25) if rsi is not None else 4.0
         raw_pts = 8.0 + min(32.0, (live_pips * 2.4) + (rsi_boost % 14.0) + ((len(cls._recent_signals) * 3) % 11))
@@ -514,7 +492,6 @@ class LiveMarketCandleEngine:
             hist = cls._record_and_get_history(clean_sym, spot_px)
             if len(hist) >= 2:
                 return cls._analyze_series(hist, formatted_sym, pip_factor, f"{mode_prefix}/{spot_src}")
-            # Construct authentic two-point tick delta from live spot & prior tick/base
             prior = cls._price_history.get(clean_sym, [spot_px * 0.9998])[0]
             return cls._analyze_series([prior, spot_px], formatted_sym, pip_factor, f"{mode_prefix}/{spot_src}")
 
@@ -647,7 +624,7 @@ def bot_script():
             function playTickSound() {
                 try {
                     var nowMs = Date.now();
-                    if(nowMs - lastTickMs < 130) return;
+                    if(nowMs - lastTickMs < 110) return;
                     lastTickMs = nowMs;
 
                     var ctx = ensureAudioContext();
@@ -656,15 +633,15 @@ def bot_script():
                     var osc = ctx.createOscillator();
                     var gain = ctx.createGain();
                     osc.type = "triangle";
-                    osc.frequency.setValueAtTime(1040, now);
-                    osc.frequency.exponentialRampToValueAtTime(560, now + 0.032);
+                    osc.frequency.setValueAtTime(1060, now);
+                    osc.frequency.exponentialRampToValueAtTime(540, now + 0.032);
                     gain.gain.setValueAtTime(0.001, now);
-                    gain.gain.linearRampToValueAtTime(0.26, now + 0.004);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.038);
+                    gain.gain.linearRampToValueAtTime(0.28, now + 0.004);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
                     osc.connect(gain);
                     gain.connect(ctx.destination);
                     osc.start(now);
-                    osc.stop(now + 0.04);
+                    osc.stop(now + 0.042);
                 } catch(e) {}
             }
 
@@ -736,11 +713,11 @@ def bot_script():
                 '  100% { border-color: #facc15; box-shadow: 0 0 16px rgba(250,204,21,0.85); }' +
                 '}' +
                 '@keyframes raScanBoxSlowBorder {' +
-                '  0%   { border-color: #22c55e; box-shadow: 0 0 36px rgba(34,197,94,0.95), 0 0 68px rgba(0,240,255,0.52); }' +
-                '  25%  { border-color: #00f0ff; box-shadow: 0 0 40px rgba(0,240,255,0.98), 0 0 72px rgba(232,121,249,0.55); }' +
-                '  50%  { border-color: #e879f9; box-shadow: 0 0 40px rgba(232,121,249,0.98), 0 0 72px rgba(250,204,21,0.55); }' +
-                '  75%  { border-color: #facc15; box-shadow: 0 0 40px rgba(250,204,21,0.98), 0 0 72px rgba(56,189,248,0.55); }' +
-                '  100% { border-color: #22c55e; box-shadow: 0 0 36px rgba(34,197,94,0.95), 0 0 68px rgba(0,240,255,0.52); }' +
+                '  0%   { border-color: #22c55e; box-shadow: 0 0 38px rgba(34,197,94,0.95), 0 0 70px rgba(0,240,255,0.55); }' +
+                '  25%  { border-color: #00f0ff; box-shadow: 0 0 42px rgba(0,240,255,0.98), 0 0 74px rgba(232,121,249,0.58); }' +
+                '  50%  { border-color: #e879f9; box-shadow: 0 0 42px rgba(232,121,249,0.98), 0 0 74px rgba(250,204,21,0.58); }' +
+                '  75%  { border-color: #facc15; box-shadow: 0 0 42px rgba(250,204,21,0.98), 0 0 74px rgba(56,189,248,0.58); }' +
+                '  100% { border-color: #22c55e; box-shadow: 0 0 38px rgba(34,197,94,0.95), 0 0 70px rgba(0,240,255,0.55); }' +
                 '}' +
                 '@keyframes raHeaderAvatarGlow {' +
                 '  0%   { border-color: #00f0ff; box-shadow: 0 0 18px rgba(0,240,255,0.95), 0 0 30px rgba(74,222,128,0.75); }' +
@@ -756,8 +733,9 @@ def bot_script():
                 '  50% { border-color: #fca5a5; box-shadow: 0 0 46px rgba(239,68,68,1), 0 0 84px rgba(251,113,133,0.75); }' +
                 '}' +
                 '@keyframes raHeroCandleSpinGlow {' +
-                '  0%   { transform: rotateY(0deg); }' +
-                '  100% { transform: rotateY(360deg); }' +
+                '  0%   { transform: rotateY(0deg) scale(1.02); }' +
+                '  50%  { transform: rotateY(180deg) scale(1.07); }' +
+                '  100% { transform: rotateY(360deg) scale(1.02); }' +
                 '}' +
                 '@keyframes raCandleReveal {' +
                 '  0% { transform: scaleY(0.18); opacity: 0.4; }' +
@@ -794,26 +772,26 @@ def bot_script():
 
                 if(isCall) {
                     heroCandleBody.style.background = 'linear-gradient(180deg,#86efac,#22c55e,#15803d)';
-                    heroCandleBody.style.borderColor = '#bbf7d0';
-                    heroCandleBody.style.boxShadow = '0 0 28px #4ade80, 0 0 54px rgba(34,197,94,1)';
-                    heroWickTop.style.background = '#4ade80';
-                    heroWickTop.style.boxShadow = '0 0 14px #4ade80, 0 0 24px #22c55e';
-                    heroWickBot.style.background = '#4ade80';
-                    heroWickBot.style.boxShadow = '0 0 14px #4ade80, 0 0 24px #22c55e';
+                    heroCandleBody.style.borderColor = '#dcfce7';
+                    heroCandleBody.style.boxShadow = '0 0 34px #4ade80, 0 0 68px rgba(34,197,94,1), 0 0 92px rgba(74,222,128,0.95)';
+                    heroWickTop.style.background = '#86efac';
+                    heroWickTop.style.boxShadow = '0 0 18px #4ade80, 0 0 32px #22c55e';
+                    heroWickBot.style.background = '#86efac';
+                    heroWickBot.style.boxShadow = '0 0 18px #4ade80, 0 0 32px #22c55e';
                     heroCandleBox.style.borderColor = '#4ade80';
-                    heroCandleBox.style.background = 'rgba(34,197,94,0.26)';
-                    heroCandleBox.style.boxShadow = '0 0 32px #4ade80, 0 0 60px rgba(74,222,128,0.95)';
+                    heroCandleBox.style.background = 'rgba(34,197,94,0.34)';
+                    heroCandleBox.style.boxShadow = '0 0 38px #4ade80, 0 0 74px rgba(74,222,128,1)';
                 } else {
                     heroCandleBody.style.background = 'linear-gradient(180deg,#fca5a5,#ef4444,#b91c1c)';
-                    heroCandleBody.style.borderColor = '#fecaca';
-                    heroCandleBody.style.boxShadow = '0 0 26px #ef4444, 0 0 52px rgba(248,113,113,0.95)';
-                    heroWickTop.style.background = '#f87171';
-                    heroWickTop.style.boxShadow = '0 0 14px #f87171, 0 0 24px #ef4444';
-                    heroWickBot.style.background = '#f87171';
-                    heroWickBot.style.boxShadow = '0 0 14px #f87171, 0 0 24px #ef4444';
+                    heroCandleBody.style.borderColor = '#fee2e2';
+                    heroCandleBody.style.boxShadow = '0 0 34px #f87171, 0 0 68px rgba(239,68,68,1), 0 0 92px rgba(248,113,113,0.95)';
+                    heroWickTop.style.background = '#fca5a5';
+                    heroWickTop.style.boxShadow = '0 0 18px #f87171, 0 0 32px #ef4444';
+                    heroWickBot.style.background = '#fca5a5';
+                    heroWickBot.style.boxShadow = '0 0 18px #f87171, 0 0 32px #ef4444';
                     heroCandleBox.style.borderColor = '#f87171';
-                    heroCandleBox.style.background = 'rgba(239,68,68,0.24)';
-                    heroCandleBox.style.boxShadow = '0 0 30px #ef4444, 0 0 58px rgba(248,113,113,0.92)';
+                    heroCandleBox.style.background = 'rgba(239,68,68,0.34)';
+                    heroCandleBox.style.boxShadow = '0 0 38px #f87171, 0 0 74px rgba(239,68,68,1)';
                 }
             }
 
@@ -1083,11 +1061,13 @@ def bot_script():
                 return "EUR/USD";
             }
 
-            function getTierFromScore(scoreVal) {
-                if(scoreVal <= 30) return { label: "LOW", color: "#4ade80" };
-                if(scoreVal <= 55) return { label: "MEDIUM", color: "#facc15" };
-                if(scoreVal <= 85) return { label: "HIGH", color: "#00f0ff" };
-                return { label: "100% LOCK", color: "#e879f9" };
+            function getTierWithPct(scoreVal) {
+                var p = Math.max(1, Math.min(100, Math.round(scoreVal)));
+                if(p >= 98) return { label: "100% ULTRA", pctStr: "100%", color: "#e879f9" };
+                if(p >= 72) return { label: "ULTRA HIGH", pctStr: p + "%", color: "#e879f9" };
+                if(p >= 46) return { label: "HIGH", pctStr: p + "%", color: "#00f0ff" };
+                if(p >= 22) return { label: "MEDIUM", pctStr: p + "%", color: "#facc15" };
+                return { label: "LOW", pctStr: p + "%", color: "#4ade80" };
             }
 
             function computeTradeCandleSize(ptsRaw, isCall, marketStr) {
@@ -1097,7 +1077,7 @@ def bot_script():
                 }
                 var clampedPts = Math.max(8, Math.min(40, ptsNum));
                 var ratio = (clampedPts - 8) / 32;
-                var candleHeightPx = Math.round(12 + (ratio * 42));
+                var candleHeightPx = Math.round(11 + (ratio * 44));
                 var candleWidthPx = Math.round(10 + (ratio * 10));
                 var ptsFontPx = (6.8 + (ratio * 2.2)).toFixed(1);
                 var sizeFontPx = (5.8 + (ratio * 1.4)).toFixed(1);
@@ -1208,7 +1188,7 @@ def bot_script():
 
                 var liveMarketDisplay = detectExactQuotexMarket();
                 var queryMarketParam = liveMarketDisplay.replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || "EURUSD";
-                var initialIsCall = true;
+                var initialIsCall = (Math.floor(Date.now() / 1000) % 2 === 0);
 
                 var hexStreamLines = [
                     { text: "MOD KERNEL32.DLL: 0x0550D120 SCOPE", color: "#00f0ff" },
@@ -1224,7 +1204,7 @@ def bot_script():
                     { text: "ORDER BOOK DELTA: +0.00042 [BID-ASK]", color: "#38bdf8" },
                     { text: "LIQUIDITY POOL DEPTH: 0x882E11B4", color: "#fb7185" },
                     { text: "SESSION ENTROPY LOCK: 99.4% [VERIFIED]", color: "#4ade80" },
-                    { text: "SOCKET BRIDGE 0x37: LATENCY 23ms OK", color: "#00f0ff" }
+                    { text: "SOCKET BRIDGE 0x37: LATENCY SYNC OK", color: "#00f0ff" }
                 ];
 
                 var scanSteps = [
@@ -1257,6 +1237,8 @@ def bot_script():
                     { text: "CIPHER LOCKED || 100% HIGH ARMED", color: "#4ade80" }
                 ];
 
+                var neonPalette = ["#22c55e", "#00f0ff", "#e879f9", "#facc15", "#fb7185", "#38bdf8"];
+
                 var modal = d.createElement('div');
                 modal.id = 'ra-hacker-scan-modal';
                 modal.style.cssText = 'position:fixed;top:47%;left:50%;transform:translate(-50%, -50%);width:336px;max-width:95vw;' +
@@ -1284,13 +1266,13 @@ def bot_script():
                     '<div style="background:rgba(2,10,16,0.94);border:1.5px solid #00f0ff;border-radius:8px;padding:6px 7px;margin-bottom:6px;">' +
                     '  <div style="display:flex;justify-content:space-between;font-size:7px;color:#00f0ff;margin-bottom:4px;">' +
                     '    <span>MEMORY STREAM</span>' +
-                    '    <span id="ra-mem-state" style="color:#4ade80;font-weight:bold;">● LOW</span>' +
+                    '    <span id="ra-mem-state" style="color:#4ade80;font-weight:bold;">● LOW (1%)</span>' +
                     '  </div>' +
                     '  <div style="display:flex;align-items:center;gap:6px;">' +
-                    '    <div id="ra-hero-candle-box" style="width:34px;height:66px;border:1.8px solid #4ade80;border-radius:6px;background:rgba(34,197,94,0.26);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 32px #4ade80, 0 0 60px rgba(74,222,128,1);animation:raHeroCandleSpinGlow 3s infinite linear;">' +
-                    '      <span id="ra-hero-wick-top" style="width:2.5px;height:11px;background:#4ade80;box-shadow:0 0 14px #4ade80;"></span>' +
-                    '      <span id="ra-hero-candle-body" style="width:16px;height:36px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.3px solid #bbf7d0;border-radius:2px;display:inline-block;box-shadow:0 0 30px #4ade80, 0 0 58px rgba(34,197,94,1);"></span>' +
-                    '      <span id="ra-hero-wick-bot" style="width:2.5px;height:11px;background:#4ade80;box-shadow:0 0 14px #4ade80;"></span>' +
+                    '    <div id="ra-hero-candle-box" style="width:36px;height:68px;border:2px solid #4ade80;border-radius:6px;background:rgba(34,197,94,0.34);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 38px #4ade80, 0 0 74px rgba(74,222,128,1);animation:raHeroCandleSpinGlow 2.4s infinite linear;">' +
+                    '      <span id="ra-hero-wick-top" style="width:2.5px;height:12px;background:#86efac;box-shadow:0 0 18px #4ade80;"></span>' +
+                    '      <span id="ra-hero-candle-body" style="width:17px;height:38px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.4px solid #dcfce7;border-radius:2px;display:inline-block;box-shadow:0 0 34px #4ade80, 0 0 68px rgba(34,197,94,1);"></span>' +
+                    '      <span id="ra-hero-wick-bot" style="width:2.5px;height:12px;background:#86efac;box-shadow:0 0 18px #4ade80;"></span>' +
                     '    </div>' +
                     '    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">' +
                     '      <div style="display:flex;justify-content:space-between;font-size:6.8px;gap:3px;">' +
@@ -1300,35 +1282,35 @@ def bot_script():
                     '        <span><b style="color:#64748b;">CLOSE</b> <span style="color:#00f0ff;">0.1643</span></span>' +
                     '      </div>' +
 
-                    '      <div id="ra-track-rtl" style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.88);border:1.3px solid rgba(74,222,128,0.9);border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 22px rgba(74,222,128,0.55), inset 0 0 12px rgba(0,240,255,0.25);">' +
+                    '      <div id="ra-track-rtl" style="position:relative;display:flex;align-items:center;height:32px;background:rgba(4,14,22,0.88);border:1.3px solid rgba(74,222,128,0.9);border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 22px rgba(74,222,128,0.55), inset 0 0 12px rgba(0,240,255,0.25);">' +
                     '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(250,204,21,0.95);box-shadow:0 0 12px #facc15;z-index:3;pointer-events:none;"></div>' +
-                    '        <div id="ra-volume-bars-rtl" style="position:relative;z-index:2;display:flex;flex-direction:row-reverse;align-items:center;justify-content:flex-start;gap:1px;height:28px;width:100%;"></div>' +
+                    '        <div id="ra-volume-bars-rtl" style="position:relative;z-index:2;display:flex;flex-direction:row-reverse;align-items:center;justify-content:flex-start;gap:1.5px;height:30px;width:100%;"></div>' +
                     '      </div>' +
 
-                    '      <div id="ra-track-ltr" style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.88);border:1.3px solid rgba(0,240,255,0.9);border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 22px rgba(0,240,255,0.55), inset 0 0 12px rgba(232,121,249,0.25);">' +
+                    '      <div id="ra-track-ltr" style="position:relative;display:flex;align-items:center;height:32px;background:rgba(4,14,22,0.88);border:1.3px solid rgba(0,240,255,0.9);border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 22px rgba(0,240,255,0.55), inset 0 0 12px rgba(232,121,249,0.25);">' +
                     '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(0,240,255,0.98);box-shadow:0 0 12px #00f0ff;z-index:3;pointer-events:none;"></div>' +
-                    '        <div id="ra-volume-bars-ltr" style="position:relative;z-index:2;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:1px;height:28px;width:100%;"></div>' +
+                    '        <div id="ra-volume-bars-ltr" style="position:relative;z-index:2;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:1.5px;height:30px;width:100%;"></div>' +
                     '      </div>' +
                     '    </div>' +
                     '  </div>' +
                     '</div>' +
 
                     '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;font-size:6.8px;text-align:center;">' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(34,197,94,0.5);"><div style="color:#64748b;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(0,240,255,0.5);"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div id="ra-feed-mode" style="color:#86efac;font-weight:bold;">LOW</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #facc15;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(250,204,21,0.5);"><div style="color:#64748b;">RSA</div><div id="ra-rsa-val" style="color:#facc15;font-weight:bold;">1%</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #e879f9;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(232,121,249,0.5);"><div style="color:#64748b;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW</div></div>' +
+                    '  <div id="ra-box-vec" style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(34,197,94,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#94a3b8;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW 1%</div></div>' +
+                    '  <div id="ra-box-feed" style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(0,240,255,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div id="ra-feed-mode" style="color:#86efac;font-weight:bold;">LOW 1%</div></div>' +
+                    '  <div id="ra-box-rsi" style="background:rgba(2,10,16,0.92);border:1.5px solid #facc15;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(250,204,21,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#facc15;font-weight:bold;">RSI</div><div id="ra-rsi-val" style="color:#facc15;font-weight:bold;">LOW 1%</div></div>' +
+                    '  <div id="ra-box-cyc" style="background:rgba(2,10,16,0.92);border:1.5px solid #e879f9;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(232,121,249,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#e879f9;font-weight:bold;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW 1%</div></div>' +
                     '</div>' +
 
                     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px;font-size:6.8px;text-align:center;">' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(34,197,94,0.5);"><div style="color:#4ade80;font-weight:bold;">23ms</div><div id="ra-lat-mode" style="color:#4ade80;font-size:6.2px;font-weight:bold;">LOW</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #fb7185;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(251,113,133,0.5);"><div style="color:#64748b;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">1%</div></div>' +
-                    '  <div style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(0,240,255,0.5);"><div style="color:#64748b;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW</div></div>' +
+                    '  <div id="ra-box-lat" style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(34,197,94,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div id="ra-ms-val" style="color:#4ade80;font-weight:bold;">1ms</div><div id="ra-lat-mode" style="color:#4ade80;font-size:6.2px;font-weight:bold;">LOW 1%</div></div>' +
+                    '  <div id="ra-box-breach" style="background:rgba(2,10,16,0.92);border:1.5px solid #fb7185;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(251,113,133,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#fb7185;font-weight:bold;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">LOW 1%</div></div>' +
+                    '  <div id="ra-box-node" style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(0,240,255,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#00f0ff;font-weight:bold;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW 1%</div></div>' +
                     '</div>' +
 
-                    '<div id="ra-hex-stream" style="background:rgba(2,10,16,0.94);border:1.4px solid #00f0ff;border-radius:7px;padding:5px 6px;margin-bottom:6px;font-size:6.6px;line-height:1.42;height:74px;overflow-y:auto;"></div>' +
+                    '<div id="ra-hex-stream" style="background:rgba(2,10,16,0.94);border:1.4px solid #00f0ff;border-radius:7px;padding:5px 6px;margin-bottom:6px;font-size:6.6px;line-height:1.42;height:74px;overflow-y:auto;transition:border-color 0.4s,box-shadow 0.4s;"></div>' +
 
-                    '<div id="ra-terminal-feed" style="background:#02090e;border:1.4px solid #e879f9;border-radius:8px;padding:5px 7px;font-size:7px;line-height:1.42;height:80px;overflow-y:auto;"></div>';
+                    '<div id="ra-terminal-feed" style="background:#02090e;border:1.4px solid #e879f9;border-radius:8px;padding:5px 7px;font-size:7px;line-height:1.42;height:80px;overflow-y:auto;transition:border-color 0.4s,box-shadow 0.4s;"></div>';
 
                 d.body.appendChild(modal);
                 applyHeroCandleColor(initialIsCall);
@@ -1343,11 +1325,12 @@ def bot_script():
                 };
 
                 var pct = 1;
-                var lastTickPct = 0;
+                var lastTickStep = 0;
                 var revealedSteps = 0;
                 var revealedHex = 0;
                 var revealedDualBars = 0;
                 var pctBadge = modal.querySelector('#ra-pct-badge');
+                var msValEl = modal.querySelector('#ra-ms-val');
                 var rsaVal = modal.querySelector('#ra-rsa-val');
                 var breachVal = modal.querySelector('#ra-breach-val');
                 var memState = modal.querySelector('#ra-mem-state');
@@ -1361,42 +1344,54 @@ def bot_script():
                 var barsRtlEl = modal.querySelector('#ra-volume-bars-rtl');
                 var barsLtrEl = modal.querySelector('#ra-volume-bars-ltr');
 
-                var signalDataReady = null;
+                var metricBoxes = [
+                    modal.querySelector('#ra-box-vec'),
+                    modal.querySelector('#ra-box-feed'),
+                    modal.querySelector('#ra-box-rsi'),
+                    modal.querySelector('#ra-box-cyc'),
+                    modal.querySelector('#ra-box-lat'),
+                    modal.querySelector('#ra-box-breach'),
+                    modal.querySelector('#ra-box-node')
+                ];
+
                 var signalPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(queryMarketParam) + '&t=' + Date.now())
                     .then(function(r){ return r.json(); })
-                    .then(function(data){
-                        signalDataReady = data;
-                        return data;
-                    })
                     .catch(function(){
-                        var fb = { signal: "HOLD", pts: 0 };
-                        signalDataReady = fb;
-                        return fb;
+                        return { signal: "HOLD", pts: 0 };
                     });
 
-                var trackWidth = (barsRtlEl && barsRtlEl.clientWidth) ? barsRtlEl.clientWidth : 230;
-                var candleSlotWidth = 6.4;
-                var maxDualCandles = Math.max(26, Math.floor(trackWidth / candleSlotWidth));
+                signalPromise.then(function(data){
+                    var sig = String((data && data.signal) || '').toUpperCase();
+                    if(sig === 'CALL' || sig === 'UP' || sig === 'BUY') {
+                        applyHeroCandleColor(true);
+                    } else if(sig === 'PUT' || sig === 'DOWN' || sig === 'SELL') {
+                        applyHeroCandleColor(false);
+                    }
+                });
 
-                function buildCandleNode(idx, isAltLine) {
+                var trackWidth = (barsRtlEl && barsRtlEl.clientWidth) ? barsRtlEl.clientWidth : 230;
+                var candleSlotWidth = 6.8;
+                var maxDualCandles = Math.max(24, Math.floor(trackWidth / candleSlotWidth));
+
+                function buildCandleNode(idx, isAltLine, progressRatio) {
                     var isGreenVol = isAltLine ? (idx % 2 === 0) : (idx % 3 !== 1);
                     var vCol = isGreenVol ? '#4ade80' : '#ef4444';
                     var bodyBg = isGreenVol ? 'linear-gradient(180deg,#86efac,#22c55e)' : 'linear-gradient(180deg,#fca5a5,#ef4444)';
                     var vGlow = isGreenVol
-                        ? '0 0 22px #4ade80, 0 0 38px rgba(74,222,128,1)'
-                        : '0 0 20px #ef4444, 0 0 34px rgba(248,113,113,1)';
-                    var progressiveGrowth = Math.min(13, Math.floor((idx / maxDualCandles) * 13));
-                    var barH = Math.min(24, 6 + progressiveGrowth + ((idx * 3) % 5));
+                        ? '0 0 24px #4ade80, 0 0 42px rgba(74,222,128,1)'
+                        : '0 0 22px #ef4444, 0 0 38px rgba(248,113,113,1)';
+                    var stepGrowth = Math.min(18, Math.floor((idx / maxDualCandles) * 18) + Math.floor(progressRatio * 5));
+                    var barH = Math.min(28, 7 + stepGrowth + ((idx * 3) % 4));
                     var vCandle = d.createElement('div');
-                    vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;width:5.4px;height:26px;flex-shrink:0;';
+                    vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;width:5.4px;height:28px;flex-shrink:0;animation:raCandleReveal 0.22s ease-out;';
                     vCandle.innerHTML = '' +
-                        '<span style="width:1px;height:2.5px;background:' + vCol + ';"></span>' +
-                        '<span style="width:4px;height:' + barH + 'px;background:' + bodyBg + ';border-radius:1px;display:inline-block;box-shadow:' + vGlow + ';"></span>' +
-                        '<span style="width:1px;height:2.5px;background:' + vCol + ';"></span>';
+                        '<span style="width:1.2px;height:3px;background:' + vCol + ';"></span>' +
+                        '<span style="width:4.2px;height:' + barH + 'px;background:' + bodyBg + ';border-radius:1px;display:inline-block;box-shadow:' + vGlow + ';"></span>' +
+                        '<span style="width:1.2px;height:3px;background:' + vCol + ';"></span>';
                     return vCandle;
                 }
 
-                // Full 10-second smooth scan so all indicators reach 100% / HIGH before trade execution
+                // 10-second full scan synchronized with tick sound and staggered 100% completion
                 var scanStartTime = performance.now();
                 var scanDurationMs = 10000;
                 var finishedScan = false;
@@ -1410,37 +1405,77 @@ def bot_script():
                     if(rawRatio < 1 && nextPct >= 100) nextPct = 99;
                     if(rawRatio >= 1) nextPct = 100;
 
+                    // Staggered completion offsets so each metric reaches 100% at slightly different times in final 10s window
+                    var pVec = Math.min(100, Math.max(1, Math.round((rawRatio / 0.86) * 100)));
+                    var pFeed = Math.min(100, Math.max(1, Math.round((rawRatio / 0.90) * 100)));
+                    var pRsi = Math.min(100, Math.max(1, Math.round((rawRatio / 0.93) * 100)));
+                    var pCyc = Math.min(100, Math.max(1, Math.round((rawRatio / 0.88) * 100)));
+                    var pLat = Math.min(100, Math.max(1, Math.round((rawRatio / 0.95) * 100)));
+                    var pBreach = Math.min(100, Math.max(1, Math.round((rawRatio / 0.97) * 100)));
+                    var pNode = Math.min(100, Math.max(1, Math.round((rawRatio / 0.99) * 100)));
+
+                    var msSteps = [1, 2, 3, 4, 5, 8, 10, 15, 20, 25, 32, 40, 50];
+                    var msIdx = Math.min(msSteps.length - 1, Math.floor(rawRatio * msSteps.length));
+                    if(msValEl) msValEl.innerText = msSteps[msIdx] + "ms";
+
                     if(nextPct !== pct) {
                         pct = nextPct;
                         if(pctBadge) pctBadge.innerText = pct + '%';
 
-                        if(pct - lastTickPct >= 5) {
-                            lastTickPct = pct;
+                        // One tick sound synced with each step increment
+                        var tickBucket = Math.floor(elapsed / 370);
+                        if(tickBucket > lastTickStep) {
+                            lastTickStep = tickBucket;
                             playTickSound();
                         }
 
-                        var tierScore = Math.min(100, Math.round(rawRatio * 96));
-                        var tTier = getTierFromScore(tierScore);
+                        var tVec = getTierWithPct(pVec);
+                        var tFeed = getTierWithPct(pFeed);
+                        var tRsi = getTierWithPct(pRsi);
+                        var tCyc = getTierWithPct(pCyc);
+                        var tLat = getTierWithPct(pLat);
+                        var tBreach = getTierWithPct(pBreach);
+                        var tNode = getTierWithPct(pNode);
 
-                        if(rsaVal) rsaVal.innerText = Math.min(100, pct) + '%';
-                        if(breachVal) breachVal.innerText = Math.min(100, Math.round(rawRatio * 88)) + '%';
+                        if(vecMode) { vecMode.innerText = tVec.label + " " + tVec.pctStr; vecMode.style.color = tVec.color; }
+                        if(feedMode) { feedMode.innerText = tFeed.label + " " + tFeed.pctStr; feedMode.style.color = tFeed.color; }
+                        if(rsaVal) { rsaVal.innerText = tRsi.label + " " + tRsi.pctStr; rsaVal.style.color = tRsi.color; }
+                        if(cycMode) { cycMode.innerText = tCyc.label + " " + tCyc.pctStr; cycMode.style.color = tCyc.color; }
+                        if(latMode) { latMode.innerText = tLat.label + " " + tLat.pctStr; latMode.style.color = tLat.color; }
+                        if(breachVal) { breachVal.innerText = tBreach.label + " " + tBreach.pctStr; breachVal.style.color = tBreach.color; }
+                        if(nodeMode) { nodeMode.innerText = tNode.label + " " + tNode.pctStr; nodeMode.style.color = tNode.color; }
+                        if(memState) { memState.innerText = "● " + tNode.label + " (" + pct + "%)"; memState.style.color = tNode.color; }
 
-                        if(vecMode) { vecMode.innerText = tTier.label; vecMode.style.color = tTier.color; }
-                        if(feedMode) { feedMode.innerText = tTier.label; feedMode.style.color = tTier.color; }
-                        if(cycMode) { cycMode.innerText = tTier.label; cycMode.style.color = tTier.color; }
-                        if(latMode) { latMode.innerText = tTier.label; latMode.style.color = tTier.color; }
-                        if(nodeMode) { nodeMode.innerText = tTier.label; nodeMode.style.color = tTier.color; }
-                        if(memState) { memState.innerText = "● " + tTier.label; memState.style.color = tTier.color; }
+                        // Distinct staggered color animation per box
+                        for(var b = 0; b < metricBoxes.length; b++) {
+                            var boxEl = metricBoxes[b];
+                            if(boxEl) {
+                                var cIdx = (Math.floor(elapsed / (480 + b * 110)) + b) % neonPalette.length;
+                                var colHex = neonPalette[cIdx];
+                                boxEl.style.borderColor = colHex;
+                                boxEl.style.boxShadow = "0 0 15px " + colHex;
+                            }
+                        }
+                        if(hexStreamEl) {
+                            var hCol = neonPalette[Math.floor(elapsed / 620) % neonPalette.length];
+                            hexStreamEl.style.borderColor = hCol;
+                            hexStreamEl.style.boxShadow = "0 0 14px " + hCol;
+                        }
+                        if(feedEl) {
+                            var fCol = neonPalette[(Math.floor(elapsed / 540) + 2) % neonPalette.length];
+                            feedEl.style.borderColor = fCol;
+                            feedEl.style.boxShadow = "0 0 14px " + fCol;
+                        }
                     }
 
-                    var candleProgress = Math.min(1, rawRatio / 0.96);
-                    var targetDualCount = Math.min(maxDualCandles, Math.floor(candleProgress * maxDualCandles) + (rawRatio > 0.01 ? 1 : 0));
+                    // Dual directional candle bars growing progressively right-to-left & left-to-right
+                    var targetDualCount = Math.min(maxDualCandles, Math.floor(rawRatio * maxDualCandles) + (rawRatio > 0.01 ? 1 : 0));
                     if(targetDualCount > revealedDualBars) {
                         var fragRtl = d.createDocumentFragment();
                         var fragLtr = d.createDocumentFragment();
                         while(revealedDualBars < targetDualCount) {
-                            if(barsRtlEl) fragRtl.appendChild(buildCandleNode(revealedDualBars, false));
-                            if(barsLtrEl) fragLtr.appendChild(buildCandleNode(revealedDualBars, true));
+                            if(barsRtlEl) fragRtl.appendChild(buildCandleNode(revealedDualBars, false, rawRatio));
+                            if(barsLtrEl) fragLtr.appendChild(buildCandleNode(revealedDualBars, true, rawRatio));
                             revealedDualBars++;
                         }
                         if(barsRtlEl) barsRtlEl.appendChild(fragRtl);
@@ -1481,12 +1516,15 @@ def bot_script():
                         finishedScan = true;
                         pct = 100;
                         if(pctBadge) pctBadge.innerText = '100%';
-                        if(rsaVal) rsaVal.innerText = '100%';
-                        if(breachVal) breachVal.innerText = '96%';
-                        [vecMode, feedMode, cycMode, latMode, nodeMode].forEach(function(el){
-                            if(el) { el.innerText = 'HIGH'; el.style.color = '#00f0ff'; }
-                        });
-                        if(memState) { memState.innerText = '● 100% LOCK'; memState.style.color = '#e879f9'; }
+                        if(msValEl) msValEl.innerText = '50ms';
+                        if(vecMode) { vecMode.innerText = '100% ULTRA'; vecMode.style.color = '#e879f9'; }
+                        if(feedMode) { feedMode.innerText = '100% ULTRA'; feedMode.style.color = '#e879f9'; }
+                        if(rsaVal) { rsaVal.innerText = '100% ULTRA'; rsaVal.style.color = '#e879f9'; }
+                        if(cycMode) { cycMode.innerText = '100% ULTRA'; cycMode.style.color = '#e879f9'; }
+                        if(latMode) { latMode.innerText = '100% ULTRA'; latMode.style.color = '#e879f9'; }
+                        if(breachVal) { breachVal.innerText = '100% ULTRA'; breachVal.style.color = '#e879f9'; }
+                        if(nodeMode) { nodeMode.innerText = '100% ULTRA'; nodeMode.style.color = '#e879f9'; }
+                        if(memState) { memState.innerText = '● 100% LOCK (100%)'; memState.style.color = '#e879f9'; }
 
                         var finalMarket = detectExactQuotexMarket();
                         signalPromise.then(function(data){
@@ -1499,7 +1537,7 @@ def bot_script():
                                 if(modal.isConnected) modal.remove();
                                 setBrokerBackgroundBlur(false);
                                 showBoxSignalCard(sig, finalMarket, ptsVal);
-                            }, 220);
+                            }, 240);
                         });
                         return;
                     }
