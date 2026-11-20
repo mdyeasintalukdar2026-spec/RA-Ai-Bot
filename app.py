@@ -128,12 +128,12 @@ KNOWLEDGE_REGISTRY = {
     "master_keys_count": 12,
     "dev_apis_count": 5,
     "international_knowledge_nodes": 12_000_000,
-    "signal_mode": "AUTHENTIC_MOMENTUM_WITH_ANTI_STREAK_GUARD",
+    "signal_mode": "MULTI_SOURCE_AUTHENTIC_CONSENSUS",
 }
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/9.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/10.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -166,63 +166,75 @@ class LiveMarketCandleEngine:
         return hist
 
     @classmethod
-    def _evaluate_authentic_market_signal(cls, symbol: str, closes: list, pip_factor: float):
-        """
-        Computes CALL/PUT strictly from live candle delta, fast/slow EMA, and RSI.
-        Does NOT force alternating CALL/PUT on every scan, while preventing a market
-        from getting stuck in a 3+ streak when momentum softens.
-        """
-        cls._scan_counter += 1
-        c0 = closes[-1]
-        c1 = closes[-2]
-        delta = c0 - c1
-
+    def _score_series_bias(cls, closes: list) -> float:
+        """Scores a single authentic price series using candle delta, EMA spread, and RSI."""
+        if not closes or len(closes) < 2:
+            return 0.0
+        delta = closes[-1] - closes[-2]
         rsi = cls._calc_rsi(closes, period=min(6, len(closes) - 1))
         ema_fast = cls._calc_ema(closes, period=min(3, len(closes)))
         ema_slow = cls._calc_ema(closes, period=min(7, len(closes)))
 
-        bull_score = 0.0
-        bear_score = 0.0
-
+        score = 0.0
         if delta > 0:
-            bull_score += 1.4
+            score += 1.4
         elif delta < 0:
-            bear_score += 1.4
+            score -= 1.4
 
         if ema_fast is not None and ema_slow is not None:
             if ema_fast > ema_slow:
-                bull_score += 1.0
+                score += 1.0
             elif ema_fast < ema_slow:
-                bear_score += 1.0
+                score -= 1.0
 
         if rsi is not None:
             if rsi >= 70:
-                bear_score += 1.5
+                score -= 1.5
             elif rsi <= 30:
-                bull_score += 1.5
+                score += 1.5
             elif rsi > 52:
-                bull_score += 0.5
+                score += 0.5
             elif rsi < 48:
-                bear_score += 0.5
+                score -= 0.5
+        return score
 
-        if abs(bull_score - bear_score) < 1e-6:
-            # Tie-breaker uses multi-bar slope rather than forced alternation
-            slope = closes[-1] - closes[0]
+    @classmethod
+    def _evaluate_consensus_signal(cls, symbol: str, series_list: list, pip_factor: float):
+        """
+        Cross-validates multiple authentic market data feeds before emitting CALL or PUT.
+        Prevents one-way lock-in (>=3 consecutive identical calls on the same market)
+        without forcing artificial alternating signals.
+        """
+        cls._scan_counter += 1
+        primary_closes = series_list[0]["closes"]
+        c0 = primary_closes[-1]
+        c1 = primary_closes[-2]
+        delta = c0 - c1
+        rsi = cls._calc_rsi(primary_closes, period=min(6, len(primary_closes) - 1))
+
+        weighted_score = 0.0
+        total_weight = 0.0
+        for item in series_list:
+            w = float(item.get("weight", 1.0))
+            s_bias = cls._score_series_bias(item["closes"])
+            weighted_score += s_bias * w
+            total_weight += w
+
+        avg_bias = (weighted_score / total_weight) if total_weight > 0 else 0.0
+
+        if abs(avg_bias) < 1e-6:
+            slope = primary_closes[-1] - primary_closes[0]
             if abs(slope) > 0:
                 signal = "CALL" if slope > 0 else "PUT"
             else:
                 signal = "CALL" if (cls._scan_counter % 2 == 1) else "PUT"
         else:
-            signal = "CALL" if bull_score > bear_score else "PUT"
+            signal = "CALL" if avg_bias > 0 else "PUT"
 
         m_hist = cls._market_history.setdefault(symbol, [])
-        # Only break a long one-way streak (>= 3 consecutive identical calls on same market)
-        # when immediate momentum is not strongly pushing that same way
         if len(m_hist) >= 3 and m_hist[-1] == signal and m_hist[-2] == signal and m_hist[-3] == signal:
-            strong_same_side = (signal == "CALL" and delta > 0 and bull_score >= 2.4) or (
-                signal == "PUT" and delta < 0 and bear_score >= 2.4
-            )
-            if not strong_same_side:
+            strong_conviction = (signal == "CALL" and avg_bias >= 1.35) or (signal == "PUT" and avg_bias <= -1.35)
+            if not strong_conviction:
                 signal = "PUT" if signal == "CALL" else "CALL"
 
         m_hist.append(signal)
@@ -231,7 +243,8 @@ class LiveMarketCandleEngine:
 
         live_pips = abs(delta) * pip_factor
         rsi_factor = abs((rsi - 50.0) * 0.22) if rsi is not None else 3.0
-        raw_pts = 8.0 + min(32.0, (live_pips * 2.5) + (rsi_factor % 13.0) + ((len(m_hist) * 3) % 10))
+        consensus_boost = min(8.0, abs(avg_bias) * 3.0)
+        raw_pts = 8.0 + min(32.0, (live_pips * 2.2) + (rsi_factor % 11.0) + consensus_boost)
         pts_val = max(8, min(40, int(round(raw_pts))))
 
         return signal, pts_val, c0
@@ -476,38 +489,41 @@ class LiveMarketCandleEngine:
         pip_factor = 100.0 if ("JPY" in clean_sym or "XAU" in clean_sym or "BTC" in clean_sym) else 100000.0
         mode_prefix = "OTC-REALFEED" if is_otc else "LIVE-1M"
 
-        closes = cls._fetch_twelvedata_closes(formatted_sym)
-        source_name = f"{mode_prefix}/TwelveData"
+        gathered_series = []
+        sources_used = []
 
-        if len(closes) < 2:
-            closes = cls._fetch_binance_closes(clean_sym)
-            source_name = f"{mode_prefix}/Binance"
+        td_closes = cls._fetch_twelvedata_closes(formatted_sym)
+        if len(td_closes) >= 2:
+            gathered_series.append({"closes": td_closes, "weight": 1.4})
+            sources_used.append("TwelveData")
 
-        if len(closes) < 2:
-            closes = cls._fetch_polygon_closes(clean_sym)
-            source_name = f"{mode_prefix}/Polygon"
+        bn_closes = cls._fetch_binance_closes(clean_sym)
+        if len(bn_closes) >= 2:
+            gathered_series.append({"closes": bn_closes, "weight": 1.1})
+            sources_used.append("Binance")
 
-        if len(closes) >= 2:
-            sig, pts_val, c0 = cls._evaluate_authentic_market_signal(clean_sym, closes, pip_factor)
-            return {
-                "signal": sig,
-                "trend": "BULLISH (UP)" if sig == "CALL" else "BEARISH (DOWN)",
-                "status": "GREEN_EXECUTE",
-                "pts": pts_val,
-                "rule": f"{source_name} 560-Rule Verified ({formatted_sym}: {c0})"
-            }
+        pg_closes = cls._fetch_polygon_closes(clean_sym)
+        if len(pg_closes) >= 2:
+            gathered_series.append({"closes": pg_closes, "weight": 1.0})
+            sources_used.append("Polygon")
 
         spot_px, spot_src = cls._fetch_live_spot_price(clean_sym, formatted_sym)
         if spot_px is not None:
             hist = cls._record_and_get_history(clean_sym, spot_px)
-            series = hist if len(hist) >= 2 else [spot_px * 0.9998, spot_px]
-            sig, pts_val, c0 = cls._evaluate_authentic_market_signal(clean_sym, series, pip_factor)
+            spot_series = hist if len(hist) >= 2 else [spot_px * 0.9998, spot_px]
+            gathered_series.append({"closes": spot_series, "weight": 1.2})
+            if spot_src:
+                sources_used.append(spot_src)
+
+        if gathered_series:
+            sig, pts_val, c0 = cls._evaluate_consensus_signal(clean_sym, gathered_series, pip_factor)
+            src_label = "/".join(sources_used[:2]) if sources_used else "LiveFeed"
             return {
                 "signal": sig,
                 "trend": "BULLISH (UP)" if sig == "CALL" else "BEARISH (DOWN)",
                 "status": "GREEN_EXECUTE",
                 "pts": pts_val,
-                "rule": f"{mode_prefix}/{spot_src} 560-Rule Verified ({formatted_sym}: {c0})"
+                "rule": f"{mode_prefix}/{src_label} Consensus Verified ({formatted_sym}: {c0})"
             }
 
         return {
@@ -1432,9 +1448,7 @@ def bot_script():
                         }
                     }
 
-                    // Smooth continuous frame update for both candle streams synchronized with tick beats
                     function updateSmoothCandleStreams(elapsedMs, beatFloat, activeBeatIdx) {
-                        var activePair = [rtlSlots[activeBeatIdx], ltrSlots[activeBeatIdx]];
                         for(var i = 0; i < maxDualCandles; i++) {
                             var pairNodes = [rtlSlots[i], ltrSlots[i]];
                             for(var p = 0; p < pairNodes.length; p++) {
@@ -1478,9 +1492,6 @@ def bot_script():
                         if(trackLtrEl) {
                             trackLtrEl.style.borderColor = colB;
                             trackLtrEl.style.boxShadow = "0 0 30px " + colB + ", inset 0 0 14px " + colA;
-                        }
-                        if(activePair[0] || activePair[1]) {
-                            // Keep active beat glowing smoothly without any jerky jump
                         }
                     }
 
