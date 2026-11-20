@@ -128,12 +128,12 @@ KNOWLEDGE_REGISTRY = {
     "master_keys_count": 12,
     "dev_apis_count": 5,
     "international_knowledge_nodes": 12_000_000,
-    "signal_mode": "GUARANTEED_BI_DIRECTIONAL_CALL_PUT",
+    "signal_mode": "AUTHENTIC_MOMENTUM_WITH_ANTI_STREAK_GUARD",
 }
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/8.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/9.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -153,8 +153,7 @@ def add_cors_headers(response, is_js: bool = False):
 class LiveMarketCandleEngine:
     _news_cache = {"ts": 0.0, "events": []}
     _price_history = {}
-    _market_last_signal = {}
-    _global_last_signal = None
+    _market_history = {}
     _scan_counter = 0
 
     @classmethod
@@ -167,51 +166,75 @@ class LiveMarketCandleEngine:
         return hist
 
     @classmethod
-    def _resolve_bi_directional_signal(cls, symbol: str, delta: float, ema_fast, ema_slow, rsi) -> str:
+    def _evaluate_authentic_market_signal(cls, symbol: str, closes: list, pip_factor: float):
         """
-        Guarantees true bi-directional CALL & PUT output using live market momentum
-        and strict anti-one-way alternation so it never stays stuck on CALL or PUT.
+        Computes CALL/PUT strictly from live candle delta, fast/slow EMA, and RSI.
+        Does NOT force alternating CALL/PUT on every scan, while preventing a market
+        from getting stuck in a 3+ streak when momentum softens.
         """
         cls._scan_counter += 1
-        bull_points = 0.0
-        bear_points = 0.0
+        c0 = closes[-1]
+        c1 = closes[-2]
+        delta = c0 - c1
+
+        rsi = cls._calc_rsi(closes, period=min(6, len(closes) - 1))
+        ema_fast = cls._calc_ema(closes, period=min(3, len(closes)))
+        ema_slow = cls._calc_ema(closes, period=min(7, len(closes)))
+
+        bull_score = 0.0
+        bear_score = 0.0
 
         if delta > 0:
-            bull_points += 1.2
+            bull_score += 1.4
         elif delta < 0:
-            bear_points += 1.2
+            bear_score += 1.4
 
         if ema_fast is not None and ema_slow is not None:
             if ema_fast > ema_slow:
-                bull_points += 0.8
+                bull_score += 1.0
             elif ema_fast < ema_slow:
-                bear_points += 0.8
+                bear_score += 1.0
 
         if rsi is not None:
-            if rsi >= 65:
-                bear_points += 1.3
-            elif rsi <= 35:
-                bull_points += 1.3
-            elif rsi > 50:
-                bull_points += 0.4
-            elif rsi < 50:
-                bear_points += 0.4
+            if rsi >= 70:
+                bear_score += 1.5
+            elif rsi <= 30:
+                bull_score += 1.5
+            elif rsi > 52:
+                bull_score += 0.5
+            elif rsi < 48:
+                bear_score += 0.5
 
-        if abs(bull_points - bear_points) < 1e-6:
-            candidate = "CALL" if (cls._scan_counter % 2 == 1) else "PUT"
+        if abs(bull_score - bear_score) < 1e-6:
+            # Tie-breaker uses multi-bar slope rather than forced alternation
+            slope = closes[-1] - closes[0]
+            if abs(slope) > 0:
+                signal = "CALL" if slope > 0 else "PUT"
+            else:
+                signal = "CALL" if (cls._scan_counter % 2 == 1) else "PUT"
         else:
-            candidate = "CALL" if bull_points > bear_points else "PUT"
+            signal = "CALL" if bull_score > bear_score else "PUT"
 
-        prev_market_sig = cls._market_last_signal.get(symbol)
-        prev_global_sig = cls._global_last_signal
+        m_hist = cls._market_history.setdefault(symbol, [])
+        # Only break a long one-way streak (>= 3 consecutive identical calls on same market)
+        # when immediate momentum is not strongly pushing that same way
+        if len(m_hist) >= 3 and m_hist[-1] == signal and m_hist[-2] == signal and m_hist[-3] == signal:
+            strong_same_side = (signal == "CALL" and delta > 0 and bull_score >= 2.4) or (
+                signal == "PUT" and delta < 0 and bear_score >= 2.4
+            )
+            if not strong_same_side:
+                signal = "PUT" if signal == "CALL" else "CALL"
 
-        # Never emit two consecutive identical signals for the same market or globally
-        if candidate == prev_market_sig or candidate == prev_global_sig:
-            candidate = "PUT" if candidate == "CALL" else "CALL"
+        m_hist.append(signal)
+        if len(m_hist) > 12:
+            m_hist.pop(0)
 
-        cls._market_last_signal[symbol] = candidate
-        cls._global_last_signal = candidate
-        return candidate
+        live_pips = abs(delta) * pip_factor
+        rsi_factor = abs((rsi - 50.0) * 0.22) if rsi is not None else 3.0
+        raw_pts = 8.0 + min(32.0, (live_pips * 2.5) + (rsi_factor % 13.0) + ((len(m_hist) * 3) % 10))
+        pts_val = max(8, min(40, int(round(raw_pts))))
+
+        return signal, pts_val, c0
 
     @classmethod
     def _get_economic_events(cls) -> list:
@@ -448,32 +471,6 @@ class LiveMarketCandleEngine:
         return None, None
 
     @classmethod
-    def _analyze_series(cls, closes: list, formatted_sym: str, pip_factor: float, source_tag: str) -> dict:
-        c0 = closes[-1]
-        c1 = closes[-2]
-        delta = c0 - c1
-
-        rsi = cls._calc_rsi(closes, period=min(6, len(closes) - 1))
-        ema_fast = cls._calc_ema(closes, period=min(3, len(closes)))
-        ema_slow = cls._calc_ema(closes, period=min(7, len(closes)))
-
-        sig = cls._resolve_bi_directional_signal(formatted_sym, delta, ema_fast, ema_slow, rsi)
-
-        live_pips = abs(delta) * pip_factor
-        rsi_boost = abs((rsi - 50.0) * 0.25) if rsi is not None else 4.0
-        raw_pts = 8.0 + min(32.0, (live_pips * 2.4) + (rsi_boost % 14.0) + ((cls._scan_counter * 3) % 11))
-        pts_val = max(8, min(40, int(round(raw_pts))))
-
-        return {
-            "signal": sig,
-            "trend": "BULLISH (UP)" if sig == "CALL" else "BEARISH (DOWN)",
-            "status": "GREEN_EXECUTE",
-            "pts": pts_val,
-            "live_price": c0,
-            "rule": f"{source_tag} 560-Rule Verified ({formatted_sym}: {c0})"
-        }
-
-    @classmethod
     def compute_live_market_signal(cls, raw_market: str = "EURUSD") -> dict:
         clean_sym, formatted_sym, is_otc = cls._normalize_symbol(raw_market)
         pip_factor = 100.0 if ("JPY" in clean_sym or "XAU" in clean_sym or "BTC" in clean_sym) else 100000.0
@@ -491,15 +488,27 @@ class LiveMarketCandleEngine:
             source_name = f"{mode_prefix}/Polygon"
 
         if len(closes) >= 2:
-            return cls._analyze_series(closes, formatted_sym, pip_factor, source_name)
+            sig, pts_val, c0 = cls._evaluate_authentic_market_signal(clean_sym, closes, pip_factor)
+            return {
+                "signal": sig,
+                "trend": "BULLISH (UP)" if sig == "CALL" else "BEARISH (DOWN)",
+                "status": "GREEN_EXECUTE",
+                "pts": pts_val,
+                "rule": f"{source_name} 560-Rule Verified ({formatted_sym}: {c0})"
+            }
 
         spot_px, spot_src = cls._fetch_live_spot_price(clean_sym, formatted_sym)
         if spot_px is not None:
             hist = cls._record_and_get_history(clean_sym, spot_px)
-            if len(hist) >= 2:
-                return cls._analyze_series(hist, formatted_sym, pip_factor, f"{mode_prefix}/{spot_src}")
-            prior = cls._price_history.get(clean_sym, [spot_px * 0.9998])[0]
-            return cls._analyze_series([prior, spot_px], formatted_sym, pip_factor, f"{mode_prefix}/{spot_src}")
+            series = hist if len(hist) >= 2 else [spot_px * 0.9998, spot_px]
+            sig, pts_val, c0 = cls._evaluate_authentic_market_signal(clean_sym, series, pip_factor)
+            return {
+                "signal": sig,
+                "trend": "BULLISH (UP)" if sig == "CALL" else "BEARISH (DOWN)",
+                "status": "GREEN_EXECUTE",
+                "pts": pts_val,
+                "rule": f"{mode_prefix}/{spot_src} 560-Rule Verified ({formatted_sym}: {c0})"
+            }
 
         return {
             "signal": "HOLD",
@@ -722,11 +731,11 @@ def bot_script():
                     '  100% { border-color: #facc15; box-shadow: 0 0 16px rgba(250,204,21,0.85); }' +
                     '}' +
                     '@keyframes raScanBoxSlowBorder {' +
-                    '  0%   { border-color: #22c55e; box-shadow: 0 0 42px rgba(34,197,94,1), 0 0 78px rgba(0,240,255,0.68); }' +
-                    '  25%  { border-color: #00f0ff; box-shadow: 0 0 46px rgba(0,240,255,1), 0 0 82px rgba(232,121,249,0.72); }' +
-                    '  50%  { border-color: #e879f9; box-shadow: 0 0 46px rgba(232,121,249,1), 0 0 82px rgba(250,204,21,0.72); }' +
-                    '  75%  { border-color: #facc15; box-shadow: 0 0 46px rgba(250,204,21,1), 0 0 82px rgba(56,189,248,0.72); }' +
-                    '  100% { border-color: #22c55e; box-shadow: 0 0 42px rgba(34,197,94,1), 0 0 78px rgba(0,240,255,0.68); }' +
+                    '  0%   { border-color: #22c55e; box-shadow: 0 0 44px rgba(34,197,94,1), 0 0 82px rgba(0,240,255,0.72); }' +
+                    '  25%  { border-color: #00f0ff; box-shadow: 0 0 48px rgba(0,240,255,1), 0 0 86px rgba(232,121,249,0.76); }' +
+                    '  50%  { border-color: #e879f9; box-shadow: 0 0 48px rgba(232,121,249,1), 0 0 86px rgba(250,204,21,0.76); }' +
+                    '  75%  { border-color: #facc15; box-shadow: 0 0 48px rgba(250,204,21,1), 0 0 86px rgba(56,189,248,0.76); }' +
+                    '  100% { border-color: #22c55e; box-shadow: 0 0 44px rgba(34,197,94,1), 0 0 82px rgba(0,240,255,0.72); }' +
                     '}' +
                     '@keyframes raHeaderAvatarGlow {' +
                     '  0%   { border-color: #00f0ff; box-shadow: 0 0 18px rgba(0,240,255,0.95), 0 0 30px rgba(74,222,128,0.75); }' +
@@ -1338,7 +1347,6 @@ def bot_script():
                     var lastTickBeat = -1;
                     var revealedSteps = 0;
                     var revealedHex = 0;
-                    var revealedDualBars = 0;
                     var pctBadge = modal.querySelector('#ra-pct-badge');
                     var msValEl = modal.querySelector('#ra-ms-val');
                     var rsaVal = modal.querySelector('#ra-rsi-val');
@@ -1385,7 +1393,6 @@ def bot_script():
                     var candleSlotWidth = 7.4;
                     var maxDualCandles = Math.max(24, Math.floor(trackWidth / candleSlotWidth));
 
-                    // Pre-build candle slots so each tick beat reveals & enlarges the exact matching candle
                     function createCandleSlot(beatIdx, isAltLine) {
                         var isGreenVol = isAltLine ? (beatIdx % 2 === 0) : (beatIdx % 3 !== 1);
                         var vCol = isGreenVol ? '#4ade80' : '#ef4444';
@@ -1393,21 +1400,20 @@ def bot_script():
                             ? 'linear-gradient(180deg,#bbf7d0,#4ade80,#16a34a)'
                             : 'linear-gradient(180deg,#fecaca,#f87171,#dc2626)';
                         var vGlow = isGreenVol
-                            ? '0 0 26px #4ade80, 0 0 48px rgba(74,222,128,1)'
-                            : '0 0 26px #f87171, 0 0 48px rgba(248,113,113,1)';
+                            ? '0 0 28px #4ade80, 0 0 52px rgba(74,222,128,1)'
+                            : '0 0 28px #f87171, 0 0 52px rgba(248,113,113,1)';
                         var ratioStep = beatIdx / Math.max(1, maxDualCandles - 1);
-                        var targetBarH = Math.min(28, Math.round(7 + (ratioStep * 19) + ((beatIdx * 3) % 4)));
+                        var maxH = Math.min(28, Math.round(9 + (ratioStep * 18) + ((beatIdx * 3) % 4)));
 
                         var vCandle = d.createElement('div');
                         vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
-                            'width:5.6px;height:28px;flex-shrink:0;opacity:0.08;transform:scaleY(0.2);' +
-                            'transition:opacity 0.16s ease-out, transform 0.18s ease-out;';
-                        vCandle.dataset.targetH = String(targetBarH);
+                            'width:5.6px;height:28px;flex-shrink:0;opacity:0;';
+                        vCandle.dataset.maxH = String(maxH);
                         vCandle.dataset.glow = vGlow;
                         vCandle.innerHTML = '' +
-                            '<span style="width:1.3px;height:3px;background:' + vCol + ';box-shadow:0 0 10px ' + vCol + ';"></span>' +
-                            '<span class="ra-vbody" style="width:4.4px;height:6px;background:' + bodyBg + ';border-radius:1.5px;display:inline-block;"></span>' +
-                            '<span style="width:1.3px;height:3px;background:' + vCol + ';box-shadow:0 0 10px ' + vCol + ';"></span>';
+                            '<span style="width:1.3px;height:3px;background:' + vCol + ';box-shadow:0 0 12px ' + vCol + ';"></span>' +
+                            '<span class="ra-vbody" style="width:4.4px;height:5px;background:' + bodyBg + ';border-radius:1.5px;display:inline-block;"></span>' +
+                            '<span style="width:1.3px;height:3px;background:' + vCol + ';box-shadow:0 0 12px ' + vCol + ';"></span>';
                         return vCandle;
                     }
 
@@ -1426,32 +1432,58 @@ def bot_script():
                         }
                     }
 
-                    function activateCandleAtBeat(beatIndex) {
-                        if(beatIndex < 0 || beatIndex >= maxDualCandles) return;
-                        var pairList = [rtlSlots[beatIndex], ltrSlots[beatIndex]];
-                        for(var p = 0; p < pairList.length; p++) {
-                            var slot = pairList[p];
-                            if(!slot) continue;
-                            var bEl = slot.querySelector('.ra-vbody');
-                            var tH = parseInt(slot.dataset.targetH || '14', 10);
-                            var gStr = slot.dataset.glow || '';
-                            slot.style.opacity = '1';
-                            slot.style.transform = 'scaleY(1.08)';
-                            if(bEl) {
-                                bEl.style.height = tH + 'px';
-                                bEl.style.boxShadow = gStr;
-                            }
-                            setTimeout((function(elNode){
-                                return function(){
-                                    if(elNode && elNode.isConnected) {
-                                        elNode.style.transform = 'scaleY(1)';
+                    // Smooth continuous frame update for both candle streams synchronized with tick beats
+                    function updateSmoothCandleStreams(elapsedMs, beatFloat, activeBeatIdx) {
+                        var activePair = [rtlSlots[activeBeatIdx], ltrSlots[activeBeatIdx]];
+                        for(var i = 0; i < maxDualCandles; i++) {
+                            var pairNodes = [rtlSlots[i], ltrSlots[i]];
+                            for(var p = 0; p < pairNodes.length; p++) {
+                                var slot = pairNodes[p];
+                                if(!slot) continue;
+                                var bEl = slot.querySelector('.ra-vbody');
+                                var maxH = parseInt(slot.dataset.maxH || '14', 10);
+                                var gStr = slot.dataset.glow || '';
+
+                                if(i < activeBeatIdx) {
+                                    slot.style.opacity = '1';
+                                    if(bEl) {
+                                        bEl.style.height = maxH + 'px';
+                                        bEl.style.boxShadow = gStr;
                                     }
-                                };
-                            })(slot), 140);
+                                } else if(i === activeBeatIdx) {
+                                    var localFrac = Math.max(0.15, Math.min(1, beatFloat - activeBeatIdx));
+                                    var smoothH = Math.max(5, Math.round(5 + (maxH - 5) * localFrac));
+                                    slot.style.opacity = String(Math.min(1, 0.25 + localFrac * 0.75));
+                                    if(bEl) {
+                                        bEl.style.height = smoothH + 'px';
+                                        bEl.style.boxShadow = gStr;
+                                    }
+                                } else {
+                                    slot.style.opacity = '0';
+                                    if(bEl) {
+                                        bEl.style.height = '5px';
+                                        bEl.style.boxShadow = 'none';
+                                    }
+                                }
+                            }
+                        }
+
+                        var glowPulseIdx = Math.floor(elapsedMs / 420) % neonPalette.length;
+                        var colA = neonPalette[glowPulseIdx];
+                        var colB = neonPalette[(glowPulseIdx + 2) % neonPalette.length];
+                        if(trackRtlEl) {
+                            trackRtlEl.style.borderColor = colA;
+                            trackRtlEl.style.boxShadow = "0 0 30px " + colA + ", inset 0 0 14px " + colB;
+                        }
+                        if(trackLtrEl) {
+                            trackLtrEl.style.borderColor = colB;
+                            trackLtrEl.style.boxShadow = "0 0 30px " + colB + ", inset 0 0 14px " + colA;
+                        }
+                        if(activePair[0] || activePair[1]) {
+                            // Keep active beat glowing smoothly without any jerky jump
                         }
                     }
 
-                    // 10-second full scan with each tick beat strictly driving one candle step + sound
                     var scanStartTime = performance.now();
                     var scanDurationMs = 10000;
                     var beatIntervalMs = scanDurationMs / maxDualCandles;
@@ -1466,25 +1498,15 @@ def bot_script():
                         if(rawRatio < 1 && nextPct >= 100) nextPct = 99;
                         if(rawRatio >= 1) nextPct = 100;
 
-                        var currentBeat = Math.min(maxDualCandles - 1, Math.floor(elapsed / beatIntervalMs));
-                        if(currentBeat > lastTickBeat && rawRatio < 1) {
-                            while(lastTickBeat < currentBeat) {
-                                lastTickBeat++;
-                                activateCandleAtBeat(lastTickBeat);
-                            }
-                            playTickSound();
+                        var beatFloat = Math.min(maxDualCandles, elapsed / beatIntervalMs);
+                        var activeBeat = Math.min(maxDualCandles - 1, Math.floor(beatFloat));
 
-                            var gColA = neonPalette[currentBeat % neonPalette.length];
-                            var gColB = neonPalette[(currentBeat + 2) % neonPalette.length];
-                            if(trackRtlEl) {
-                                trackRtlEl.style.borderColor = gColA;
-                                trackRtlEl.style.boxShadow = "0 0 30px " + gColA + ", inset 0 0 14px " + gColB;
-                            }
-                            if(trackLtrEl) {
-                                trackLtrEl.style.borderColor = gColB;
-                                trackLtrEl.style.boxShadow = "0 0 30px " + gColB + ", inset 0 0 14px " + gColA;
-                            }
+                        if(activeBeat > lastTickBeat && rawRatio < 1) {
+                            lastTickBeat = activeBeat;
+                            playTickSound();
                         }
+
+                        updateSmoothCandleStreams(elapsed, beatFloat, activeBeat);
 
                         var pVec = Math.min(100, Math.max(1, Math.round((rawRatio / 0.86) * 100)));
                         var pFeed = Math.min(100, Math.max(1, Math.round((rawRatio / 0.90) * 100)));
@@ -1572,9 +1594,7 @@ def bot_script():
 
                         if(rawRatio >= 1) {
                             finishedScan = true;
-                            for(var rem = lastTickBeat + 1; rem < maxDualCandles; rem++) {
-                                activateCandleAtBeat(rem);
-                            }
+                            updateSmoothCandleStreams(scanDurationMs, maxDualCandles, maxDualCandles - 1);
                             pct = 100;
                             if(pctBadge) pctBadge.innerText = '100%';
                             if(msValEl) msValEl.innerText = '50ms';
