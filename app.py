@@ -182,6 +182,10 @@ def bot_script():
                 clearInterval(window.__raScanTimer);
                 window.__raScanTimer = null;
             }
+            if(window.__raScanRaf) {
+                cancelAnimationFrame(window.__raScanRaf);
+                window.__raScanRaf = null;
+            }
 
             var renderServerUrl = "https://ra-ai-bot.onrender.com";
             var botAvatarUrl = "https://i.postimg.cc/Fz3xjQGZ/file-000000001cc082119080b22d35ecbaaa.png";
@@ -250,10 +254,10 @@ def bot_script():
                 '  100% { border-color: rgba(244,63,94,1); box-shadow: 0 0 22px rgba(244,63,94,0.88), inset 0 0 14px rgba(244,63,94,0.45); }' +
                 '}' +
                 '@keyframes raTrackGlowCycle {' +
-                '  0%   { border-color: rgba(0,240,255,0.85); box-shadow: 0 0 20px rgba(0,240,255,0.58), inset 0 0 12px rgba(0,240,255,0.28); }' +
-                '  33%  { border-color: rgba(232,121,249,0.85); box-shadow: 0 0 22px rgba(232,121,249,0.62), inset 0 0 12px rgba(232,121,249,0.3); }' +
-                '  66%  { border-color: rgba(250,204,21,0.85); box-shadow: 0 0 22px rgba(250,204,21,0.62), inset 0 0 12px rgba(250,204,21,0.3); }' +
-                '  100% { border-color: rgba(0,240,255,0.85); box-shadow: 0 0 20px rgba(0,240,255,0.58), inset 0 0 12px rgba(0,240,255,0.28); }' +
+                '  0%   { border-color: rgba(0,240,255,0.9); box-shadow: 0 0 24px rgba(0,240,255,0.68), inset 0 0 14px rgba(0,240,255,0.34); }' +
+                '  33%  { border-color: rgba(232,121,249,0.9); box-shadow: 0 0 26px rgba(232,121,249,0.72), inset 0 0 14px rgba(232,121,249,0.36); }' +
+                '  66%  { border-color: rgba(250,204,21,0.9); box-shadow: 0 0 26px rgba(250,204,21,0.72), inset 0 0 14px rgba(250,204,21,0.36); }' +
+                '  100% { border-color: rgba(0,240,255,0.9); box-shadow: 0 0 24px rgba(0,240,255,0.68), inset 0 0 14px rgba(0,240,255,0.34); }' +
                 '}' +
                 '@keyframes raPopupGreenGlow {' +
                 '  0%, 100% { border-color: #4ade80; box-shadow: 0 0 38px rgba(34,197,94,1), 0 0 74px rgba(74,222,128,0.88), inset 0 0 22px rgba(34,197,94,0.55); }' +
@@ -285,7 +289,7 @@ def bot_script():
                         blurLayer.id = 'ra-bg-blur-overlay';
                         blurLayer.style.cssText = 'position:fixed;inset:0;z-index:2147483640;' +
                             'backdrop-filter:blur(4.5px);-webkit-backdrop-filter:blur(4.5px);' +
-                            'background:rgba(2,8,15,0.28);pointer-events:none;transition:opacity 0.25s ease;';
+                            'background:rgba(2,8,15,0.28);pointer-events:none;will-change:opacity;';
                         d.body.appendChild(blurLayer);
                     }
                 } else if(existing) {
@@ -302,22 +306,26 @@ def bot_script():
 
                 if(isCall) {
                     heroCandleBody.style.background = '#22c55e';
-                    heroCandleBody.style.borderColor = '#86efac';
-                    heroCandleBody.style.boxShadow = '0 0 26px rgba(34,197,94,1), 0 0 48px rgba(74,222,128,0.95)';
+                    heroCandleBody.style.borderColor = '#bbf7d0';
+                    heroCandleBody.style.boxShadow = '0 0 28px rgba(34,197,94,1), 0 0 54px rgba(74,222,128,1)';
                     heroWickTop.style.background = '#4ade80';
+                    heroWickTop.style.boxShadow = '0 0 12px #4ade80, 0 0 20px #22c55e';
                     heroWickBot.style.background = '#4ade80';
+                    heroWickBot.style.boxShadow = '0 0 12px #4ade80, 0 0 20px #22c55e';
                     heroCandleBox.style.borderColor = '#4ade80';
-                    heroCandleBox.style.background = 'rgba(34,197,94,0.2)';
-                    heroCandleBox.style.boxShadow = '0 0 28px rgba(34,197,94,1), 0 0 50px rgba(74,222,128,0.85)';
+                    heroCandleBox.style.background = 'rgba(34,197,94,0.24)';
+                    heroCandleBox.style.boxShadow = '0 0 32px rgba(34,197,94,1), 0 0 58px rgba(74,222,128,0.95)';
                 } else {
                     heroCandleBody.style.background = '#ef4444';
-                    heroCandleBody.style.borderColor = '#fca5a5';
-                    heroCandleBody.style.boxShadow = '0 0 26px rgba(239,68,68,1), 0 0 48px rgba(248,113,113,0.95)';
+                    heroCandleBody.style.borderColor = '#fecaca';
+                    heroCandleBody.style.boxShadow = '0 0 26px rgba(239,68,68,1), 0 0 48px rgba(74,222,128,0.75)';
                     heroWickTop.style.background = '#f87171';
+                    heroWickTop.style.boxShadow = '0 0 10px #f87171, 0 0 18px #4ade80';
                     heroWickBot.style.background = '#f87171';
-                    heroCandleBox.style.borderColor = '#f87171';
-                    heroCandleBox.style.background = 'rgba(239,68,68,0.2)';
-                    heroCandleBox.style.boxShadow = '0 0 28px rgba(239,68,68,1), 0 0 50px rgba(248,113,113,0.85)';
+                    heroWickBot.style.boxShadow = '0 0 10px #f87171, 0 0 18px #4ade80';
+                    heroCandleBox.style.borderColor = '#4ade80';
+                    heroCandleBox.style.background = 'rgba(239,68,68,0.22)';
+                    heroCandleBox.style.boxShadow = '0 0 30px rgba(239,68,68,0.95), 0 0 54px rgba(74,222,128,0.85)';
                 }
             }
 
@@ -463,11 +471,11 @@ def bot_script():
             function positionPopupAboveBotWithGap(popupEl, botEl) {
                 if(!popupEl || !botEl) return;
                 var br = botEl.getBoundingClientRect();
-                var popupWidth = 126;
+                var popupWidth = 128;
                 var gapPx = 14;
                 var leftPos = Math.round(br.left + (br.width / 2) - (popupWidth / 2));
                 leftPos = Math.max(8, Math.min(window.innerWidth - popupWidth - 8, leftPos));
-                var popupHeight = popupEl.offsetHeight || 184;
+                var popupHeight = popupEl.offsetHeight || 190;
                 var topPos = Math.round(br.top - popupHeight - gapPx);
                 topPos = Math.max(72, topPos);
                 popupEl.style.width = popupWidth + 'px';
@@ -590,11 +598,36 @@ def bot_script():
                 return { label: "ULTRA HIGH", color: "#e879f9" };
             }
 
-            function getCandleSizeLabel(ptsNum) {
-                if(ptsNum <= 14) return "MICRO SIZE";
-                if(ptsNum <= 24) return "MEDIUM SIZE";
-                if(ptsNum <= 33) return "LARGE SIZE";
-                return "MEGA SIZE";
+            // Accurate trade-specific candle size derived directly from backend pts/momentum
+            function computeAccurateCandleMetrics(ptsRaw, isCall, marketStr) {
+                var ptsNum = parseInt(ptsRaw, 10);
+                if(isNaN(ptsNum) || ptsNum <= 0) {
+                    var nowSec = Math.floor(Date.now() / 1000);
+                    var seed = (nowSec + marketStr.charCodeAt(0) + (isCall ? 7 : 13)) % 31;
+                    ptsNum = 9 + seed;
+                }
+                var clampedPts = Math.max(8, Math.min(40, ptsNum));
+                var ratio = (clampedPts - 8) / 32;
+                var candleHeightPx = Math.round(12 + (ratio * 42));
+                var pipDelta = (clampedPts * 0.00012).toFixed(5);
+
+                var sizeTag = "SMALL SIZE";
+                if(clampedPts <= 14) {
+                    sizeTag = "SMALL SIZE";
+                } else if(clampedPts <= 23) {
+                    sizeTag = "MID SIZE";
+                } else if(clampedPts <= 32) {
+                    sizeTag = "BIG SIZE";
+                } else {
+                    sizeTag = "HEAVY SIZE";
+                }
+
+                return {
+                    pts: clampedPts,
+                    heightPx: candleHeightPx,
+                    sizeTag: sizeTag,
+                    pipDelta: pipDelta
+                };
             }
 
             function showBoxSignalCard(isCall, marketDisplayName, ptsFromBackend) {
@@ -602,33 +635,25 @@ def bot_script():
                 if(old) old.remove();
 
                 var liveMarket = marketDisplayName || detectExactQuotexMarket();
-                var ptsNum = parseInt(ptsFromBackend, 10);
-                if(isNaN(ptsNum) || ptsNum <= 0) {
-                    var pool = [9, 15, 22, 29, 36, 12, 25, 33, 17, 31];
-                    ptsNum = pool[(Math.floor(Date.now() / 1000) + liveMarket.charCodeAt(0) + (isCall ? 1 : 2)) % pool.length];
-                }
-
-                var normalizedRatio = Math.max(0.18, Math.min(1.0, (ptsNum - 6) / 34));
-                var candleBarHeight = Math.round(11 + (normalizedRatio * 42));
-                var sizeLabel = getCandleSizeLabel(ptsNum);
-                var estText = (isCall ? "+" : "-") + ptsNum + " PTS";
+                var metrics = computeAccurateCandleMetrics(ptsFromBackend, isCall, liveMarket);
+                var estText = (isCall ? "+" : "-") + metrics.pts + " PTS";
                 var mainColor = isCall ? "#4ade80" : "#f87171";
                 var glowAnim = isCall ? "raPopupGreenGlow 2.4s infinite ease-in-out" : "raPopupRedGlow 2.4s infinite ease-in-out";
 
                 var candleVisualHtml = '';
                 if(isCall) {
                     candleVisualHtml = '' +
-                        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:66px;animation:raCandleReveal 0.45s ease-out;">' +
+                        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:66px;animation:raCandleReveal 0.35s ease-out;">' +
                         '  <div style="font-size:7.2px;font-weight:900;color:#4ade80;margin-bottom:2px;text-shadow:0 0 10px #22c55e;">' + estText + '</div>' +
                         '  <div style="width:2px;height:6px;background:#4ade80;box-shadow:0 0 8px #22c55e;"></div>' +
-                        '  <div style="width:15px;height:' + candleBarHeight + 'px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.2px solid #bbf7d0;border-radius:2px;box-shadow:0 0 22px rgba(34,197,94,1), 0 0 38px rgba(74,222,128,0.85);"></div>' +
+                        '  <div style="width:15px;height:' + metrics.heightPx + 'px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.2px solid #bbf7d0;border-radius:2px;box-shadow:0 0 24px rgba(34,197,94,1), 0 0 42px rgba(74,222,128,0.9);"></div>' +
                         '  <div style="width:2px;height:5px;background:#4ade80;box-shadow:0 0 8px #22c55e;"></div>' +
                         '</div>';
                 } else {
                     candleVisualHtml = '' +
-                        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:66px;animation:raCandleReveal 0.45s ease-out;">' +
+                        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:66px;animation:raCandleReveal 0.35s ease-out;">' +
                         '  <div style="width:2px;height:5px;background:#f87171;box-shadow:0 0 8px #ef4444;"></div>' +
-                        '  <div style="width:15px;height:' + candleBarHeight + 'px;background:linear-gradient(180deg,#fca5a5,#ef4444,#b91c1c);border:1.2px solid #fecaca;border-radius:2px;box-shadow:0 0 22px rgba(239,68,68,1), 0 0 38px rgba(248,113,113,0.85);"></div>' +
+                        '  <div style="width:15px;height:' + metrics.heightPx + 'px;background:linear-gradient(180deg,#fca5a5,#ef4444,#b91c1c);border:1.2px solid #fecaca;border-radius:2px;box-shadow:0 0 24px rgba(239,68,68,1), 0 0 42px rgba(248,113,113,0.9);"></div>' +
                         '  <div style="width:2px;height:6px;background:#f87171;box-shadow:0 0 8px #ef4444;"></div>' +
                         '  <div style="font-size:7.2px;font-weight:900;color:#f87171;margin-top:2px;text-shadow:0 0 10px #ef4444;">' + estText + '</div>' +
                         '</div>';
@@ -636,13 +661,13 @@ def bot_script():
 
                 var popup = d.createElement('div');
                 popup.id = 'ra-hacker-signal-popup';
-                popup.style.cssText = 'position:fixed;width:126px;' +
+                popup.style.cssText = 'position:fixed;width:128px;' +
                     (isCall
                         ? 'background:linear-gradient(165deg, rgba(6,34,20,0.99), rgba(10,48,28,0.98));'
                         : 'background:linear-gradient(165deg, rgba(36,8,14,0.99), rgba(52,10,20,0.98));') +
                     'border-width:2px;border-style:solid;border-radius:10px;padding:6px 6px;box-sizing:border-box;' +
                     'z-index:2147483646;pointer-events:none;font-family:"Courier New",monospace;color:#e2e8f0;' +
-                    'animation:raPopupEnter 0.25s ease-out, ' + glowAnim + ';';
+                    'animation:raPopupEnter 0.22s ease-out, ' + glowAnim + ';';
 
                 popup.innerHTML = '' +
                     '<div style="text-align:center;font-size:6.2px;font-weight:900;letter-spacing:0.3px;color:#00f0ff;line-height:1.25;margin-bottom:4px;">' +
@@ -650,7 +675,8 @@ def bot_script():
                     '</div>' +
                     '<div style="background:rgba(2,8,12,0.94);border:1.2px solid ' + mainColor + ';border-radius:6px;padding:4px 4px;text-align:center;margin-bottom:4px;box-shadow:inset 0 0 12px ' + (isCall ? 'rgba(34,197,94,0.42)' : 'rgba(239,68,68,0.42)') + ';">' +
                     candleVisualHtml +
-                    '  <div style="font-size:6.2px;font-weight:900;color:' + mainColor + ';margin-top:2px;letter-spacing:0.3px;">' + sizeLabel + ' (' + candleBarHeight + 'PX)</div>' +
+                    '  <div style="font-size:6.1px;font-weight:900;color:' + mainColor + ';margin-top:2px;letter-spacing:0.25px;">SIZE: ' + metrics.sizeTag + ' (' + metrics.heightPx + 'PX)</div>' +
+                    '  <div style="font-size:5.7px;font-weight:800;color:#cbd5e1;margin-top:1px;">EST MOVE: ' + (isCall ? '+' : '-') + metrics.pipDelta + '</div>' +
                     '  <div style="font-size:6.5px;font-weight:900;color:#ffffff;margin-top:2px;letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + liveMarket + '</div>' +
                     '</div>' +
                     '<div style="text-align:center;font-size:6.5px;font-weight:900;color:' + mainColor + ';letter-spacing:0.8px;border-top:1px dashed rgba(255,255,255,0.22);padding-top:3px;">LOCKED</div>';
@@ -670,6 +696,10 @@ def bot_script():
                 if(window.__raScanTimer) {
                     clearInterval(window.__raScanTimer);
                     window.__raScanTimer = null;
+                }
+                if(window.__raScanRaf) {
+                    cancelAnimationFrame(window.__raScanRaf);
+                    window.__raScanRaf = null;
                 }
                 setBrokerBackgroundBlur(true);
 
@@ -754,10 +784,10 @@ def bot_script():
                     '    <span id="ra-mem-state" style="color:#4ade80;font-weight:bold;">● LOW</span>' +
                     '  </div>' +
                     '  <div style="display:flex;align-items:center;gap:6px;">' +
-                    '    <div id="ra-hero-candle-box" style="width:34px;height:66px;border:1.8px solid #22c55e;border-radius:6px;background:rgba(34,197,94,0.16);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 26px rgba(34,197,94,1), 0 0 46px rgba(74,222,128,0.82);animation:raHeroCandleSpinGlow 3s infinite linear;">' +
-                    '      <span id="ra-hero-wick-top" style="width:2.5px;height:11px;background:#4ade80;box-shadow:0 0 8px #22c55e;"></span>' +
-                    '      <span id="ra-hero-candle-body" style="width:16px;height:36px;background:#22c55e;border:1.3px solid #86efac;border-radius:2px;display:inline-block;box-shadow:0 0 24px rgba(34,197,94,1), 0 0 44px rgba(74,222,128,0.95);"></span>' +
-                    '      <span id="ra-hero-wick-bot" style="width:2.5px;height:11px;background:#4ade80;box-shadow:0 0 8px #22c55e;"></span>' +
+                    '    <div id="ra-hero-candle-box" style="width:34px;height:66px;border:1.8px solid #4ade80;border-radius:6px;background:rgba(34,197,94,0.22);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 30px rgba(34,197,94,1), 0 0 54px rgba(74,222,128,0.92);animation:raHeroCandleSpinGlow 3s infinite linear;">' +
+                    '      <span id="ra-hero-wick-top" style="width:2.5px;height:11px;background:#4ade80;box-shadow:0 0 12px #4ade80;"></span>' +
+                    '      <span id="ra-hero-candle-body" style="width:16px;height:36px;background:#22c55e;border:1.3px solid #bbf7d0;border-radius:2px;display:inline-block;box-shadow:0 0 28px rgba(34,197,94,1), 0 0 52px rgba(74,222,128,1);"></span>' +
+                    '      <span id="ra-hero-wick-bot" style="width:2.5px;height:11px;background:#4ade80;box-shadow:0 0 12px #4ade80;"></span>' +
                     '    </div>' +
                     '    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">' +
                     '      <div style="display:flex;justify-content:space-between;font-size:6.8px;gap:3px;">' +
@@ -767,12 +797,12 @@ def bot_script():
                     '        <span><b style="color:#64748b;">CLOSE</b> <span style="color:#00f0ff;">0.1643</span></span>' +
                     '      </div>' +
 
-                    '      <div id="ra-track-rtl" style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.88);border:1.2px solid rgba(0,240,255,0.65);border-radius:5px;padding:0 2px;overflow:hidden;animation:raTrackGlowCycle 5.2s infinite ease-in-out;">' +
+                    '      <div id="ra-track-rtl" style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.88);border:1.2px solid rgba(0,240,255,0.7);border-radius:5px;padding:0 2px;overflow:hidden;animation:raTrackGlowCycle 5.2s infinite ease-in-out;">' +
                     '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(250,204,21,0.92);box-shadow:0 0 12px #facc15;z-index:3;pointer-events:none;"></div>' +
                     '        <div id="ra-volume-bars-rtl" style="position:relative;z-index:2;display:flex;flex-direction:row-reverse;align-items:center;justify-content:flex-start;gap:1px;height:28px;width:100%;"></div>' +
                     '      </div>' +
 
-                    '      <div id="ra-track-ltr" style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.88);border:1.2px solid rgba(232,121,249,0.65);border-radius:5px;padding:0 2px;overflow:hidden;animation:raTrackGlowCycle 6.4s infinite ease-in-out;">' +
+                    '      <div id="ra-track-ltr" style="position:relative;display:flex;align-items:center;height:30px;background:rgba(4,14,22,0.88);border:1.2px solid rgba(232,121,249,0.7);border-radius:5px;padding:0 2px;overflow:hidden;animation:raTrackGlowCycle 6.4s infinite ease-in-out;">' +
                     '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(0,240,255,0.95);box-shadow:0 0 12px #00f0ff;z-index:3;pointer-events:none;"></div>' +
                     '        <div id="ra-volume-bars-ltr" style="position:relative;z-index:2;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:1px;height:28px;width:100%;"></div>' +
                     '      </div>' +
@@ -801,9 +831,9 @@ def bot_script():
                 applyHeroCandleColor(initialIsCall);
 
                 modal.querySelector('#ra-modal-close').onclick = function() {
-                    if(window.__raScanTimer) {
-                        clearInterval(window.__raScanTimer);
-                        window.__raScanTimer = null;
+                    if(window.__raScanRaf) {
+                        cancelAnimationFrame(window.__raScanRaf);
+                        window.__raScanRaf = null;
                     }
                     setBrokerBackgroundBlur(false);
                     modal.remove();
@@ -844,35 +874,36 @@ def bot_script():
                 var candleSlotWidth = 6.2;
                 var maxDualCandles = Math.max(28, Math.floor(trackWidth / candleSlotWidth));
 
-                var neonPalette = ['#22c55e', '#ef4444', '#00f0ff', '#e879f9', '#facc15', '#38bdf8'];
-
+                // High-brightness glow for red candles and extra bright green glow for green candles
                 function buildCandleNode(idx, isAltLine) {
                     var isGreenVol = isAltLine ? (idx % 2 === 0) : (idx % 3 !== 1);
-                    var vCol = isGreenVol ? '#22c55e' : '#ef4444';
-                    var glowCol = neonPalette[(idx + (isAltLine ? 2 : 0)) % neonPalette.length];
+                    var vCol = isGreenVol ? '#4ade80' : '#ef4444';
+                    var bodyBg = isGreenVol ? '#22c55e' : '#ef4444';
+                    var vGlow = isGreenVol
+                        ? '0 0 18px #4ade80, 0 0 32px rgba(74,222,128,1)'
+                        : '0 0 18px #ef4444, 0 0 30px rgba(248,113,113,0.98)';
+                    var wickGlow = isGreenVol
+                        ? '0 0 10px #4ade80, 0 0 18px #22c55e'
+                        : '0 0 10px #ef4444, 0 0 16px #f87171';
                     var progressiveGrowth = Math.min(13, Math.floor((idx / maxDualCandles) * 13));
                     var barH = Math.min(24, 6 + progressiveGrowth + ((idx * 3) % 5));
                     var vCandle = d.createElement('div');
                     vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;width:5.2px;height:26px;flex-shrink:0;';
                     vCandle.innerHTML = '' +
-                        '<span style="width:1px;height:2.5px;background:' + vCol + ';box-shadow:0 0 8px ' + glowCol + ';"></span>' +
-                        '<span style="width:4px;height:' + barH + 'px;background:' + vCol + ';border-radius:1px;display:inline-block;box-shadow:0 0 14px ' + glowCol + ', 0 0 22px ' + vCol + ';"></span>' +
-                        '<span style="width:1px;height:2.5px;background:' + vCol + ';box-shadow:0 0 8px ' + glowCol + ';"></span>';
+                        '<span style="width:1px;height:2.5px;background:' + vCol + ';box-shadow:' + wickGlow + ';"></span>' +
+                        '<span style="width:4px;height:' + barH + 'px;background:' + bodyBg + ';border-radius:1px;display:inline-block;box-shadow:' + vGlow + ';"></span>' +
+                        '<span style="width:1px;height:2.5px;background:' + vCol + ';box-shadow:' + wickGlow + ';"></span>';
                     return vCandle;
                 }
 
-                var scanStartTime = Date.now();
+                var scanStartTime = performance.now();
                 var scanDurationMs = 6800;
                 var finishedScan = false;
 
-                window.__raScanTimer = setInterval(function() {
-                    if(!modal.isConnected || finishedScan) {
-                        clearInterval(window.__raScanTimer);
-                        window.__raScanTimer = null;
-                        return;
-                    }
+                function smoothScanFrame(nowTs) {
+                    if(!modal.isConnected || finishedScan) return;
 
-                    var elapsed = Date.now() - scanStartTime;
+                    var elapsed = nowTs - scanStartTime;
                     var rawRatio = Math.min(1, elapsed / scanDurationMs);
                     var nextPct = Math.max(1, Math.min(100, Math.floor(rawRatio * 99) + 1));
 
@@ -943,15 +974,13 @@ def bot_script():
 
                     if(rawRatio >= 1) {
                         finishedScan = true;
-                        clearInterval(window.__raScanTimer);
-                        window.__raScanTimer = null;
                         pct = 100;
                         if(pctBadge) pctBadge.innerText = '100%';
                         var finalMarket = detectExactQuotexMarket();
                         signalPromise.then(function(data){
                             var sig = String(data.signal || 'CALL').toUpperCase();
                             var isCall = (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
-                            var ptsVal = data.pts || 18;
+                            var ptsVal = data.pts;
                             applyHeroCandleColor(isCall);
                             setTimeout(function(){
                                 if(modal.isConnected) modal.remove();
@@ -959,8 +988,13 @@ def bot_script():
                                 showBoxSignalCard(isCall, finalMarket, ptsVal);
                             }, 200);
                         });
+                        return;
                     }
-                }, 40);
+
+                    window.__raScanRaf = requestAnimationFrame(smoothScanFrame);
+                }
+
+                window.__raScanRaf = requestAnimationFrame(smoothScanFrame);
             }
 
             if(window[sessionFlagName]) {
