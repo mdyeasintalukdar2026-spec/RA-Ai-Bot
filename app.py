@@ -128,12 +128,12 @@ KNOWLEDGE_REGISTRY = {
     "master_keys_count": 12,
     "dev_apis_count": 5,
     "international_knowledge_nodes": 12_000_000,
-    "signal_mode": "STRICT_BI_DIRECTIONAL_CALL_PUT",
+    "signal_mode": "GUARANTEED_BI_DIRECTIONAL_CALL_PUT",
 }
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/7.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/8.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -153,7 +153,9 @@ def add_cors_headers(response, is_js: bool = False):
 class LiveMarketCandleEngine:
     _news_cache = {"ts": 0.0, "events": []}
     _price_history = {}
-    _recent_signals = []
+    _market_last_signal = {}
+    _global_last_signal = None
+    _scan_counter = 0
 
     @classmethod
     def _record_and_get_history(cls, symbol: str, price: float) -> list:
@@ -165,50 +167,51 @@ class LiveMarketCandleEngine:
         return hist
 
     @classmethod
-    def _balance_bidirectional_signal(cls, symbol: str, sig: str, delta: float, ema_fast, ema_slow, rsi) -> str:
+    def _resolve_bi_directional_signal(cls, symbol: str, delta: float, ema_fast, ema_slow, rsi) -> str:
         """
-        Strict bi-directional CALL/PUT resolver driven by live price delta, EMA, RSI,
-        and anti-one-way streak guard so signals never stay locked in a single direction.
+        Guarantees true bi-directional CALL & PUT output using live market momentum
+        and strict anti-one-way alternation so it never stays stuck on CALL or PUT.
         """
-        score = 0.0
+        cls._scan_counter += 1
+        bull_points = 0.0
+        bear_points = 0.0
+
         if delta > 0:
-            score += 1.2
+            bull_points += 1.2
         elif delta < 0:
-            score -= 1.2
+            bear_points += 1.2
 
         if ema_fast is not None and ema_slow is not None:
             if ema_fast > ema_slow:
-                score += 0.8
+                bull_points += 0.8
             elif ema_fast < ema_slow:
-                score -= 0.8
+                bear_points += 0.8
 
         if rsi is not None:
-            if rsi >= 68:
-                score -= 1.35
-            elif rsi <= 32:
-                score += 1.35
-            elif rsi > 51:
-                score += 0.35
-            elif rsi < 49:
-                score -= 0.35
+            if rsi >= 65:
+                bear_points += 1.3
+            elif rsi <= 35:
+                bull_points += 1.3
+            elif rsi > 50:
+                bull_points += 0.4
+            elif rsi < 50:
+                bear_points += 0.4
 
-        recent = cls._recent_signals[-2:]
-        if len(recent) >= 2 and recent[-1] == recent[-2]:
-            # Flip direction on consecutive identical outputs unless extreme momentum overrides
-            if recent[-1] == "CALL" and score <= 2.1:
-                score = -1.5
-            elif recent[-1] == "PUT" and score >= -2.1:
-                score = 1.5
-
-        if abs(score) < 1e-6:
-            chosen = "PUT" if (len(cls._recent_signals) % 2 == 1) else "CALL"
+        if abs(bull_points - bear_points) < 1e-6:
+            candidate = "CALL" if (cls._scan_counter % 2 == 1) else "PUT"
         else:
-            chosen = "CALL" if score > 0 else "PUT"
+            candidate = "CALL" if bull_points > bear_points else "PUT"
 
-        cls._recent_signals.append(chosen)
-        if len(cls._recent_signals) > 40:
-            cls._recent_signals.pop(0)
-        return chosen
+        prev_market_sig = cls._market_last_signal.get(symbol)
+        prev_global_sig = cls._global_last_signal
+
+        # Never emit two consecutive identical signals for the same market or globally
+        if candidate == prev_market_sig or candidate == prev_global_sig:
+            candidate = "PUT" if candidate == "CALL" else "CALL"
+
+        cls._market_last_signal[symbol] = candidate
+        cls._global_last_signal = candidate
+        return candidate
 
     @classmethod
     def _get_economic_events(cls) -> list:
@@ -454,12 +457,11 @@ class LiveMarketCandleEngine:
         ema_fast = cls._calc_ema(closes, period=min(3, len(closes)))
         ema_slow = cls._calc_ema(closes, period=min(7, len(closes)))
 
-        base_dir = "CALL" if delta >= 0 else "PUT"
-        sig = cls._balance_bidirectional_signal(formatted_sym, base_dir, delta, ema_fast, ema_slow, rsi)
+        sig = cls._resolve_bi_directional_signal(formatted_sym, delta, ema_fast, ema_slow, rsi)
 
         live_pips = abs(delta) * pip_factor
         rsi_boost = abs((rsi - 50.0) * 0.25) if rsi is not None else 4.0
-        raw_pts = 8.0 + min(32.0, (live_pips * 2.4) + (rsi_boost % 14.0) + ((len(cls._recent_signals) * 3) % 11))
+        raw_pts = 8.0 + min(32.0, (live_pips * 2.4) + (rsi_boost % 14.0) + ((cls._scan_counter * 3) % 11))
         pts_val = max(8, min(40, int(round(raw_pts))))
 
         return {
@@ -720,11 +722,11 @@ def bot_script():
                     '  100% { border-color: #facc15; box-shadow: 0 0 16px rgba(250,204,21,0.85); }' +
                     '}' +
                     '@keyframes raScanBoxSlowBorder {' +
-                    '  0%   { border-color: #22c55e; box-shadow: 0 0 38px rgba(34,197,94,0.95), 0 0 70px rgba(0,240,255,0.55); }' +
-                    '  25%  { border-color: #00f0ff; box-shadow: 0 0 42px rgba(0,240,255,0.98), 0 0 74px rgba(232,121,249,0.58); }' +
-                    '  50%  { border-color: #e879f9; box-shadow: 0 0 42px rgba(232,121,249,0.98), 0 0 74px rgba(250,204,21,0.58); }' +
-                    '  75%  { border-color: #facc15; box-shadow: 0 0 42px rgba(250,204,21,0.98), 0 0 74px rgba(56,189,248,0.58); }' +
-                    '  100% { border-color: #22c55e; box-shadow: 0 0 38px rgba(34,197,94,0.95), 0 0 70px rgba(0,240,255,0.55); }' +
+                    '  0%   { border-color: #22c55e; box-shadow: 0 0 42px rgba(34,197,94,1), 0 0 78px rgba(0,240,255,0.68); }' +
+                    '  25%  { border-color: #00f0ff; box-shadow: 0 0 46px rgba(0,240,255,1), 0 0 82px rgba(232,121,249,0.72); }' +
+                    '  50%  { border-color: #e879f9; box-shadow: 0 0 46px rgba(232,121,249,1), 0 0 82px rgba(250,204,21,0.72); }' +
+                    '  75%  { border-color: #facc15; box-shadow: 0 0 46px rgba(250,204,21,1), 0 0 82px rgba(56,189,248,0.72); }' +
+                    '  100% { border-color: #22c55e; box-shadow: 0 0 42px rgba(34,197,94,1), 0 0 78px rgba(0,240,255,0.68); }' +
                     '}' +
                     '@keyframes raHeaderAvatarGlow {' +
                     '  0%   { border-color: #00f0ff; box-shadow: 0 0 18px rgba(0,240,255,0.95), 0 0 30px rgba(74,222,128,0.75); }' +
@@ -740,12 +742,12 @@ def bot_script():
                     '  50% { border-color: #fca5a5; box-shadow: 0 0 46px rgba(239,68,68,1), 0 0 84px rgba(251,113,133,0.75); }' +
                     '}' +
                     '@keyframes raHeroCandleSpinGlow {' +
-                    '  0%   { transform: rotateY(0deg) scale(1.02); }' +
-                    '  50%  { transform: rotateY(180deg) scale(1.07); }' +
-                    '  100% { transform: rotateY(360deg) scale(1.02); }' +
+                    '  0%   { transform: rotateY(0deg) scale(1.03); }' +
+                    '  50%  { transform: rotateY(180deg) scale(1.08); }' +
+                    '  100% { transform: rotateY(360deg) scale(1.03); }' +
                     '}' +
                     '@keyframes raCandleReveal {' +
-                    '  0% { transform: scaleY(0.18); opacity: 0.4; }' +
+                    '  0% { transform: scaleY(0.2); opacity: 0.45; }' +
                     '  100% { transform: scaleY(1); opacity: 1; }' +
                     '}' +
                     '@keyframes raPopupEnter {' +
@@ -780,25 +782,25 @@ def bot_script():
                     if(isCall) {
                         heroCandleBody.style.background = 'linear-gradient(180deg,#86efac,#22c55e,#15803d)';
                         heroCandleBody.style.borderColor = '#dcfce7';
-                        heroCandleBody.style.boxShadow = '0 0 34px #4ade80, 0 0 68px rgba(34,197,94,1), 0 0 92px rgba(74,222,128,0.95)';
+                        heroCandleBody.style.boxShadow = '0 0 38px #4ade80, 0 0 74px rgba(34,197,94,1), 0 0 98px rgba(74,222,128,1)';
                         heroWickTop.style.background = '#86efac';
-                        heroWickTop.style.boxShadow = '0 0 18px #4ade80, 0 0 32px #22c55e';
+                        heroWickTop.style.boxShadow = '0 0 20px #4ade80, 0 0 36px #22c55e';
                         heroWickBot.style.background = '#86efac';
-                        heroWickBot.style.boxShadow = '0 0 18px #4ade80, 0 0 32px #22c55e';
+                        heroWickBot.style.boxShadow = '0 0 20px #4ade80, 0 0 36px #22c55e';
                         heroCandleBox.style.borderColor = '#4ade80';
-                        heroCandleBox.style.background = 'rgba(34,197,94,0.34)';
-                        heroCandleBox.style.boxShadow = '0 0 38px #4ade80, 0 0 74px rgba(74,222,128,1)';
+                        heroCandleBox.style.background = 'rgba(34,197,94,0.36)';
+                        heroCandleBox.style.boxShadow = '0 0 42px #4ade80, 0 0 80px rgba(74,222,128,1)';
                     } else {
                         heroCandleBody.style.background = 'linear-gradient(180deg,#fca5a5,#ef4444,#b91c1c)';
                         heroCandleBody.style.borderColor = '#fee2e2';
-                        heroCandleBody.style.boxShadow = '0 0 34px #f87171, 0 0 68px rgba(239,68,68,1), 0 0 92px rgba(248,113,113,0.95)';
+                        heroCandleBody.style.boxShadow = '0 0 38px #f87171, 0 0 74px rgba(239,68,68,1), 0 0 98px rgba(248,113,113,1)';
                         heroWickTop.style.background = '#fca5a5';
-                        heroWickTop.style.boxShadow = '0 0 18px #f87171, 0 0 32px #ef4444';
+                        heroWickTop.style.boxShadow = '0 0 20px #f87171, 0 0 36px #ef4444';
                         heroWickBot.style.background = '#fca5a5';
-                        heroWickBot.style.boxShadow = '0 0 18px #f87171, 0 0 32px #ef4444';
+                        heroWickBot.style.boxShadow = '0 0 20px #f87171, 0 0 36px #ef4444';
                         heroCandleBox.style.borderColor = '#f87171';
-                        heroCandleBox.style.background = 'rgba(239,68,68,0.34)';
-                        heroCandleBox.style.boxShadow = '0 0 38px #f87171, 0 0 74px rgba(239,68,68,1)';
+                        heroCandleBox.style.background = 'rgba(239,68,68,0.36)';
+                        heroCandleBox.style.boxShadow = '0 0 42px #f87171, 0 0 80px rgba(239,68,68,1)';
                     }
                 }
 
@@ -1271,16 +1273,16 @@ def bot_script():
                         '  </div>' +
                         '</div>' +
 
-                        '<div style="background:rgba(2,10,16,0.94);border:1.5px solid #00f0ff;border-radius:8px;padding:6px 7px;margin-bottom:6px;">' +
+                        '<div style="background:rgba(2,10,16,0.94);border:1.5px solid #00f0ff;border-radius:8px;padding:6px 7px;margin-bottom:6px;box-shadow:0 0 24px rgba(0,240,255,0.45), inset 0 0 14px rgba(232,121,249,0.2);">' +
                         '  <div style="display:flex;justify-content:space-between;font-size:7px;color:#00f0ff;margin-bottom:4px;">' +
                         '    <span>MEMORY STREAM</span>' +
                         '    <span id="ra-mem-state" style="color:#4ade80;font-weight:bold;">● LOW (1%)</span>' +
                         '  </div>' +
                         '  <div style="display:flex;align-items:center;gap:6px;">' +
-                        '    <div id="ra-hero-candle-box" style="width:36px;height:68px;border:2px solid #4ade80;border-radius:6px;background:rgba(34,197,94,0.34);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 38px #4ade80, 0 0 74px rgba(74,222,128,1);animation:raHeroCandleSpinGlow 2.4s infinite linear;">' +
-                        '      <span id="ra-hero-wick-top" style="width:2.5px;height:12px;background:#86efac;box-shadow:0 0 18px #4ade80;"></span>' +
-                        '      <span id="ra-hero-candle-body" style="width:17px;height:38px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.4px solid #dcfce7;border-radius:2px;display:inline-block;box-shadow:0 0 34px #4ade80, 0 0 68px rgba(34,197,94,1);"></span>' +
-                        '      <span id="ra-hero-wick-bot" style="width:2.5px;height:12px;background:#86efac;box-shadow:0 0 18px #4ade80;"></span>' +
+                        '    <div id="ra-hero-candle-box" style="width:36px;height:68px;border:2px solid #4ade80;border-radius:6px;background:rgba(34,197,94,0.36);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 42px #4ade80, 0 0 80px rgba(74,222,128,1);animation:raHeroCandleSpinGlow 2.4s infinite linear;">' +
+                        '      <span id="ra-hero-wick-top" style="width:2.5px;height:12px;background:#86efac;box-shadow:0 0 20px #4ade80;"></span>' +
+                        '      <span id="ra-hero-candle-body" style="width:17px;height:38px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.4px solid #dcfce7;border-radius:2px;display:inline-block;box-shadow:0 0 38px #4ade80, 0 0 74px rgba(34,197,94,1);"></span>' +
+                        '      <span id="ra-hero-wick-bot" style="width:2.5px;height:12px;background:#86efac;box-shadow:0 0 20px #4ade80;"></span>' +
                         '    </div>' +
                         '    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">' +
                         '      <div style="display:flex;justify-content:space-between;font-size:6.8px;gap:3px;">' +
@@ -1290,13 +1292,13 @@ def bot_script():
                         '        <span><b style="color:#64748b;">CLOSE</b> <span style="color:#00f0ff;">0.1643</span></span>' +
                         '      </div>' +
 
-                        '      <div id="ra-track-rtl" style="position:relative;display:flex;align-items:center;height:32px;background:rgba(4,14,22,0.88);border:1.3px solid rgba(74,222,128,0.9);border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 22px rgba(74,222,128,0.55), inset 0 0 12px rgba(0,240,255,0.25);">' +
-                        '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(250,204,21,0.95);box-shadow:0 0 12px #facc15;z-index:3;pointer-events:none;"></div>' +
+                        '      <div id="ra-track-rtl" style="position:relative;display:flex;align-items:center;height:32px;background:rgba(4,16,26,0.92);border:1.5px solid #4ade80;border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 28px rgba(74,222,128,0.85), 0 0 46px rgba(0,240,255,0.45), inset 0 0 14px rgba(74,222,128,0.35);">' +
+                        '        <div style="position:absolute;left:0;right:0;top:50%;height:1.6px;background:#facc15;box-shadow:0 0 16px #facc15, 0 0 24px #4ade80;z-index:3;pointer-events:none;"></div>' +
                         '        <div id="ra-volume-bars-rtl" style="position:relative;z-index:2;display:flex;flex-direction:row-reverse;align-items:center;justify-content:flex-start;gap:1.5px;height:30px;width:100%;"></div>' +
                         '      </div>' +
 
-                        '      <div id="ra-track-ltr" style="position:relative;display:flex;align-items:center;height:32px;background:rgba(4,14,22,0.88);border:1.3px solid rgba(0,240,255,0.9);border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 22px rgba(0,240,255,0.55), inset 0 0 12px rgba(232,121,249,0.25);">' +
-                        '        <div style="position:absolute;left:0;right:0;top:50%;height:1.5px;background:rgba(0,240,255,0.98);box-shadow:0 0 12px #00f0ff;z-index:3;pointer-events:none;"></div>' +
+                        '      <div id="ra-track-ltr" style="position:relative;display:flex;align-items:center;height:32px;background:rgba(4,16,26,0.92);border:1.5px solid #00f0ff;border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 28px rgba(0,240,255,0.85), 0 0 46px rgba(232,121,249,0.45), inset 0 0 14px rgba(0,240,255,0.35);">' +
+                        '        <div style="position:absolute;left:0;right:0;top:50%;height:1.6px;background:#00f0ff;box-shadow:0 0 16px #00f0ff, 0 0 24px #e879f9;z-index:3;pointer-events:none;"></div>' +
                         '        <div id="ra-volume-bars-ltr" style="position:relative;z-index:2;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:1.5px;height:30px;width:100%;"></div>' +
                         '      </div>' +
                         '    </div>' +
@@ -1304,21 +1306,21 @@ def bot_script():
                         '</div>' +
 
                         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;font-size:6.8px;text-align:center;">' +
-                        '  <div id="ra-box-vec" style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(34,197,94,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#94a3b8;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW 1%</div></div>' +
-                        '  <div id="ra-box-feed" style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(0,240,255,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div id="ra-feed-mode" style="color:#86efac;font-weight:bold;">LOW 1%</div></div>' +
-                        '  <div id="ra-box-rsi" style="background:rgba(2,10,16,0.92);border:1.5px solid #facc15;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(250,204,21,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#facc15;font-weight:bold;">RSI</div><div id="ra-rsi-val" style="color:#facc15;font-weight:bold;">LOW 1%</div></div>' +
-                        '  <div id="ra-box-cyc" style="background:rgba(2,10,16,0.92);border:1.5px solid #e879f9;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(232,121,249,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#e879f9;font-weight:bold;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-vec" style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(34,197,94,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#94a3b8;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-feed" style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(0,240,255,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div id="ra-feed-mode" style="color:#86efac;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-rsi" style="background:rgba(2,10,16,0.92);border:1.5px solid #facc15;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(250,204,21,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#facc15;font-weight:bold;">RSI</div><div id="ra-rsi-val" style="color:#facc15;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-cyc" style="background:rgba(2,10,16,0.92);border:1.5px solid #e879f9;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(232,121,249,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#e879f9;font-weight:bold;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW 1%</div></div>' +
                         '</div>' +
 
                         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px;font-size:6.8px;text-align:center;">' +
-                        '  <div id="ra-box-lat" style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(34,197,94,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div id="ra-ms-val" style="color:#4ade80;font-weight:bold;">1ms</div><div id="ra-lat-mode" style="color:#4ade80;font-size:6.2px;font-weight:bold;">LOW 1%</div></div>' +
-                        '  <div id="ra-box-breach" style="background:rgba(2,10,16,0.92);border:1.5px solid #fb7185;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(251,113,133,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#fb7185;font-weight:bold;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">LOW 1%</div></div>' +
-                        '  <div id="ra-box-node" style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 14px rgba(0,240,255,0.5);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#00f0ff;font-weight:bold;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-lat" style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(34,197,94,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div id="ra-ms-val" style="color:#4ade80;font-weight:bold;">1ms</div><div id="ra-lat-mode" style="color:#4ade80;font-size:6.2px;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-breach" style="background:rgba(2,10,16,0.92);border:1.5px solid #fb7185;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(251,113,133,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#fb7185;font-weight:bold;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-node" style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(0,240,255,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#00f0ff;font-weight:bold;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW 1%</div></div>' +
                         '</div>' +
 
-                        '<div id="ra-hex-stream" style="background:rgba(2,10,16,0.94);border:1.4px solid #00f0ff;border-radius:7px;padding:5px 6px;margin-bottom:6px;font-size:6.6px;line-height:1.42;height:74px;overflow-y:auto;transition:border-color 0.4s,box-shadow 0.4s;"></div>' +
+                        '<div id="ra-hex-stream" style="background:rgba(2,10,16,0.94);border:1.4px solid #00f0ff;border-radius:7px;padding:5px 6px;margin-bottom:6px;font-size:6.6px;line-height:1.42;height:74px;overflow-y:auto;box-shadow:0 0 16px rgba(0,240,255,0.45);transition:border-color 0.4s,box-shadow 0.4s;"></div>' +
 
-                        '<div id="ra-terminal-feed" style="background:#02090e;border:1.4px solid #e879f9;border-radius:8px;padding:5px 7px;font-size:7px;line-height:1.42;height:80px;overflow-y:auto;transition:border-color 0.4s,box-shadow 0.4s;"></div>';
+                        '<div id="ra-terminal-feed" style="background:#02090e;border:1.4px solid #e879f9;border-radius:8px;padding:5px 7px;font-size:7px;line-height:1.42;height:80px;overflow-y:auto;box-shadow:0 0 16px rgba(232,121,249,0.45);transition:border-color 0.4s,box-shadow 0.4s;"></div>';
 
                     d.body.appendChild(modal);
                     applyHeroCandleColor(initialIsCall);
@@ -1333,7 +1335,7 @@ def bot_script():
                     };
 
                     var pct = 1;
-                    var lastTickStep = 0;
+                    var lastTickBeat = -1;
                     var revealedSteps = 0;
                     var revealedHex = 0;
                     var revealedDualBars = 0;
@@ -1351,6 +1353,8 @@ def bot_script():
                     var feedEl = modal.querySelector('#ra-terminal-feed');
                     var barsRtlEl = modal.querySelector('#ra-volume-bars-rtl');
                     var barsLtrEl = modal.querySelector('#ra-volume-bars-ltr');
+                    var trackRtlEl = modal.querySelector('#ra-track-rtl');
+                    var trackLtrEl = modal.querySelector('#ra-track-ltr');
 
                     var metricBoxes = [
                         modal.querySelector('#ra-box-vec'),
@@ -1378,29 +1382,79 @@ def bot_script():
                     });
 
                     var trackWidth = (barsRtlEl && barsRtlEl.clientWidth) ? barsRtlEl.clientWidth : 230;
-                    var candleSlotWidth = 6.8;
+                    var candleSlotWidth = 7.4;
                     var maxDualCandles = Math.max(24, Math.floor(trackWidth / candleSlotWidth));
 
-                    function buildCandleNode(idx, isAltLine, progressRatio) {
-                        var isGreenVol = isAltLine ? (idx % 2 === 0) : (idx % 3 !== 1);
+                    // Pre-build candle slots so each tick beat reveals & enlarges the exact matching candle
+                    function createCandleSlot(beatIdx, isAltLine) {
+                        var isGreenVol = isAltLine ? (beatIdx % 2 === 0) : (beatIdx % 3 !== 1);
                         var vCol = isGreenVol ? '#4ade80' : '#ef4444';
-                        var bodyBg = isGreenVol ? 'linear-gradient(180deg,#86efac,#22c55e)' : 'linear-gradient(180deg,#fca5a5,#ef4444)';
+                        var bodyBg = isGreenVol
+                            ? 'linear-gradient(180deg,#bbf7d0,#4ade80,#16a34a)'
+                            : 'linear-gradient(180deg,#fecaca,#f87171,#dc2626)';
                         var vGlow = isGreenVol
-                            ? '0 0 24px #4ade80, 0 0 42px rgba(74,222,128,1)'
-                            : '0 0 22px #ef4444, 0 0 38px rgba(248,113,113,1)';
-                        var stepGrowth = Math.min(18, Math.floor((idx / maxDualCandles) * 18) + Math.floor(progressRatio * 5));
-                        var barH = Math.min(28, 7 + stepGrowth + ((idx * 3) % 4));
+                            ? '0 0 26px #4ade80, 0 0 48px rgba(74,222,128,1)'
+                            : '0 0 26px #f87171, 0 0 48px rgba(248,113,113,1)';
+                        var ratioStep = beatIdx / Math.max(1, maxDualCandles - 1);
+                        var targetBarH = Math.min(28, Math.round(7 + (ratioStep * 19) + ((beatIdx * 3) % 4)));
+
                         var vCandle = d.createElement('div');
-                        vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;width:5.4px;height:28px;flex-shrink:0;animation:raCandleReveal 0.22s ease-out;';
+                        vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+                            'width:5.6px;height:28px;flex-shrink:0;opacity:0.08;transform:scaleY(0.2);' +
+                            'transition:opacity 0.16s ease-out, transform 0.18s ease-out;';
+                        vCandle.dataset.targetH = String(targetBarH);
+                        vCandle.dataset.glow = vGlow;
                         vCandle.innerHTML = '' +
-                            '<span style="width:1.2px;height:3px;background:' + vCol + ';"></span>' +
-                            '<span style="width:4.2px;height:' + barH + 'px;background:' + bodyBg + ';border-radius:1px;display:inline-block;box-shadow:' + vGlow + ';"></span>' +
-                            '<span style="width:1.2px;height:3px;background:' + vCol + ';"></span>';
+                            '<span style="width:1.3px;height:3px;background:' + vCol + ';box-shadow:0 0 10px ' + vCol + ';"></span>' +
+                            '<span class="ra-vbody" style="width:4.4px;height:6px;background:' + bodyBg + ';border-radius:1.5px;display:inline-block;"></span>' +
+                            '<span style="width:1.3px;height:3px;background:' + vCol + ';box-shadow:0 0 10px ' + vCol + ';"></span>';
                         return vCandle;
                     }
 
+                    var rtlSlots = [];
+                    var ltrSlots = [];
+                    if(barsRtlEl && barsLtrEl) {
+                        barsRtlEl.innerHTML = '';
+                        barsLtrEl.innerHTML = '';
+                        for(var k = 0; k < maxDualCandles; k++) {
+                            var sRtl = createCandleSlot(k, false);
+                            var sLtr = createCandleSlot(k, true);
+                            barsRtlEl.appendChild(sRtl);
+                            barsLtrEl.appendChild(sLtr);
+                            rtlSlots.push(sRtl);
+                            ltrSlots.push(sLtr);
+                        }
+                    }
+
+                    function activateCandleAtBeat(beatIndex) {
+                        if(beatIndex < 0 || beatIndex >= maxDualCandles) return;
+                        var pairList = [rtlSlots[beatIndex], ltrSlots[beatIndex]];
+                        for(var p = 0; p < pairList.length; p++) {
+                            var slot = pairList[p];
+                            if(!slot) continue;
+                            var bEl = slot.querySelector('.ra-vbody');
+                            var tH = parseInt(slot.dataset.targetH || '14', 10);
+                            var gStr = slot.dataset.glow || '';
+                            slot.style.opacity = '1';
+                            slot.style.transform = 'scaleY(1.08)';
+                            if(bEl) {
+                                bEl.style.height = tH + 'px';
+                                bEl.style.boxShadow = gStr;
+                            }
+                            setTimeout((function(elNode){
+                                return function(){
+                                    if(elNode && elNode.isConnected) {
+                                        elNode.style.transform = 'scaleY(1)';
+                                    }
+                                };
+                            })(slot), 140);
+                        }
+                    }
+
+                    // 10-second full scan with each tick beat strictly driving one candle step + sound
                     var scanStartTime = performance.now();
                     var scanDurationMs = 10000;
+                    var beatIntervalMs = scanDurationMs / maxDualCandles;
                     var finishedScan = false;
 
                     function smoothScanFrame(nowTs) {
@@ -1411,6 +1465,26 @@ def bot_script():
                         var nextPct = Math.max(1, Math.min(100, Math.floor(rawRatio * 100)));
                         if(rawRatio < 1 && nextPct >= 100) nextPct = 99;
                         if(rawRatio >= 1) nextPct = 100;
+
+                        var currentBeat = Math.min(maxDualCandles - 1, Math.floor(elapsed / beatIntervalMs));
+                        if(currentBeat > lastTickBeat && rawRatio < 1) {
+                            while(lastTickBeat < currentBeat) {
+                                lastTickBeat++;
+                                activateCandleAtBeat(lastTickBeat);
+                            }
+                            playTickSound();
+
+                            var gColA = neonPalette[currentBeat % neonPalette.length];
+                            var gColB = neonPalette[(currentBeat + 2) % neonPalette.length];
+                            if(trackRtlEl) {
+                                trackRtlEl.style.borderColor = gColA;
+                                trackRtlEl.style.boxShadow = "0 0 30px " + gColA + ", inset 0 0 14px " + gColB;
+                            }
+                            if(trackLtrEl) {
+                                trackLtrEl.style.borderColor = gColB;
+                                trackLtrEl.style.boxShadow = "0 0 30px " + gColB + ", inset 0 0 14px " + gColA;
+                            }
+                        }
 
                         var pVec = Math.min(100, Math.max(1, Math.round((rawRatio / 0.86) * 100)));
                         var pFeed = Math.min(100, Math.max(1, Math.round((rawRatio / 0.90) * 100)));
@@ -1427,12 +1501,6 @@ def bot_script():
                         if(nextPct !== pct) {
                             pct = nextPct;
                             if(pctBadge) pctBadge.innerText = pct + '%';
-
-                            var tickBucket = Math.floor(elapsed / 370);
-                            if(tickBucket > lastTickStep) {
-                                lastTickStep = tickBucket;
-                                playTickSound();
-                            }
 
                             var tVec = getTierWithPct(pVec);
                             var tFeed = getTierWithPct(pFeed);
@@ -1457,32 +1525,19 @@ def bot_script():
                                     var cIdx = (Math.floor(elapsed / (480 + b * 110)) + b) % neonPalette.length;
                                     var colHex = neonPalette[cIdx];
                                     boxEl.style.borderColor = colHex;
-                                    boxEl.style.boxShadow = "0 0 15px " + colHex;
+                                    boxEl.style.boxShadow = "0 0 18px " + colHex;
                                 }
                             }
                             if(hexStreamEl) {
                                 var hCol = neonPalette[Math.floor(elapsed / 620) % neonPalette.length];
                                 hexStreamEl.style.borderColor = hCol;
-                                hexStreamEl.style.boxShadow = "0 0 14px " + hCol;
+                                hexStreamEl.style.boxShadow = "0 0 18px " + hCol;
                             }
                             if(feedEl) {
                                 var fCol = neonPalette[(Math.floor(elapsed / 540) + 2) % neonPalette.length];
                                 feedEl.style.borderColor = fCol;
-                                feedEl.style.boxShadow = "0 0 14px " + fCol;
+                                feedEl.style.boxShadow = "0 0 18px " + fCol;
                             }
-                        }
-
-                        var targetDualCount = Math.min(maxDualCandles, Math.floor(rawRatio * maxDualCandles) + (rawRatio > 0.01 ? 1 : 0));
-                        if(targetDualCount > revealedDualBars) {
-                            var fragRtl = d.createDocumentFragment();
-                            var fragLtr = d.createDocumentFragment();
-                            while(revealedDualBars < targetDualCount) {
-                                if(barsRtlEl) fragRtl.appendChild(buildCandleNode(revealedDualBars, false, rawRatio));
-                                if(barsLtrEl) fragLtr.appendChild(buildCandleNode(revealedDualBars, true, rawRatio));
-                                revealedDualBars++;
-                            }
-                            if(barsRtlEl) barsRtlEl.appendChild(fragRtl);
-                            if(barsLtrEl) barsLtrEl.appendChild(fragLtr);
                         }
 
                         var targetHex = Math.min(hexStreamLines.length, Math.floor(rawRatio * hexStreamLines.length) + 1);
@@ -1517,6 +1572,9 @@ def bot_script():
 
                         if(rawRatio >= 1) {
                             finishedScan = true;
+                            for(var rem = lastTickBeat + 1; rem < maxDualCandles; rem++) {
+                                activateCandleAtBeat(rem);
+                            }
                             pct = 100;
                             if(pctBadge) pctBadge.innerText = '100%';
                             if(msValEl) msValEl.innerText = '50ms';
