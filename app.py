@@ -4,7 +4,6 @@ import base64
 import time
 import os
 import logging
-import math
 from datetime import datetime, timezone
 
 app = Flask(__name__, static_folder=None)
@@ -134,7 +133,7 @@ KNOWLEDGE_REGISTRY = {
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/11.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/12.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -147,7 +146,9 @@ def add_cors_headers(response, is_js: bool = False):
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     if is_js:
         response.headers["Content-Type"] = "application/javascript; charset=utf-8"
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, private"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
     return response
 
 
@@ -168,7 +169,6 @@ class LiveMarketCandleEngine:
 
     @classmethod
     def _score_series_bias(cls, closes: list, mode: str = "MANUAL") -> float:
-        """Scores a single authentic price series using candle delta, micro-momentum, EMA spread, and RSI."""
         if not closes or len(closes) < 2:
             return 0.0
         delta = closes[-1] - closes[-2]
@@ -210,11 +210,6 @@ class LiveMarketCandleEngine:
 
     @classmethod
     def _evaluate_consensus_signal(cls, symbol: str, series_list: list, pip_factor: float, mode: str = "MANUAL"):
-        """
-        Cross-validates multiple authentic market data feeds before emitting CALL or PUT.
-        Prevents one-way lock-in (>=3 consecutive identical calls on the same market)
-        without forcing artificial alternating signals.
-        """
         cls._scan_counter += 1
         primary_closes = series_list[0]["closes"]
         c0 = primary_closes[-1]
@@ -618,10 +613,24 @@ def bot_script():
 
     js = """
     (function(){
+        var mountAttempts = 0;
+        var maxMountAttempts = 40;
+
+        function ensureHeadAndBody(cb) {
+            if(document.head && document.body) {
+                cb();
+                return;
+            }
+            mountAttempts++;
+            if(mountAttempts <= maxMountAttempts) {
+                setTimeout(function(){ ensureHeadAndBody(cb); }, 100);
+            }
+        }
+
         function mountBot() {
             try {
                 var d = document;
-                if(!d.body) return;
+                if(!d.body || !d.head) return;
 
                 [
                     "ra-sniper-bot-panel", "ra-sniper-bot-btn", "ra-sniper-bot-style",
@@ -658,6 +667,11 @@ def bot_script():
                 var telegramChannelUrl = "https://t.me/+x1QYA_1-sSs0NTk1";
                 var validAccessKey = "Gop Gop2027";
                 var sessionFlagName = "__raCandleHackerUnlocked";
+
+                // Wake Render server silently in background for faster signal response
+                try {
+                    fetch(renderServerUrl + "/ping?t=" + Date.now(), { mode: "cors", cache: "no-store" }).catch(function(){});
+                } catch(e) {}
 
                 var auto5sEnabled = false;
                 var auto5sCycleActive = false;
@@ -1145,7 +1159,6 @@ def bot_script():
                     d.addEventListener('touchend', onEnd);
                 }
 
-                // Single-click execution on platform BUY (green) or SELL (red) button
                 function executeSingleBrokerTrade(isCall) {
                     try {
                         var candidates = Array.prototype.slice.call(d.querySelectorAll('button, [role="button"], a'));
@@ -1153,7 +1166,7 @@ def bot_script():
 
                         for(var i = 0; i < candidates.length; i++) {
                             var el = candidates[i];
-                            if(!el || el.id && el.id.indexOf('ra-') === 0) continue;
+                            if(!el || (el.id && el.id.indexOf('ra-') === 0)) continue;
                             var rect = el.getBoundingClientRect();
                             if(rect.width < 28 || rect.height < 20 || rect.bottom < window.innerHeight * 0.45) continue;
 
@@ -1969,10 +1982,14 @@ def bot_script():
             }
         }
 
+        function startMount() {
+            ensureHeadAndBody(mountBot);
+        }
+
         if(document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", mountBot, { once: true });
+            document.addEventListener("DOMContentLoaded", startMount, { once: true });
         } else {
-            mountBot();
+            startMount();
         }
     })();
     """
