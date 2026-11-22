@@ -614,7 +614,7 @@ def bot_script():
     js = """
     (function(){
         var mountAttempts = 0;
-        var maxMountAttempts = 40;
+        var maxMountAttempts = 60;
 
         function ensureHeadAndBody(cb) {
             if(document.head && document.body) {
@@ -623,7 +623,7 @@ def bot_script():
             }
             mountAttempts++;
             if(mountAttempts <= maxMountAttempts) {
-                setTimeout(function(){ ensureHeadAndBody(cb); }, 100);
+                setTimeout(function(){ ensureHeadAndBody(cb); }, 80);
             }
         }
 
@@ -668,7 +668,6 @@ def bot_script():
                 var validAccessKey = "Gop Gop2027";
                 var sessionFlagName = "__raCandleHackerUnlocked";
 
-                // Wake Render server silently in background for faster signal response
                 try {
                     fetch(renderServerUrl + "/ping?t=" + Date.now(), { mode: "cors", cache: "no-store" }).catch(function(){});
                 } catch(e) {}
@@ -834,7 +833,7 @@ def bot_script():
                         if(!existing) {
                             var blurLayer = d.createElement('div');
                             blurLayer.id = 'ra-bg-blur-overlay';
-                            blurLayer.style.cssText = 'position:fixed;inset:0;z-index:2147483640;' +
+                            blurLayer.style.cssText = 'position:fixed !important;inset:0 !important;z-index:2147483640 !important;' +
                                 'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);' +
                                 'background:rgba(2,8,15,0.26);pointer-events:none;';
                             d.body.appendChild(blurLayer);
@@ -886,7 +885,7 @@ def bot_script():
                         'transform:translate(-50%, -50%) !important;display:block !important;opacity:1 !important;visibility:visible !important;' +
                         'width:258px;max-width:88vw;background:linear-gradient(170deg, #061018 0%, #091722 55%, #050d14 100%);' +
                         'border:2px solid #22c55e;border-radius:14px;padding:10px 11px;box-sizing:border-box;' +
-                        'z-index:2147483647;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#ffffff;' +
+                        'z-index:2147483647 !important;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#ffffff;' +
                         'animation:raLoginFastBorder 1.5s infinite linear;';
 
                     loginBox.innerHTML = '' +
@@ -1049,9 +1048,9 @@ def bot_script():
 
                     var menuEl = d.createElement('div');
                     menuEl.id = 'ra-hacker-menu-popup';
-                    menuEl.style.cssText = 'position:fixed;left:' + leftPos + 'px;top:' + topPos + 'px;width:' + menuW + 'px;' +
+                    menuEl.style.cssText = 'position:fixed !important;left:' + leftPos + 'px !important;top:' + topPos + 'px !important;width:' + menuW + 'px;' +
                         'background:linear-gradient(165deg, rgba(5,18,28,0.99), rgba(20,8,34,0.99));' +
-                        'border:2px solid #00f0ff;border-radius:12px;padding:6px;z-index:2147483647;' +
+                        'border:2px solid #00f0ff;border-radius:12px;padding:6px;z-index:2147483647 !important;' +
                         'font-family:"Courier New",monospace;box-shadow:0 0 28px rgba(0,240,255,0.85),0 0 46px rgba(232,121,249,0.55);' +
                         'animation:raPopupEnter 0.16s ease-out;';
 
@@ -1089,10 +1088,11 @@ def bot_script():
 
                     var btn = d.createElement('div');
                     btn.id = 'ra-hacker-btn';
-                    btn.style.cssText = 'position:fixed;bottom:146px;right:12px;width:84px;height:84px;' +
+                    btn.style.cssText = 'position:fixed !important;bottom:146px !important;right:12px !important;width:84px;height:84px;' +
                         'border-radius:46% 54% 50% 50% / 50% 46% 54% 50%;' +
-                        'background:#02090e;border:2.5px solid #22c55e;display:flex;align-items:center;justify-content:center;' +
-                        'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;overflow:hidden;' +
+                        'background:#02090e;border:2.5px solid #22c55e;display:flex !important;align-items:center;justify-content:center;' +
+                        'z-index:2147483647 !important;cursor:grab;user-select:none;touch-action:none;overflow:hidden;' +
+                        'opacity:1 !important;visibility:visible !important;' +
                         'font-family:"Courier New",Courier,monospace;' +
                         'animation:raBotGlowCycle 2.6s infinite linear, raWavyFireMorph 3.4s infinite ease-in-out;';
 
@@ -1132,10 +1132,10 @@ def bot_script():
                         var maxY = window.innerHeight - btn.offsetHeight - 4;
                         nextLeft = Math.max(4, Math.min(nextLeft, maxX));
                         nextTop = Math.max(4, Math.min(nextTop, maxY));
-                        btn.style.left = nextLeft + 'px';
-                        btn.style.top = nextTop + 'px';
-                        btn.style.right = 'auto';
-                        btn.style.bottom = 'auto';
+                        btn.style.setProperty('left', nextLeft + 'px', 'important');
+                        btn.style.setProperty('top', nextTop + 'px', 'important');
+                        btn.style.setProperty('right', 'auto', 'important');
+                        btn.style.setProperty('bottom', 'auto', 'important');
 
                         var activePopup = d.getElementById('ra-hacker-signal-popup');
                         if(activePopup) positionPopupAboveBotWithGap(activePopup, btn);
@@ -1237,10 +1237,10 @@ def bot_script():
 
                     var panel = d.createElement('div');
                     panel.id = 'ra-5s-auto-panel';
-                    panel.style.cssText = 'position:fixed;top:46%;left:50%;transform:translate(-50%, -50%);' +
+                    panel.style.cssText = 'position:fixed !important;top:46% !important;left:50% !important;transform:translate(-50%, -50%) !important;' +
                         'width:278px;max-width:92vw;background:linear-gradient(160deg, #061b18 0%, #071329 55%, #19082b 100%);' +
                         'border:2px solid #00f0ff;border-radius:14px;padding:9px 10px;box-sizing:border-box;' +
-                        'z-index:2147483647;font-family:"Courier New",monospace;color:#e2e8f0;' +
+                        'z-index:2147483647 !important;font-family:"Courier New",monospace;color:#e2e8f0;' +
                         'box-shadow:0 0 34px rgba(0,240,255,0.75), 0 0 58px rgba(232,121,249,0.45);' +
                         'animation:raPopupEnter 0.18s ease-out;';
 
@@ -1509,12 +1509,12 @@ def bot_script():
 
                     var popup = d.createElement('div');
                     popup.id = 'ra-hacker-signal-popup';
-                    popup.style.cssText = 'position:fixed;width:128px;' +
+                    popup.style.cssText = 'position:fixed !important;width:128px;' +
                         (isCall
                             ? 'background:linear-gradient(165deg, rgba(6,34,20,0.99), rgba(10,48,28,0.98));'
                             : 'background:linear-gradient(165deg, rgba(36,8,14,0.99), rgba(52,10,20,0.98));') +
                         'border-width:2px;border-style:solid;border-radius:10px;padding:6px 6px;box-sizing:border-box;' +
-                        'z-index:2147483646;pointer-events:none;font-family:"Courier New",monospace;color:#e2e8f0;' +
+                        'z-index:2147483646 !important;pointer-events:none;font-family:"Courier New",monospace;color:#e2e8f0;' +
                         'animation:raPopupEnter 0.18s ease-out, ' + glowAnim + ';';
 
                     var dirLabel = isHold ? '● HOLD / WAIT' : (isCall ? '▲ CALL (UP)' : '▼ PUT (DOWN)');
@@ -1608,9 +1608,9 @@ def bot_script():
 
                     var modal = d.createElement('div');
                     modal.id = 'ra-hacker-scan-modal';
-                    modal.style.cssText = 'position:fixed;top:47%;left:50%;transform:translate(-50%, -50%);width:336px;max-width:95vw;' +
+                    modal.style.cssText = 'position:fixed !important;top:47% !important;left:50% !important;transform:translate(-50%, -50%) !important;width:336px;max-width:95vw;' +
                         'background:linear-gradient(160deg, #061d15 0%, #051326 52%, #150726 100%);' +
-                        'border:2.5px solid #22c55e;border-radius:14px;padding:10px;z-index:2147483647;' +
+                        'border:2.5px solid #22c55e;border-radius:14px;padding:10px;z-index:2147483647 !important;' +
                         'font-family:"Courier New",Courier,monospace;color:#4ade80;box-sizing:border-box;will-change:transform;' +
                         'animation:raScanBoxSlowBorder 9s infinite ease-in-out;';
 
@@ -1986,11 +1986,8 @@ def bot_script():
             ensureHeadAndBody(mountBot);
         }
 
-        if(document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", startMount, { once: true });
-        } else {
-            startMount();
-        }
+        window.__raMountBot = startMount;
+        startMount();
     })();
     """
     res = make_response(js)
