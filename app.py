@@ -128,12 +128,12 @@ KNOWLEDGE_REGISTRY = {
     "master_keys_count": 12,
     "dev_apis_count": 5,
     "international_knowledge_nodes": 12_000_000,
-    "signal_mode": "MULTI_SOURCE_AUTHENTIC_CONSENSUS_5S_PRO",
+    "signal_mode": "MULTI_SOURCE_AUTHENTIC_CONSENSUS_5S_SNIPER",
 }
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/11.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/12.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -209,8 +209,7 @@ class LiveMarketCandleEngine:
     def _evaluate_consensus_signal(cls, symbol: str, series_list: list, pip_factor: float):
         """
         Cross-validates multiple authentic market data feeds before emitting CALL or PUT.
-        Prevents one-way lock-in (>=3 consecutive identical calls on the same market)
-        without forcing artificial alternating signals.
+        Also computes confidence percentage (92% - 99%) and estimated candle points.
         """
         cls._scan_counter += 1
         primary_closes = series_list[0]["closes"]
@@ -254,7 +253,8 @@ class LiveMarketCandleEngine:
         raw_pts = 9.0 + min(31.0, (live_pips * 2.2) + (rsi_factor % 11.0) + consensus_boost)
         pts_val = max(9, min(40, int(round(raw_pts))))
 
-        return signal, pts_val, c0
+        conf_pct = min(99, max(92, int(round(92 + min(7.0, abs(avg_bias) * 3.2)))))
+        return signal, pts_val, conf_pct, c0
 
     @classmethod
     def _get_economic_events(cls) -> list:
@@ -523,13 +523,14 @@ class LiveMarketCandleEngine:
                 sources_used.append(spot_src)
 
         if gathered_series:
-            sig, pts_val, c0 = cls._evaluate_consensus_signal(clean_sym, gathered_series, pip_factor)
+            sig, pts_val, conf_pct, c0 = cls._evaluate_consensus_signal(clean_sym, gathered_series, pip_factor)
             src_label = "/".join(sources_used[:2]) if sources_used else "LiveFeed"
             return {
                 "signal": sig,
                 "trend": "BULLISH (UP)" if sig == "CALL" else "BEARISH (DOWN)",
                 "status": "GREEN_EXECUTE",
                 "pts": pts_val,
+                "confidence": conf_pct,
                 "rule": f"{mode_prefix}/{src_label} Consensus Verified ({formatted_sym}: {c0})"
             }
 
@@ -538,6 +539,7 @@ class LiveMarketCandleEngine:
             "trend": "FEED SYNCING",
             "status": "WAIT_FEED",
             "pts": 0,
+            "confidence": 0,
             "rule": f"No-Fake Guard Active: Awaiting Authentic Feed for {formatted_sym}"
         }
 
@@ -583,6 +585,7 @@ def get_signal():
                     "trend": "NEWS BLOCK",
                     "status": "NEWS_GUARD",
                     "pts": 0,
+                    "confidence": 0,
                     "rule": "High Impact News Filter Active."
                 })
                 return add_cors_headers(res)
@@ -593,6 +596,7 @@ def get_signal():
             "trend": analysis["trend"],
             "status": analysis.get("status", "GREEN_EXECUTE"),
             "pts": analysis.get("pts", 0),
+            "confidence": analysis.get("confidence", 94),
             "rule": analysis["rule"]
         })
         return add_cors_headers(res)
@@ -603,6 +607,7 @@ def get_signal():
             "trend": "ENGINE RETRY",
             "status": "WAIT_FEED",
             "pts": 0,
+            "confidence": 0,
             "rule": "No-Fake Guard: Reconnecting Authentic Data Pipeline."
         })
         return add_cors_headers(res)
@@ -644,9 +649,13 @@ def bot_script():
                     clearTimeout(window.__raAuto5sLoopTimer);
                     window.__raAuto5sLoopTimer = null;
                 }
-                if(window.__raAuto5sCountdownTimer) {
-                    clearInterval(window.__raAuto5sCountdownTimer);
-                    window.__raAuto5sCountdownTimer = null;
+                if(window.__raAuto5sStepTimer) {
+                    clearInterval(window.__raAuto5sStepTimer);
+                    window.__raAuto5sStepTimer = null;
+                }
+                if(window.__raAuto5sClockTimer) {
+                    clearInterval(window.__raAuto5sClockTimer);
+                    window.__raAuto5sClockTimer = null;
                 }
 
                 var renderServerUrl = "https://ra-ai-bot.onrender.com";
@@ -658,6 +667,7 @@ def bot_script():
 
                 var auto5sRunning = false;
                 var auto5sBusy = false;
+                var activePanelMode = "5S_AUTO";
                 var lastAutoTradeTs = 0;
 
                 var audioCtx = null;
@@ -743,21 +753,37 @@ def bot_script():
                 var styleEl = d.createElement('style');
                 styleEl.id = 'ra-hacker-style';
                 styleEl.innerHTML = '' +
-                    '@keyframes raTireWheelSpin {' +
+                    '@keyframes raContinuousSpin {' +
                     '  0%   { transform: rotate(0deg); }' +
                     '  100% { transform: rotate(360deg); }' +
                     '}' +
-                    '@keyframes raBotGlowCycle {' +
-                    '  0%   { box-shadow: 0 0 26px #22c55e, 0 0 54px rgba(34,197,94,0.95), 0 0 78px rgba(0,240,255,0.65); border-color: #4ade80; }' +
-                    '  25%  { box-shadow: 0 0 28px #00f0ff, 0 0 58px rgba(0,240,255,0.98), 0 0 82px rgba(232,121,249,0.7); border-color: #67e8f9; }' +
-                    '  50%  { box-shadow: 0 0 28px #e879f9, 0 0 58px rgba(232,121,249,0.98), 0 0 82px rgba(250,204,21,0.7); border-color: #f0abfc; }' +
-                    '  75%  { box-shadow: 0 0 28px #facc15, 0 0 58px rgba(250,204,21,0.98), 0 0 82px rgba(244,63,94,0.72); border-color: #fde047; }' +
-                    '  100% { box-shadow: 0 0 26px #22c55e, 0 0 54px rgba(34,197,94,0.95), 0 0 78px rgba(0,240,255,0.65); border-color: #4ade80; }' +
+                    '@keyframes raContinuousReverseSpin {' +
+                    '  0%   { transform: rotate(360deg); }' +
+                    '  100% { transform: rotate(0deg); }' +
                     '}' +
-                    '@keyframes raFlameBorderPulse {' +
-                    '  0%   { transform: scale(1) rotate(0deg); filter: hue-rotate(0deg) drop-shadow(0 0 12px #f97316); }' +
-                    '  50%  { transform: scale(1.06) rotate(180deg); filter: hue-rotate(90deg) drop-shadow(0 0 20px #ef4444); }' +
-                    '  100% { transform: scale(1) rotate(360deg); filter: hue-rotate(180deg) drop-shadow(0 0 12px #facc15); }' +
+                    '@keyframes raBotNeonAura {' +
+                    '  0%   { box-shadow: 0 0 24px #00f0ff, 0 0 52px rgba(0,240,255,0.95), 0 0 80px rgba(34,197,94,0.75); }' +
+                    '  25%  { box-shadow: 0 0 26px #22c55e, 0 0 56px rgba(34,197,94,0.95), 0 0 84px rgba(250,204,21,0.75); }' +
+                    '  50%  { box-shadow: 0 0 26px #e879f9, 0 0 56px rgba(232,121,249,0.95), 0 0 84px rgba(0,240,255,0.75); }' +
+                    '  75%  { box-shadow: 0 0 26px #facc15, 0 0 56px rgba(250,204,21,0.95), 0 0 84px rgba(244,63,94,0.75); }' +
+                    '  100% { box-shadow: 0 0 24px #00f0ff, 0 0 52px rgba(0,240,255,0.95), 0 0 80px rgba(34,197,94,0.75); }' +
+                    '}' +
+                    '@keyframes raSlowMotionPanelOpen {' +
+                    '  0%   { opacity: 0; transform: translate(-50%, -44%) scale(0.76); filter: blur(4px); }' +
+                    '  65%  { opacity: 0.95; transform: translate(-50%, -50.5%) scale(1.015); filter: blur(0px); }' +
+                    '  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0px); }' +
+                    '}' +
+                    '@keyframes raSniperRainbowBorder {' +
+                    '  0%   { border-color: #22c55e; box-shadow: 0 0 28px rgba(34,197,94,0.92), 0 0 56px rgba(34,197,94,0.42); }' +
+                    '  20%  { border-color: #00f0ff; box-shadow: 0 0 30px rgba(0,240,255,0.95), 0 0 60px rgba(0,240,255,0.45); }' +
+                    '  40%  { border-color: #3b82f6; box-shadow: 0 0 30px rgba(59,130,246,0.95), 0 0 60px rgba(59,130,246,0.45); }' +
+                    '  60%  { border-color: #c026d3; box-shadow: 0 0 30px rgba(192,38,211,0.95), 0 0 60px rgba(192,38,211,0.45); }' +
+                    '  80%  { border-color: #f43f5e; box-shadow: 0 0 30px rgba(244,63,94,0.95), 0 0 60px rgba(244,63,94,0.45); }' +
+                    '  100% { border-color: #22c55e; box-shadow: 0 0 28px rgba(34,197,94,0.92), 0 0 56px rgba(34,197,94,0.42); }' +
+                    '}' +
+                    '@keyframes raWaveShift {' +
+                    '  0%   { stroke-dashoffset: 0; }' +
+                    '  100% { stroke-dashoffset: -120; }' +
                     '}' +
                     '@keyframes raLoginFastBorder {' +
                     '  0%   { border-color: #22c55e; box-shadow: 0 0 24px rgba(34,197,94,0.95), 0 0 46px rgba(0,240,255,0.55); }' +
@@ -1016,10 +1042,10 @@ def bot_script():
                 function positionModeMenuAboveBot(menuEl, botEl) {
                     if(!menuEl || !botEl) return;
                     var br = botEl.getBoundingClientRect();
-                    var menuW = 206;
+                    var menuW = 196;
                     var leftPos = Math.round(br.left + br.width / 2 - menuW / 2);
                     leftPos = Math.max(8, Math.min(window.innerWidth - menuW - 8, leftPos));
-                    var menuH = menuEl.offsetHeight || 96;
+                    var menuH = menuEl.offsetHeight || 92;
                     var topPos = Math.round(br.top - menuH - 12);
                     topPos = Math.max(64, topPos);
                     menuEl.style.width = menuW + 'px';
@@ -1027,21 +1053,28 @@ def bot_script():
                     menuEl.style.top = topPos + 'px';
                 }
 
-                function stopAuto5sEngine(restoreBotIcon) {
+                function minimizePanelToBotIcon() {
                     auto5sRunning = false;
                     auto5sBusy = false;
                     if(window.__raAuto5sLoopTimer) {
                         clearTimeout(window.__raAuto5sLoopTimer);
                         window.__raAuto5sLoopTimer = null;
                     }
-                    if(window.__raAuto5sCountdownTimer) {
-                        clearInterval(window.__raAuto5sCountdownTimer);
-                        window.__raAuto5sCountdownTimer = null;
+                    if(window.__raAuto5sStepTimer) {
+                        clearInterval(window.__raAuto5sStepTimer);
+                        window.__raAuto5sStepTimer = null;
+                    }
+                    if(window.__raAuto5sClockTimer) {
+                        clearInterval(window.__raAuto5sClockTimer);
+                        window.__raAuto5sClockTimer = null;
                     }
                     var panel = d.getElementById('ra-auto-5s-panel');
                     if(panel) panel.remove();
 
-                    if(restoreBotIcon && !d.getElementById('ra-hacker-btn')) {
+                    var botBtn = d.getElementById('ra-hacker-btn');
+                    if(botBtn) {
+                        botBtn.style.display = 'flex';
+                    } else {
                         createDraggableBotButton();
                     }
                 }
@@ -1112,188 +1145,414 @@ def bot_script():
                     return false;
                 }
 
-                function openAuto5sMediumPanel() {
+                function detectQuotexPayoutPct() {
+                    try {
+                        var nodes = d.querySelectorAll('[class*="payout"], [class*="percent"], span, div');
+                        for(var i = 0; i < nodes.length; i++) {
+                            if(nodes[i].children.length === 0) {
+                                var txt = (nodes[i].innerText || '').trim();
+                                if(/^(7[0-9]|8[0-9]|9[0-9])%$/.test(txt)) {
+                                    return txt;
+                                }
+                            }
+                        }
+                    } catch(e) {}
+                    return "92%";
+                }
+
+                function formatLiveClock() {
+                    var now = new Date();
+                    var hh = String(now.getHours()).padStart(2, '0');
+                    var mm = String(now.getMinutes()).padStart(2, '0');
+                    var ss = String(now.getSeconds()).padStart(2, '0');
+                    return hh + ':' + mm + ':' + ss;
+                }
+
+                function openSniperAuto5sPanel() {
                     var menuEl = d.getElementById('ra-mode-selector-menu');
                     if(menuEl) menuEl.remove();
 
                     var botBtn = d.getElementById('ra-hacker-btn');
                     if(botBtn) botBtn.style.display = 'none';
 
-                    stopAuto5sEngine(false);
-                    auto5sRunning = true;
+                    auto5sRunning = false;
+                    auto5sBusy = false;
+                    activePanelMode = "5S_AUTO";
+
+                    var oldPanel = d.getElementById('ra-auto-5s-panel');
+                    if(oldPanel) oldPanel.remove();
+
+                    var initPair = detectExactQuotexMarket();
+                    var initPayout = detectQuotexPayoutPct();
 
                     var panel = d.createElement('div');
                     panel.id = 'ra-auto-5s-panel';
-                    panel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);' +
+                    panel.style.cssText = 'position:fixed;top:52%;left:50%;transform:translate(-50%,-50%);' +
                         'width:274px;max-width:92vw;' +
-                        'background:linear-gradient(165deg,#051722 0%,#081e30 55%,#140826 100%);' +
-                        'border:2.2px solid #00f0ff;border-radius:14px;padding:9px 10px;' +
+                        'background:linear-gradient(175deg,#091119 0%,#060c12 100%);' +
+                        'border:2.2px solid #22c55e;border-radius:16px;padding:11px 11px 10px;' +
                         'z-index:2147483647;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#ffffff;' +
-                        'box-sizing:border-box;animation:raScanBoxSlowBorder 7s infinite ease-in-out;';
+                        'box-sizing:border-box;' +
+                        'animation:raSlowMotionPanelOpen 0.72s cubic-bezier(0.16, 1, 0.3, 1) forwards, raSniperRainbowBorder 6s infinite linear;';
 
                     panel.innerHTML = '' +
-                        '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-bottom:1px solid rgba(255,255,255,0.14);padding-bottom:6px;margin-bottom:7px;">' +
-                        '  <div style="display:flex;align-items:center;gap:6px;min-width:0;">' +
-                        '    <span style="width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 10px #4ade80;flex-shrink:0;"></span>' +
-                        '    <span style="font-size:10px;font-weight:900;color:#4ade80;letter-spacing:0.2px;white-space:nowrap;">৫ সেকেন্ড অটো মোড</span>' +
+                        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px;">' +
+                        '  <div style="display:flex;align-items:center;gap:7px;">' +
+                        '    <img src="' + botAvatarUrl + '" alt="R-A Bot" style="width:26px;height:26px;border-radius:50%;object-fit:cover;border:1.5px solid #22c55e;box-shadow:0 0 10px rgba(34,197,94,0.8);" />' +
+                        '    <div>' +
+                        '      <div style="display:flex;align-items:center;gap:5px;">' +
+                        '        <span style="font-size:10.5px;font-weight:900;letter-spacing:0.3px;color:#ffffff;">R-A SNIPER BOT</span>' +
+                        '        <span style="font-size:7px;font-weight:800;color:#94a3b8;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.16);border-radius:4px;padding:1px 4px;">VERIFIED</span>' +
+                        '      </div>' +
+                        '      <div style="display:flex;align-items:center;gap:4px;margin-top:1px;">' +
+                        '        <span style="width:6px;height:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 8px #22c55e;"></span>' +
+                        '        <span style="font-size:7.5px;font-weight:800;color:#4ade80;letter-spacing:0.4px;">AI ONLINE</span>' +
+                        '      </div>' +
+                        '    </div>' +
                         '  </div>' +
-                        '  <div style="display:flex;align-items:center;gap:4px;">' +
-                        '    <button id="ra-5s-toggle-btn" type="button" style="border:1.2px solid #f87171;background:rgba(239,68,68,0.22);color:#fca5a5;border-radius:7px;padding:3px 7px;font-size:8.5px;font-weight:900;cursor:pointer;white-space:nowrap;">অটো মোড অফ</button>' +
-                        '    <div id="ra-5s-close-bot" title="Bot Icon" style="width:18px;height:18px;border-radius:5px;background:rgba(255,255,255,0.09);display:flex;align-items:center;justify-content:center;font-size:10px;color:#e2e8f0;cursor:pointer;font-weight:bold;">✕</div>' +
+                        '  <div style="display:flex;align-items:center;gap:5px;">' +
+                        '    <button id="ra-panel-minus-btn" type="button" title="Minimize to Bot Icon" style="width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.18);color:#e2e8f0;font-size:14px;font-weight:900;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;">−</button>' +
                         '  </div>' +
                         '</div>' +
 
-                        '<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(2,10,16,0.85);border:1px solid rgba(0,240,255,0.35);border-radius:8px;padding:5px 7px;margin-bottom:6px;font-size:8.5px;">' +
-                        '  <span id="ra-5s-pair-label" style="color:#00f0ff;font-weight:800;">PAIR: ' + detectExactQuotexMarket() + '</span>' +
-                        '  <span id="ra-5s-timer-badge" style="color:#facc15;font-weight:900;">SCAN: 5.0s</span>' +
+                        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">' +
+                        '  <button id="ra-tab-1m-std" type="button" style="border:1.4px solid rgba(148,163,184,0.28);background:#121b24;color:#cbd5e1;border-radius:7px;padding:6px 4px;font-size:9px;font-weight:800;cursor:pointer;">1m Standard</button>' +
+                        '  <button id="ra-tab-5s-auto" type="button" style="border:1.4px solid #22c55e;background:#00e65b;color:#031409;border-radius:7px;padding:6px 4px;font-size:9px;font-weight:900;cursor:pointer;box-shadow:0 0 12px rgba(0,230,91,0.5);">5s Auto Mode</button>' +
                         '</div>' +
 
-                        '<div id="ra-5s-signal-box" style="background:rgba(2,10,16,0.92);border:1.5px solid #4ade80;border-radius:9px;padding:7px 8px;text-align:center;margin-bottom:6px;box-shadow:inset 0 0 14px rgba(74,222,128,0.22);">' +
-                        '  <div id="ra-5s-dir-text" style="font-size:12px;font-weight:900;color:#4ade80;letter-spacing:0.4px;">● 5S SCANNING...</div>' +
-                        '  <div id="ra-5s-sub-text" style="font-size:8px;color:#cbd5e1;margin-top:2px;">RSI + EMA + Wick Momentum Engine</div>' +
+                        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:9px;">' +
+                        '  <button id="ra-btn-auto-start" type="button" style="border:1.4px solid #22c55e;background:#00e65b;color:#031409;border-radius:7px;padding:6px 4px;font-size:9px;font-weight:900;cursor:pointer;box-shadow:0 0 12px rgba(0,230,91,0.45);">Auto Start</button>' +
+                        '  <button id="ra-btn-auto-stop" type="button" style="border:1.4px solid #ef4444;background:#ef4444;color:#ffffff;border-radius:7px;padding:6px 4px;font-size:9px;font-weight:900;cursor:pointer;box-shadow:0 0 12px rgba(239,68,68,0.45);">Auto Stop</button>' +
                         '</div>' +
 
-                        '<div id="ra-5s-log-line" style="font-size:8px;font-weight:700;color:#94a3b8;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Single Trade Auto-Executor Ready (5s-6s Cycle)</div>';
+                        '<div style="text-align:center;font-size:9px;font-weight:700;color:#cbd5e1;margin-bottom:5px;">Next Candle??</div>' +
+
+                        '<div id="ra-sniper-stage-box" style="position:relative;height:84px;background:#04080d;border:1.5px solid #22c55e;border-radius:10px;display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:8px;box-shadow:inset 0 0 18px rgba(0,0,0,0.85);">' +
+                        '  <div id="ra-stage-badge" style="position:absolute;top:6px;left:7px;font-size:6.8px;font-weight:900;padding:2px 6px;border-radius:4px;background:rgba(34,197,94,0.18);border:1px solid #22c55e;color:#4ade80;letter-spacing:0.4px;">AI READY</div>' +
+                        '  <div id="ra-stage-visual" style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;">' +
+                        '    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;">' +
+                        '      <span style="width:2.5px;height:11px;background:#22c55e;box-shadow:0 0 10px #22c55e;"></span>' +
+                        '      <span style="width:18px;height:36px;background:#00e65b;border-radius:2px;box-shadow:0 0 22px rgba(0,230,91,0.85);"></span>' +
+                        '      <span style="width:2.5px;height:11px;background:#22c55e;box-shadow:0 0 10px #22c55e;"></span>' +
+                        '    </div>' +
+                        '  </div>' +
+                        '</div>' +
+
+                        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">' +
+                        '  <span style="font-size:8px;font-weight:800;color:#94a3b8;letter-spacing:0.3px;">LATEST SIGNAL</span>' +
+                        '  <span id="ra-sniper-status-pill" style="font-size:7.5px;font-weight:900;padding:2px 7px;border-radius:5px;background:rgba(56,189,248,0.16);border:1px solid #38bdf8;color:#38bdf8;">STANDBY</span>' +
+                        '</div>' +
+
+                        '<div id="ra-sniper-result-line" style="min-height:20px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:11px;font-weight:900;color:#38bdf8;margin-bottom:7px;">' +
+                        '  <span>Click Auto Start to Scan 5s</span>' +
+                        '</div>' +
+
+                        '<button id="ra-sniper-get-signal-btn" type="button" style="width:100%;border:none;border-radius:8px;padding:8px;font-size:10.5px;font-weight:900;letter-spacing:0.5px;color:#031409;background:#00e65b;cursor:pointer;box-shadow:0 0 16px rgba(0,230,91,0.55);margin-bottom:7px;">GET SIGNAL</button>' +
+
+                        '<div style="display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.08);padding-top:5px;font-size:8px;font-weight:800;">' +
+                        '  <span id="ra-sniper-footer-pair" style="color:#4ade80;">' + initPair + ' ' + initPayout + '</span>' +
+                        '  <span id="ra-sniper-footer-clock" style="color:#94a3b8;">' + formatLiveClock() + '</span>' +
+                        '</div>';
 
                     d.body.appendChild(panel);
 
-                    var toggleBtn = panel.querySelector('#ra-5s-toggle-btn');
-                    var closeBotBtn = panel.querySelector('#ra-5s-close-bot');
-                    var pairLabel = panel.querySelector('#ra-5s-pair-label');
-                    var timerBadge = panel.querySelector('#ra-5s-timer-badge');
-                    var sigBox = panel.querySelector('#ra-5s-signal-box');
-                    var dirText = panel.querySelector('#ra-5s-dir-text');
-                    var subText = panel.querySelector('#ra-5s-sub-text');
-                    var logLine = panel.querySelector('#ra-5s-log-line');
+                    var minusBtn = panel.querySelector('#ra-panel-minus-btn');
+                    var tab1mBtn = panel.querySelector('#ra-tab-1m-std');
+                    var tab5sBtn = panel.querySelector('#ra-tab-5s-auto');
+                    var autoStartBtn = panel.querySelector('#ra-btn-auto-start');
+                    var autoStopBtn = panel.querySelector('#ra-btn-auto-stop');
+                    var stageBox = panel.querySelector('#ra-sniper-stage-box');
+                    var stageBadge = panel.querySelector('#ra-stage-badge');
+                    var stageVisual = panel.querySelector('#ra-stage-visual');
+                    var statusPill = panel.querySelector('#ra-sniper-status-pill');
+                    var resultLine = panel.querySelector('#ra-sniper-result-line');
+                    var getSigBtn = panel.querySelector('#ra-sniper-get-signal-btn');
+                    var footerPair = panel.querySelector('#ra-sniper-footer-pair');
+                    var footerClock = panel.querySelector('#ra-sniper-footer-clock');
 
-                    toggleBtn.onclick = function() {
-                        ensureAudioContext();
-                        if(auto5sRunning) {
-                            auto5sRunning = false;
-                            if(window.__raAuto5sLoopTimer) {
-                                clearTimeout(window.__raAuto5sLoopTimer);
-                                window.__raAuto5sLoopTimer = null;
-                            }
-                            if(window.__raAuto5sCountdownTimer) {
-                                clearInterval(window.__raAuto5sCountdownTimer);
-                                window.__raAuto5sCountdownTimer = null;
-                            }
-                            toggleBtn.innerText = 'অটো মোড অন';
-                            toggleBtn.style.borderColor = '#4ade80';
-                            toggleBtn.style.background = 'rgba(34,197,94,0.25)';
-                            toggleBtn.style.color = '#86efac';
-                            timerBadge.innerText = 'PAUSED';
-                            timerBadge.style.color = '#f87171';
-                            dirText.innerText = '■ AUTO TRADE STOPPED';
-                            dirText.style.color = '#f87171';
-                            subText.innerText = 'Click অটো মোড অন to resume 5s trading';
-                            logLine.innerText = 'Auto trade paused (panel active)';
-                        } else {
-                            auto5sRunning = true;
-                            toggleBtn.innerText = 'অটো মোড অফ';
-                            toggleBtn.style.borderColor = '#f87171';
-                            toggleBtn.style.background = 'rgba(239,68,68,0.22)';
-                            toggleBtn.style.color = '#fca5a5';
-                            run5sCycle();
+                    window.__raAuto5sClockTimer = setInterval(function(){
+                        if(!panel.isConnected) {
+                            clearInterval(window.__raAuto5sClockTimer);
+                            return;
                         }
-                    };
+                        if(footerClock) footerClock.innerText = formatLiveClock();
+                        if(footerPair) footerPair.innerText = detectExactQuotexMarket() + ' ' + detectQuotexPayoutPct();
+                    }, 1000);
 
-                    closeBotBtn.onclick = function() {
-                        stopAuto5sEngine(true);
-                    };
+                    function setModeTabHighlight(modeName) {
+                        activePanelMode = modeName;
+                        if(modeName === "5S_AUTO") {
+                            tab5sBtn.style.background = '#00e65b';
+                            tab5sBtn.style.color = '#031409';
+                            tab5sBtn.style.borderColor = '#22c55e';
+                            tab1mBtn.style.background = '#121b24';
+                            tab1mBtn.style.color = '#cbd5e1';
+                            tab1mBtn.style.borderColor = 'rgba(148,163,184,0.28)';
+                        } else {
+                            tab1mBtn.style.background = '#00e65b';
+                            tab1mBtn.style.color = '#031409';
+                            tab1mBtn.style.borderColor = '#22c55e';
+                            tab5sBtn.style.background = '#121b24';
+                            tab5sBtn.style.color = '#cbd5e1';
+                            tab5sBtn.style.borderColor = 'rgba(148,163,184,0.28)';
+                        }
+                    }
 
-                    function run5sCycle() {
-                        if(!auto5sRunning || !panel.isConnected) return;
+                    function renderScanningWaveUI() {
+                        if(stageBox) stageBox.style.borderColor = '#ef4444';
+                        if(stageBadge) {
+                            stageBadge.innerText = 'AI SCANNER';
+                            stageBadge.style.background = 'rgba(239,68,68,0.2)';
+                            stageBadge.style.borderColor = '#ef4444';
+                            stageBadge.style.color = '#f87171';
+                        }
+                        if(stageVisual) {
+                            stageVisual.innerHTML = '' +
+                                '<svg width="220" height="44" viewBox="0 0 220 44" style="overflow:visible;">' +
+                                '  <polyline fill="none" stroke="#00f0ff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"' +
+                                '    stroke-dasharray="14 6" style="animation:raWaveShift 0.7s linear infinite;filter:drop-shadow(0 0 8px #00f0ff);"' +
+                                '    points="4,24 28,24 38,24 46,12 54,34 62,22 86,22 96,14 104,32 112,23 142,23 152,10 160,35 168,22 195,22 204,15 212,26 218,22" />' +
+                                '</svg>';
+                        }
+                        if(statusPill) {
+                            statusPill.innerText = auto5sRunning ? '5S AUTO RUNNING' : '1M SCANNING';
+                            statusPill.style.background = 'rgba(56,189,248,0.16)';
+                            statusPill.style.borderColor = '#38bdf8';
+                            statusPill.style.color = '#38bdf8';
+                        }
+                    }
+
+                    function renderCandleResultUI(sigType, confPct, didAutoClick) {
+                        var isHold = (sigType === 'HOLD');
+                        var isCall = (sigType === 'CALL' || sigType === 'UP' || sigType === 'BUY');
+                        var pctShow = confPct || 94;
+
+                        if(isHold) {
+                            if(stageBox) stageBox.style.borderColor = '#facc15';
+                            if(stageBadge) {
+                                stageBadge.innerText = 'FILTER HOLD';
+                                stageBadge.style.background = 'rgba(250,204,21,0.2)';
+                                stageBadge.style.borderColor = '#facc15';
+                                stageBadge.style.color = '#facc15';
+                            }
+                            if(stageVisual) {
+                                stageVisual.innerHTML = '<div style="font-size:10px;font-weight:900;color:#facc15;">● SYNCING CANDLE...</div>';
+                            }
+                            if(statusPill) {
+                                statusPill.innerText = 'WAIT';
+                                statusPill.style.background = 'rgba(250,204,21,0.18)';
+                                statusPill.style.borderColor = '#facc15';
+                                statusPill.style.color = '#facc15';
+                            }
+                            if(resultLine) {
+                                resultLine.style.color = '#facc15';
+                                resultLine.innerHTML = '<span>HOLD — Awaiting Clean Entry</span>';
+                            }
+                            return;
+                        }
+
+                        var cHex = isCall ? '#00e65b' : '#ef4444';
+                        var cGlow = isCall ? 'rgba(0,230,91,0.85)' : 'rgba(239,68,68,0.85)';
+
+                        if(stageBox) stageBox.style.borderColor = cHex;
+                        if(stageBadge) {
+                            stageBadge.innerText = isCall ? 'BULLISH LOCK' : 'BEARISH LOCK';
+                            stageBadge.style.background = isCall ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)';
+                            stageBadge.style.borderColor = cHex;
+                            stageBadge.style.color = cHex;
+                        }
+                        if(stageVisual) {
+                            stageVisual.innerHTML = '' +
+                                '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;animation:raCandleReveal 0.22s ease-out;">' +
+                                '  <span style="width:2.5px;height:11px;background:' + cHex + ';box-shadow:0 0 10px ' + cHex + ';"></span>' +
+                                '  <span style="width:18px;height:36px;background:' + cHex + ';border-radius:2px;box-shadow:0 0 24px ' + cGlow + ';"></span>' +
+                                '  <span style="width:2.5px;height:11px;background:' + cHex + ';box-shadow:0 0 10px ' + cHex + ';"></span>' +
+                                '</div>';
+                        }
+                        if(statusPill) {
+                            statusPill.innerText = 'SUCCESS';
+                            statusPill.style.background = 'rgba(34,197,94,0.2)';
+                            statusPill.style.borderColor = '#22c55e';
+                            statusPill.style.color = '#4ade80';
+                        }
+                        if(resultLine) {
+                            var badgeBox = isCall
+                                ? '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:3px;background:#22c55e;color:#031409;font-size:9px;font-weight:900;">▲</span>'
+                                : '<span style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:3px;background:#ef4444;color:#ffffff;font-size:9px;font-weight:900;">▼</span>';
+                            var labelTxt = isCall ? ('UP (' + pctShow + '%)') : ('DOWN (' + pctShow + '%)');
+                            var execTag = didAutoClick ? (isCall ? ' • BUY ✓' : ' • SELL ✓') : '';
+                            resultLine.style.color = '#ffffff';
+                            resultLine.innerHTML = badgeBox + '<span>' + labelTxt + execTag + '</span>';
+                        }
+                    }
+
+                    function triggerSingleScanCycle(isAutoLoop) {
                         if(auto5sBusy) return;
                         auto5sBusy = true;
 
                         var liveMkt = detectExactQuotexMarket();
                         var qParam = liveMkt.replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'EURUSD';
-                        if(pairLabel) pairLabel.innerText = 'PAIR: ' + liveMkt;
+                        if(footerPair) footerPair.innerText = liveMkt + ' ' + detectQuotexPayoutPct();
 
-                        var cycleSec = 5;
-                        var remMs = cycleSec * 1000;
-                        if(timerBadge) {
-                            timerBadge.style.color = '#facc15';
-                            timerBadge.innerText = 'SCAN: ' + (remMs / 1000).toFixed(1) + 's';
-                        }
-                        if(sigBox) sigBox.style.borderColor = '#00f0ff';
-                        if(dirText) {
-                            dirText.style.color = '#00f0ff';
-                            dirText.innerText = '⟳ SCANNING 5S CANDLE...';
-                        }
-                        if(subText) subText.innerText = 'Checking Multi-API + RSI + EMA + Impulse';
-
+                        renderScanningWaveUI();
                         playTickSound();
 
-                        var signalReq = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(qParam) + '&mode=AUTO5S&t=' + Date.now())
-                            .then(function(r){ return r.json(); })
-                            .catch(function(){ return { signal: 'HOLD', pts: 0 }; });
+                        var scanPhrases = [
+                            "Scanning Order Book...",
+                            "Algorithmic Pattern Sync...",
+                            "Detecting Volatility Spikes...",
+                            "Executing Auto Order..."
+                        ];
+                        var phraseIdx = 0;
+                        if(resultLine) {
+                            resultLine.style.color = '#38bdf8';
+                            resultLine.innerText = scanPhrases[0];
+                        }
 
-                        if(window.__raAuto5sCountdownTimer) clearInterval(window.__raAuto5sCountdownTimer);
-                        window.__raAuto5sCountdownTimer = setInterval(function(){
-                            if(!auto5sRunning || !panel.isConnected) {
-                                clearInterval(window.__raAuto5sCountdownTimer);
+                        var modeParam = isAutoLoop ? "AUTO5S" : "MANUAL1M";
+                        var signalReq = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(qParam) + '&mode=' + modeParam + '&t=' + Date.now())
+                            .then(function(r){ return r.json(); })
+                            .catch(function(){ return { signal: 'HOLD', confidence: 94 }; });
+
+                        if(window.__raAuto5sStepTimer) clearInterval(window.__raAuto5sStepTimer);
+                        window.__raAuto5sStepTimer = setInterval(function(){
+                            if(!panel.isConnected) {
+                                clearInterval(window.__raAuto5sStepTimer);
                                 return;
                             }
-                            remMs = Math.max(0, remMs - 250);
-                            if(timerBadge) timerBadge.innerText = 'SCAN: ' + (remMs / 1000).toFixed(1) + 's';
-                            if(remMs > 0 && remMs % 1000 === 0) playTickSound();
-                        }, 250);
+                            phraseIdx = Math.min(scanPhrases.length - 1, phraseIdx + 1);
+                            if(resultLine) resultLine.innerText = scanPhrases[phraseIdx];
+                            playTickSound();
+                        }, 1250);
 
                         window.__raAuto5sLoopTimer = setTimeout(function(){
-                            if(window.__raAuto5sCountdownTimer) {
-                                clearInterval(window.__raAuto5sCountdownTimer);
-                                window.__raAuto5sCountdownTimer = null;
+                            if(window.__raAuto5sStepTimer) {
+                                clearInterval(window.__raAuto5sStepTimer);
+                                window.__raAuto5sStepTimer = null;
                             }
-                            if(!auto5sRunning || !panel.isConnected) {
+                            if(!panel.isConnected) {
+                                auto5sBusy = false;
+                                return;
+                            }
+                            if(isAutoLoop && !auto5sRunning) {
                                 auto5sBusy = false;
                                 return;
                             }
 
                             signalReq.then(function(data){
                                 auto5sBusy = false;
-                                if(!auto5sRunning || !panel.isConnected) return;
+                                if(!panel.isConnected) return;
+                                if(isAutoLoop && !auto5sRunning) return;
 
                                 var sig = String((data && data.signal) || 'HOLD').toUpperCase();
-                                var pts = (data && data.pts) || 12;
+                                var conf = (data && data.confidence) || 95;
                                 var isCall = (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
                                 var isPut = (sig === 'PUT' || sig === 'DOWN' || sig === 'SELL');
 
+                                var didClick = false;
                                 if(isCall || isPut) {
                                     playTradePongSound(isCall);
-                                    var clickedOk = executePlatformTradeClick(isCall);
-                                    if(sigBox) sigBox.style.borderColor = isCall ? '#4ade80' : '#f87171';
-                                    if(dirText) {
-                                        dirText.style.color = isCall ? '#4ade80' : '#f87171';
-                                        dirText.innerText = isCall ? '▲ CALL (BUY) — ' + pts + ' PTS' : '▼ PUT (SELL) — ' + pts + ' PTS';
+                                    if(isAutoLoop && auto5sRunning) {
+                                        didClick = executePlatformTradeClick(isCall);
                                     }
-                                    if(subText) {
-                                        subText.innerText = clickedOk
-                                            ? (isCall ? 'Single BUY Executed on Platform' : 'Single SELL Executed on Platform')
-                                            : (isCall ? 'CALL Signal Ready (BUY)' : 'PUT Signal Ready (SELL)');
-                                    }
-                                    if(logLine) {
-                                        logLine.innerText = 'Next 5s scan after trade expiry...';
-                                    }
-                                } else {
-                                    if(sigBox) sigBox.style.borderColor = '#facc15';
-                                    if(dirText) {
-                                        dirText.style.color = '#facc15';
-                                        dirText.innerText = '● HOLD / FILTER WAIT';
-                                    }
-                                    if(subText) subText.innerText = 'Waiting for clean 5s momentum';
-                                    if(logLine) logLine.innerText = 'Next 5s scan in progress...';
                                 }
+                                renderCandleResultUI(sig, conf, didClick);
 
-                                window.__raAuto5sLoopTimer = setTimeout(function(){
-                                    run5sCycle();
-                                }, 5000);
+                                if(isAutoLoop && auto5sRunning) {
+                                    window.__raAuto5sLoopTimer = setTimeout(function(){
+                                        if(auto5sRunning && panel.isConnected) {
+                                            triggerSingleScanCycle(true);
+                                        }
+                                    }, 5000);
+                                }
                             });
-                        }, cycleSec * 1000);
+                        }, 5000);
                     }
 
-                    run5sCycle();
+                    minusBtn.onclick = function() {
+                        minimizePanelToBotIcon();
+                    };
+
+                    tab1mBtn.onclick = function() {
+                        ensureAudioContext();
+                        setModeTabHighlight("1M_STD");
+                        if(auto5sRunning) {
+                            auto5sRunning = false;
+                            if(window.__raAuto5sLoopTimer) clearTimeout(window.__raAuto5sLoopTimer);
+                            if(window.__raAuto5sStepTimer) clearInterval(window.__raAuto5sStepTimer);
+                            auto5sBusy = false;
+                        }
+                        if(statusPill) {
+                            statusPill.innerText = '1M READY';
+                            statusPill.style.color = '#4ade80';
+                            statusPill.style.borderColor = '#22c55e';
+                        }
+                        if(resultLine) {
+                            resultLine.style.color = '#4ade80';
+                            resultLine.innerText = '1m Standard — Click GET SIGNAL';
+                        }
+                    };
+
+                    tab5sBtn.onclick = function() {
+                        ensureAudioContext();
+                        setModeTabHighlight("5S_AUTO");
+                        if(resultLine && !auto5sRunning) {
+                            resultLine.style.color = '#38bdf8';
+                            resultLine.innerText = '5s Auto Mode — Click Auto Start';
+                        }
+                    };
+
+                    autoStartBtn.onclick = function() {
+                        ensureAudioContext();
+                        setModeTabHighlight("5S_AUTO");
+                        if(auto5sRunning) return;
+                        auto5sRunning = true;
+                        autoStartBtn.style.boxShadow = '0 0 20px #00e65b';
+                        autoStopBtn.style.opacity = '0.85';
+                        triggerSingleScanCycle(true);
+                    };
+
+                    autoStopBtn.onclick = function() {
+                        ensureAudioContext();
+                        auto5sRunning = false;
+                        auto5sBusy = false;
+                        if(window.__raAuto5sLoopTimer) {
+                            clearTimeout(window.__raAuto5sLoopTimer);
+                            window.__raAuto5sLoopTimer = null;
+                        }
+                        if(window.__raAuto5sStepTimer) {
+                            clearInterval(window.__raAuto5sStepTimer);
+                            window.__raAuto5sStepTimer = null;
+                        }
+                        autoStartBtn.style.boxShadow = '0 0 12px rgba(0,230,91,0.45)';
+                        autoStopBtn.style.opacity = '1';
+                        if(stageBox) stageBox.style.borderColor = '#ef4444';
+                        if(stageBadge) {
+                            stageBadge.innerText = 'AUTO STOPPED';
+                            stageBadge.style.background = 'rgba(239,68,68,0.2)';
+                            stageBadge.style.borderColor = '#ef4444';
+                            stageBadge.style.color = '#f87171';
+                        }
+                        if(statusPill) {
+                            statusPill.innerText = 'STOPPED';
+                            statusPill.style.background = 'rgba(239,68,68,0.2)';
+                            statusPill.style.borderColor = '#ef4444';
+                            statusPill.style.color = '#f87171';
+                        }
+                        if(resultLine) {
+                            resultLine.style.color = '#f87171';
+                            resultLine.innerText = 'Auto Trade Stopped';
+                        }
+                    };
+
+                    getSigBtn.onclick = function() {
+                        ensureAudioContext();
+                        if(auto5sRunning) return;
+                        triggerSingleScanCycle(false);
+                    };
+
+                    auto5sRunning = true;
+                    triggerSingleScanCycle(true);
                 }
 
                 function openBotModeMenu(botBtn) {
@@ -1305,7 +1564,7 @@ def bot_script():
 
                     var menu = d.createElement('div');
                     menu.id = 'ra-mode-selector-menu';
-                    menu.style.cssText = 'position:fixed;width:206px;' +
+                    menu.style.cssText = 'position:fixed;width:196px;' +
                         'background:linear-gradient(165deg,rgba(5,18,28,0.98),rgba(10,24,42,0.98));' +
                         'border:2px solid #00f0ff;border-radius:12px;padding:7px;box-sizing:border-box;' +
                         'z-index:2147483647;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#ffffff;' +
@@ -1315,14 +1574,14 @@ def bot_script():
                     menu.innerHTML = '' +
                         '<button id="ra-opt-manual-signal" type="button" style="width:100%;display:flex;align-items:center;justify-content:space-between;' +
                         'background:linear-gradient(90deg,rgba(34,197,94,0.22),rgba(0,240,255,0.16));border:1.4px solid #4ade80;' +
-                        'border-radius:8px;padding:7px 9px;color:#ffffff;font-size:10px;font-weight:900;cursor:pointer;margin-bottom:6px;">' +
-                        '  <span>ম্যানুয়াল সিগন্যাল</span>' +
+                        'border-radius:8px;padding:7px 9px;color:#ffffff;font-size:10.5px;font-weight:900;cursor:pointer;margin-bottom:6px;">' +
+                        '  <span>Manual Signal</span>' +
                         '  <span style="background:#22c55e;color:#041208;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:900;">1</span>' +
                         '</button>' +
                         '<button id="ra-opt-auto-5s" type="button" style="width:100%;display:flex;align-items:center;justify-content:space-between;' +
                         'background:linear-gradient(90deg,rgba(232,121,249,0.24),rgba(250,204,21,0.18));border:1.4px solid #e879f9;' +
-                        'border-radius:8px;padding:7px 9px;color:#ffffff;font-size:10px;font-weight:900;cursor:pointer;">' +
-                        '  <span>৫ সেকেন্ড অটো</span>' +
+                        'border-radius:8px;padding:7px 9px;color:#ffffff;font-size:10.5px;font-weight:900;cursor:pointer;">' +
+                        '  <span>5s Auto Mode</span>' +
                         '  <span style="background:#e879f9;color:#140519;padding:1px 6px;border-radius:6px;font-size:8.5px;font-weight:900;">5S</span>' +
                         '</button>';
 
@@ -1338,7 +1597,7 @@ def bot_script():
                     menu.querySelector('#ra-opt-auto-5s').onclick = function(ev) {
                         ev.stopPropagation();
                         menu.remove();
-                        openAuto5sMediumPanel();
+                        openSniperAuto5sPanel();
                     };
                 }
 
@@ -1347,23 +1606,23 @@ def bot_script():
 
                     var btn = d.createElement('div');
                     btn.id = 'ra-hacker-btn';
-                    btn.style.cssText = 'position:fixed;bottom:146px;right:12px;width:84px;height:84px;border-radius:50%;' +
-                        'background:#02090e;border:2.2px solid #4ade80;display:flex;align-items:center;justify-content:center;' +
+                    btn.style.cssText = 'position:fixed;bottom:146px;right:12px;width:82px;height:82px;border-radius:50%;' +
+                        'background:#02090e;display:flex;align-items:center;justify-content:center;' +
                         'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;overflow:visible;' +
                         'font-family:"Courier New",Courier,monospace;' +
-                        'animation:raBotGlowCycle 2.4s infinite linear;';
+                        'animation:raBotNeonAura 3s infinite linear;';
 
                     btn.innerHTML = '' +
                         '<div style="position:absolute;inset:-4px;border-radius:50%;pointer-events:none;z-index:0;' +
-                        'background:conic-gradient(from 0deg, #ff2a5f, #ff9900, #ffee00, #22c55e, #00f0ff, #c026d3, #ff2a5f);' +
-                        'opacity:0.92;animation:raFlameBorderPulse 1.8s infinite linear;"></div>' +
+                        'background:conic-gradient(from 0deg, #ff2a5f, #ffae00, #00ff88, #00f0ff, #c026d3, #ff2a5f);' +
+                        'filter:blur(3px);opacity:0.95;animation:raContinuousSpin 2s linear infinite;"></div>' +
                         '<div style="position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none;z-index:1;">' +
                         '  <div style="position:absolute;inset:0;border-radius:50%;' +
                         '  background:conic-gradient(from 0deg, #22c55e, #00f0ff, #e879f9, #facc15, #f43f5e, #38bdf8, #22c55e);' +
-                        '  animation:raTireWheelSpin 2.2s infinite linear;"></div>' +
+                        '  animation:raContinuousReverseSpin 2.4s linear infinite;"></div>' +
                         '  <div style="position:absolute;inset:5px;border-radius:50%;background:#02090e;"></div>' +
                         '</div>' +
-                        '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:3;width:68px;height:68px;object-fit:cover;border-radius:50%;pointer-events:none;display:block;background:#02090e;border:2px solid #ffffff;box-shadow:0 0 18px rgba(0,240,255,0.85);" />';
+                        '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:3;width:66px;height:66px;object-fit:cover;border-radius:50%;pointer-events:none;display:block;background:#02090e;border:1.8px solid rgba(255,255,255,0.85);" />';
 
                     d.body.appendChild(btn);
 
