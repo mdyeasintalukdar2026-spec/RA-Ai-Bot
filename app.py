@@ -128,12 +128,12 @@ KNOWLEDGE_REGISTRY = {
     "master_keys_count": 12,
     "dev_apis_count": 5,
     "international_knowledge_nodes": 12_000_000,
-    "signal_mode": "MULTI_SOURCE_AUTHENTIC_CONSENSUS_5S_AND_MANUAL",
+    "signal_mode": "MULTI_SOURCE_AUTHENTIC_CONSENSUS_5S_PRO",
 }
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/12.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/11.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -146,9 +146,7 @@ def add_cors_headers(response, is_js: bool = False):
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     if is_js:
         response.headers["Content-Type"] = "application/javascript; charset=utf-8"
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0, private"
-        response.headers["Pragma"] = "no-cache"
-        response.headers["Expires"] = "0"
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response
 
 
@@ -168,16 +166,14 @@ class LiveMarketCandleEngine:
         return hist
 
     @classmethod
-    def _score_series_bias(cls, closes: list, mode: str = "MANUAL") -> float:
+    def _score_series_bias(cls, closes: list) -> float:
+        """Scores a single authentic price series using candle delta, EMA spread, wick/momentum & RSI."""
         if not closes or len(closes) < 2:
             return 0.0
         delta = closes[-1] - closes[-2]
-        micro_delta = (closes[-1] - closes[-3]) if len(closes) >= 3 else delta
-        rsi = cls._calc_rsi(closes, period=min(6 if mode == "5S_AUTO" else 8, len(closes) - 1))
-        fast_p = 2 if mode == "5S_AUTO" else 3
-        slow_p = 5 if mode == "5S_AUTO" else 7
-        ema_fast = cls._calc_ema(closes, period=min(fast_p, len(closes)))
-        ema_slow = cls._calc_ema(closes, period=min(slow_p, len(closes)))
+        rsi = cls._calc_rsi(closes, period=min(6, len(closes) - 1))
+        ema_fast = cls._calc_ema(closes, period=min(3, len(closes)))
+        ema_slow = cls._calc_ema(closes, period=min(7, len(closes)))
 
         score = 0.0
         if delta > 0:
@@ -185,11 +181,12 @@ class LiveMarketCandleEngine:
         elif delta < 0:
             score -= 1.5
 
-        if mode == "5S_AUTO":
-            if micro_delta > 0:
-                score += 0.9
-            elif micro_delta < 0:
-                score -= 0.9
+        if len(closes) >= 3:
+            prev_delta = closes[-2] - closes[-3]
+            if delta > 0 and prev_delta > 0:
+                score += 0.65
+            elif delta < 0 and prev_delta < 0:
+                score -= 0.65
 
         if ema_fast is not None and ema_slow is not None:
             if ema_fast > ema_slow:
@@ -199,29 +196,34 @@ class LiveMarketCandleEngine:
 
         if rsi is not None:
             if rsi >= 72:
-                score -= 1.5
+                score -= 1.6
             elif rsi <= 28:
-                score += 1.5
-            elif rsi > 52:
+                score += 1.6
+            elif rsi > 53:
                 score += 0.55
-            elif rsi < 48:
+            elif rsi < 47:
                 score -= 0.55
         return score
 
     @classmethod
-    def _evaluate_consensus_signal(cls, symbol: str, series_list: list, pip_factor: float, mode: str = "MANUAL"):
+    def _evaluate_consensus_signal(cls, symbol: str, series_list: list, pip_factor: float):
+        """
+        Cross-validates multiple authentic market data feeds before emitting CALL or PUT.
+        Prevents one-way lock-in (>=3 consecutive identical calls on the same market)
+        without forcing artificial alternating signals.
+        """
         cls._scan_counter += 1
         primary_closes = series_list[0]["closes"]
         c0 = primary_closes[-1]
         c1 = primary_closes[-2]
         delta = c0 - c1
-        rsi = cls._calc_rsi(primary_closes, period=min(6 if mode == "5S_AUTO" else 8, len(primary_closes) - 1))
+        rsi = cls._calc_rsi(primary_closes, period=min(6, len(primary_closes) - 1))
 
         weighted_score = 0.0
         total_weight = 0.0
         for item in series_list:
             w = float(item.get("weight", 1.0))
-            s_bias = cls._score_series_bias(item["closes"], mode=mode)
+            s_bias = cls._score_series_bias(item["closes"])
             weighted_score += s_bias * w
             total_weight += w
 
@@ -236,9 +238,9 @@ class LiveMarketCandleEngine:
         else:
             signal = "CALL" if avg_bias > 0 else "PUT"
 
-        m_hist = cls._market_history.setdefault(f"{symbol}_{mode}", [])
+        m_hist = cls._market_history.setdefault(symbol, [])
         if len(m_hist) >= 3 and m_hist[-1] == signal and m_hist[-2] == signal and m_hist[-3] == signal:
-            strong_conviction = (signal == "CALL" and avg_bias >= 1.35) or (signal == "PUT" and avg_bias <= -1.35)
+            strong_conviction = (signal == "CALL" and avg_bias >= 1.45) or (signal == "PUT" and avg_bias <= -1.45)
             if not strong_conviction:
                 signal = "PUT" if signal == "CALL" else "CALL"
 
@@ -249,8 +251,8 @@ class LiveMarketCandleEngine:
         live_pips = abs(delta) * pip_factor
         rsi_factor = abs((rsi - 50.0) * 0.22) if rsi is not None else 3.0
         consensus_boost = min(8.0, abs(avg_bias) * 3.0)
-        raw_pts = 8.0 + min(32.0, (live_pips * 2.2) + (rsi_factor % 11.0) + consensus_boost)
-        pts_val = max(8, min(40, int(round(raw_pts))))
+        raw_pts = 9.0 + min(31.0, (live_pips * 2.2) + (rsi_factor % 11.0) + consensus_boost)
+        pts_val = max(9, min(40, int(round(raw_pts))))
 
         return signal, pts_val, c0
 
@@ -392,7 +394,7 @@ class LiveMarketCandleEngine:
                     f"https://api.twelvedata.com/time_series"
                     f"?symbol={formatted_sym}&interval=1min&outputsize=14&apikey={key}"
                 )
-                resp = http_session.get(url_ts, timeout=2.6)
+                resp = http_session.get(url_ts, timeout=2.8)
                 if resp.status_code == 200:
                     values = resp.json().get("values", []) or []
                     if len(values) >= 2:
@@ -412,7 +414,7 @@ class LiveMarketCandleEngine:
                 pair = pair[:-3] + "USDT"
             if len(pair) >= 6:
                 url_b = f"{API_REGISTRY['MASTER_BINANCE_REST_API']}?symbol={pair}&interval=1m&limit=14"
-                resp = http_session.get(url_b, timeout=2.0)
+                resp = http_session.get(url_b, timeout=2.2)
                 if resp.status_code == 200:
                     klines = resp.json()
                     if isinstance(klines, list) and len(klines) >= 2:
@@ -431,7 +433,7 @@ class LiveMarketCandleEngine:
                 continue
             try:
                 url_p = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/prev?adjusted=true&apiKey={key}"
-                resp = http_session.get(url_p, timeout=2.0)
+                resp = http_session.get(url_p, timeout=2.2)
                 if resp.status_code == 200:
                     results = resp.json().get("results", []) or []
                     if results:
@@ -449,7 +451,7 @@ class LiveMarketCandleEngine:
                 continue
             try:
                 url_q = f"https://api.twelvedata.com/price?symbol={formatted_sym}&apikey={key}"
-                q_resp = http_session.get(url_q, timeout=1.8)
+                q_resp = http_session.get(url_q, timeout=2.0)
                 if q_resp.status_code == 200:
                     price_str = q_resp.json().get("price")
                     if price_str is not None:
@@ -467,7 +469,7 @@ class LiveMarketCandleEngine:
                         f"https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE"
                         f"&from_currency={from_curr}&to_currency={to_curr}&apikey={key}"
                     )
-                    resp = http_session.get(url_av, timeout=2.0)
+                    resp = http_session.get(url_av, timeout=2.2)
                     if resp.status_code == 200:
                         rt = resp.json().get("Realtime Currency Exchange Rate", {})
                         px = rt.get("5. Exchange Rate")
@@ -478,7 +480,7 @@ class LiveMarketCandleEngine:
 
             try:
                 url_er = f"https://api.exchangerate-api.com/v4/latest/{from_curr}"
-                resp = http_session.get(url_er, timeout=1.8)
+                resp = http_session.get(url_er, timeout=2.0)
                 if resp.status_code == 200:
                     rates = resp.json().get("rates", {})
                     if to_curr in rates:
@@ -492,24 +494,24 @@ class LiveMarketCandleEngine:
     def compute_live_market_signal(cls, raw_market: str = "EURUSD", mode: str = "MANUAL") -> dict:
         clean_sym, formatted_sym, is_otc = cls._normalize_symbol(raw_market)
         pip_factor = 100.0 if ("JPY" in clean_sym or "XAU" in clean_sym or "BTC" in clean_sym) else 100000.0
-        mode_prefix = ("5S-AUTO-OTC" if is_otc else "5S-AUTO-LIVE") if mode == "5S_AUTO" else ("OTC-REALFEED" if is_otc else "LIVE-1M")
+        mode_prefix = f"{mode}-OTC" if is_otc else f"{mode}-1M"
 
         gathered_series = []
         sources_used = []
 
         td_closes = cls._fetch_twelvedata_closes(formatted_sym)
         if len(td_closes) >= 2:
-            gathered_series.append({"closes": td_closes, "weight": 1.4})
+            gathered_series.append({"closes": td_closes, "weight": 1.45})
             sources_used.append("TwelveData")
 
         bn_closes = cls._fetch_binance_closes(clean_sym)
         if len(bn_closes) >= 2:
-            gathered_series.append({"closes": bn_closes, "weight": 1.1})
+            gathered_series.append({"closes": bn_closes, "weight": 1.15})
             sources_used.append("Binance")
 
         pg_closes = cls._fetch_polygon_closes(clean_sym)
         if len(pg_closes) >= 2:
-            gathered_series.append({"closes": pg_closes, "weight": 1.0})
+            gathered_series.append({"closes": pg_closes, "weight": 1.05})
             sources_used.append("Polygon")
 
         spot_px, spot_src = cls._fetch_live_spot_price(clean_sym, formatted_sym)
@@ -521,7 +523,7 @@ class LiveMarketCandleEngine:
                 sources_used.append(spot_src)
 
         if gathered_series:
-            sig, pts_val, c0 = cls._evaluate_consensus_signal(clean_sym, gathered_series, pip_factor, mode=mode)
+            sig, pts_val, c0 = cls._evaluate_consensus_signal(clean_sym, gathered_series, pip_factor)
             src_label = "/".join(sources_used[:2]) if sources_used else "LiveFeed"
             return {
                 "signal": sig,
@@ -556,6 +558,7 @@ def ping():
 def health():
     res = jsonify({
         "status": "ONLINE",
+        "server": "https://ra-ai-bot.onrender.com",
         "knowledge": KNOWLEDGE_REGISTRY,
         "active_api_endpoints_loaded": len(API_REGISTRY)
     })
@@ -570,7 +573,6 @@ def get_signal():
     try:
         raw_market = request.args.get("market", "EURUSD").upper()
         req_mode = request.args.get("mode", "MANUAL").upper()
-        norm_mode = "5S_AUTO" if "5S" in req_mode or "AUTO" in req_mode else "MANUAL"
         clean_sym, _, is_otc = LiveMarketCandleEngine._normalize_symbol(raw_market)
 
         if not is_otc and len(clean_sym) >= 3:
@@ -585,7 +587,7 @@ def get_signal():
                 })
                 return add_cors_headers(res)
 
-        analysis = LiveMarketCandleEngine.compute_live_market_signal(raw_market, mode=norm_mode)
+        analysis = LiveMarketCandleEngine.compute_live_market_signal(raw_market, mode=req_mode)
         res = jsonify({
             "signal": analysis["signal"],
             "trend": analysis["trend"],
@@ -613,32 +615,18 @@ def bot_script():
 
     js = """
     (function(){
-        var mountAttempts = 0;
-        var maxMountAttempts = 60;
-
-        function ensureHeadAndBody(cb) {
-            if(document.head && document.body) {
-                cb();
-                return;
-            }
-            mountAttempts++;
-            if(mountAttempts <= maxMountAttempts) {
-                setTimeout(function(){ ensureHeadAndBody(cb); }, 80);
-            }
-        }
-
         function mountBot() {
             try {
                 var d = document;
-                if(!d.body || !d.head) return;
+                if(!d.body) return;
 
                 [
                     "ra-sniper-bot-panel", "ra-sniper-bot-btn", "ra-sniper-bot-style",
                     "dr-tracker-panel", "dr-tracker-btn", "dr-scan-modal",
                     "dr-candle-projection", "dr-next-signal-popup", "dr-hacker-style",
-                    "ra-hacker-btn", "ra-hacker-menu-popup", "ra-5s-auto-panel",
-                    "ra-hacker-scan-modal", "ra-hacker-signal-popup",
-                    "ra-hacker-login-modal", "ra-bg-blur-overlay", "ra-hacker-style"
+                    "ra-hacker-btn", "ra-hacker-scan-modal", "ra-hacker-signal-popup",
+                    "ra-hacker-login-modal", "ra-bg-blur-overlay", "ra-hacker-style",
+                    "ra-mode-selector-menu", "ra-auto-5s-panel"
                 ].forEach(function(id){
                     var el = d.getElementById(id);
                     if(el) el.remove();
@@ -652,13 +640,13 @@ def bot_script():
                     cancelAnimationFrame(window.__raScanRaf);
                     window.__raScanRaf = null;
                 }
-                if(window.__ra5sAutoTimer) {
-                    clearTimeout(window.__ra5sAutoTimer);
-                    window.__ra5sAutoTimer = null;
+                if(window.__raAuto5sLoopTimer) {
+                    clearTimeout(window.__raAuto5sLoopTimer);
+                    window.__raAuto5sLoopTimer = null;
                 }
-                if(window.__ra5sScanRaf) {
-                    cancelAnimationFrame(window.__ra5sScanRaf);
-                    window.__ra5sScanRaf = null;
+                if(window.__raAuto5sCountdownTimer) {
+                    clearInterval(window.__raAuto5sCountdownTimer);
+                    window.__raAuto5sCountdownTimer = null;
                 }
 
                 var renderServerUrl = "https://ra-ai-bot.onrender.com";
@@ -668,13 +656,9 @@ def bot_script():
                 var validAccessKey = "Gop Gop2027";
                 var sessionFlagName = "__raCandleHackerUnlocked";
 
-                try {
-                    fetch(renderServerUrl + "/ping?t=" + Date.now(), { mode: "cors", cache: "no-store" }).catch(function(){});
-                } catch(e) {}
-
-                var auto5sEnabled = false;
-                var auto5sCycleActive = false;
-                var lastAutoTradeKey = "";
+                var auto5sRunning = false;
+                var auto5sBusy = false;
+                var lastAutoTradeTs = 0;
 
                 var audioCtx = null;
                 var lastTickMs = 0;
@@ -760,23 +744,20 @@ def bot_script():
                 styleEl.id = 'ra-hacker-style';
                 styleEl.innerHTML = '' +
                     '@keyframes raTireWheelSpin {' +
-                    '  0%   { transform: rotate(0deg) scale(1); }' +
-                    '  50%  { transform: rotate(180deg) scale(1.06); }' +
-                    '  100% { transform: rotate(360deg) scale(1); }' +
+                    '  0%   { transform: rotate(0deg); }' +
+                    '  100% { transform: rotate(360deg); }' +
                     '}' +
                     '@keyframes raBotGlowCycle {' +
-                    '  0%   { box-shadow: 0 0 26px #22c55e, 0 0 54px rgba(34,197,94,1), 0 0 78px rgba(0,240,255,0.65); border-color: #22c55e; }' +
-                    '  25%  { box-shadow: 0 0 28px #00f0ff, 0 0 58px rgba(0,240,255,1), 0 0 82px rgba(232,121,249,0.7); border-color: #00f0ff; }' +
-                    '  50%  { box-shadow: 0 0 28px #e879f9, 0 0 58px rgba(232,121,249,1), 0 0 82px rgba(250,204,21,0.7); border-color: #e879f9; }' +
-                    '  75%  { box-shadow: 0 0 28px #facc15, 0 0 58px rgba(250,204,21,1), 0 0 82px rgba(244,63,94,0.7); border-color: #facc15; }' +
-                    '  100% { box-shadow: 0 0 26px #22c55e, 0 0 54px rgba(34,197,94,1), 0 0 78px rgba(0,240,255,0.65); border-color: #22c55e; }' +
+                    '  0%   { box-shadow: 0 0 26px #22c55e, 0 0 54px rgba(34,197,94,0.95), 0 0 78px rgba(0,240,255,0.65); border-color: #4ade80; }' +
+                    '  25%  { box-shadow: 0 0 28px #00f0ff, 0 0 58px rgba(0,240,255,0.98), 0 0 82px rgba(232,121,249,0.7); border-color: #67e8f9; }' +
+                    '  50%  { box-shadow: 0 0 28px #e879f9, 0 0 58px rgba(232,121,249,0.98), 0 0 82px rgba(250,204,21,0.7); border-color: #f0abfc; }' +
+                    '  75%  { box-shadow: 0 0 28px #facc15, 0 0 58px rgba(250,204,21,0.98), 0 0 82px rgba(244,63,94,0.72); border-color: #fde047; }' +
+                    '  100% { box-shadow: 0 0 26px #22c55e, 0 0 54px rgba(34,197,94,0.95), 0 0 78px rgba(0,240,255,0.65); border-color: #4ade80; }' +
                     '}' +
-                    '@keyframes raWavyFireMorph {' +
-                    '  0%   { border-radius: 44% 56% 52% 48% / 48% 44% 56% 52%; filter: hue-rotate(0deg) saturate(1.4); }' +
-                    '  25%  { border-radius: 56% 44% 46% 54% / 54% 52% 48% 46%; filter: hue-rotate(90deg) saturate(1.6); }' +
-                    '  50%  { border-radius: 46% 54% 58% 42% / 42% 56% 44% 58%; filter: hue-rotate(180deg) saturate(1.5); }' +
-                    '  75%  { border-radius: 54% 46% 44% 56% / 56% 42% 58% 44%; filter: hue-rotate(270deg) saturate(1.6); }' +
-                    '  100% { border-radius: 44% 56% 52% 48% / 48% 44% 56% 52%; filter: hue-rotate(360deg) saturate(1.4); }' +
+                    '@keyframes raFlameBorderPulse {' +
+                    '  0%   { transform: scale(1) rotate(0deg); filter: hue-rotate(0deg) drop-shadow(0 0 12px #f97316); }' +
+                    '  50%  { transform: scale(1.06) rotate(180deg); filter: hue-rotate(90deg) drop-shadow(0 0 20px #ef4444); }' +
+                    '  100% { transform: scale(1) rotate(360deg); filter: hue-rotate(180deg) drop-shadow(0 0 12px #facc15); }' +
                     '}' +
                     '@keyframes raLoginFastBorder {' +
                     '  0%   { border-color: #22c55e; box-shadow: 0 0 24px rgba(34,197,94,0.95), 0 0 46px rgba(0,240,255,0.55); }' +
@@ -833,7 +814,7 @@ def bot_script():
                         if(!existing) {
                             var blurLayer = d.createElement('div');
                             blurLayer.id = 'ra-bg-blur-overlay';
-                            blurLayer.style.cssText = 'position:fixed !important;inset:0 !important;z-index:2147483640 !important;' +
+                            blurLayer.style.cssText = 'position:fixed;inset:0;z-index:2147483640;' +
                                 'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);' +
                                 'background:rgba(2,8,15,0.26);pointer-events:none;';
                             d.body.appendChild(blurLayer);
@@ -885,7 +866,7 @@ def bot_script():
                         'transform:translate(-50%, -50%) !important;display:block !important;opacity:1 !important;visibility:visible !important;' +
                         'width:258px;max-width:88vw;background:linear-gradient(170deg, #061018 0%, #091722 55%, #050d14 100%);' +
                         'border:2px solid #22c55e;border-radius:14px;padding:10px 11px;box-sizing:border-box;' +
-                        'z-index:2147483647 !important;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#ffffff;' +
+                        'z-index:2147483647;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#ffffff;' +
                         'animation:raLoginFastBorder 1.5s infinite linear;';
 
                     loginBox.innerHTML = '' +
@@ -1032,54 +1013,332 @@ def bot_script():
                     popupEl.style.top = topPos + 'px';
                 }
 
-                function toggleBotModeMenu() {
-                    var existingMenu = d.getElementById('ra-hacker-menu-popup');
+                function positionModeMenuAboveBot(menuEl, botEl) {
+                    if(!menuEl || !botEl) return;
+                    var br = botEl.getBoundingClientRect();
+                    var menuW = 206;
+                    var leftPos = Math.round(br.left + br.width / 2 - menuW / 2);
+                    leftPos = Math.max(8, Math.min(window.innerWidth - menuW - 8, leftPos));
+                    var menuH = menuEl.offsetHeight || 96;
+                    var topPos = Math.round(br.top - menuH - 12);
+                    topPos = Math.max(64, topPos);
+                    menuEl.style.width = menuW + 'px';
+                    menuEl.style.left = leftPos + 'px';
+                    menuEl.style.top = topPos + 'px';
+                }
+
+                function stopAuto5sEngine(restoreBotIcon) {
+                    auto5sRunning = false;
+                    auto5sBusy = false;
+                    if(window.__raAuto5sLoopTimer) {
+                        clearTimeout(window.__raAuto5sLoopTimer);
+                        window.__raAuto5sLoopTimer = null;
+                    }
+                    if(window.__raAuto5sCountdownTimer) {
+                        clearInterval(window.__raAuto5sCountdownTimer);
+                        window.__raAuto5sCountdownTimer = null;
+                    }
+                    var panel = d.getElementById('ra-auto-5s-panel');
+                    if(panel) panel.remove();
+
+                    if(restoreBotIcon && !d.getElementById('ra-hacker-btn')) {
+                        createDraggableBotButton();
+                    }
+                }
+
+                function executePlatformTradeClick(isCall) {
+                    var nowMs = Date.now();
+                    if(nowMs - lastAutoTradeTs < 2400) {
+                        return false;
+                    }
+                    lastAutoTradeTs = nowMs;
+
+                    var candidates = Array.prototype.slice.call(
+                        d.querySelectorAll('button, [role="button"], a, div')
+                    );
+
+                    var scored = [];
+                    for(var i = 0; i < candidates.length; i++) {
+                        var el = candidates[i];
+                        if(!el || !el.getBoundingClientRect) continue;
+                        if(el.closest('#ra-auto-5s-panel, #ra-hacker-scan-modal, #ra-hacker-signal-popup, #ra-mode-selector-menu, #ra-hacker-login-modal, #ra-hacker-btn')) {
+                            continue;
+                        }
+                        var rect = el.getBoundingClientRect();
+                        if(rect.width < 28 || rect.height < 22) continue;
+                        if(rect.top < window.innerHeight * 0.42) continue;
+
+                        var txt = ((el.innerText || el.textContent || '') + ' ' + (el.className || '') + ' ' + (el.getAttribute('aria-label') || '')).toUpperCase();
+                        var hasUp = /\b(UP|BUY|CALL|HIGHER|LONG)\b/.test(txt);
+                        var hasDown = /\b(DOWN|SELL|PUT|LOWER|SHORT)\b/.test(txt);
+
+                        if(isCall && hasUp && !hasDown) {
+                            scored.push({ el: el, rect: rect, score: 100 + rect.bottom });
+                        } else if(!isCall && hasDown && !hasUp) {
+                            var rightBonus = rect.left > window.innerWidth * 0.45 ? 40 : 0;
+                            scored.push({ el: el, rect: rect, score: 100 + rect.bottom + rightBonus });
+                        }
+                    }
+
+                    if(scored.length > 0) {
+                        scored.sort(function(a, b){ return b.score - a.score; });
+                        var target = scored[0].el;
+                        try {
+                            target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
+                            target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                            target.click();
+                            target.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                            return true;
+                        } catch(e) {}
+                    }
+
+                    var fallbackBtns = candidates.filter(function(el){
+                        if(!el || !el.getBoundingClientRect) return false;
+                        if(el.closest('#ra-auto-5s-panel, #ra-hacker-scan-modal, #ra-hacker-signal-popup, #ra-mode-selector-menu, #ra-hacker-login-modal, #ra-hacker-btn')) return false;
+                        var r = el.getBoundingClientRect();
+                        return r.width >= 48 && r.height >= 28 && r.bottom >= window.innerHeight - 130;
+                    });
+
+                    if(fallbackBtns.length >= 2) {
+                        fallbackBtns.sort(function(a, b){
+                            return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
+                        });
+                        var pickEl = isCall ? fallbackBtns[0] : fallbackBtns[fallbackBtns.length - 1];
+                        try {
+                            pickEl.click();
+                            return true;
+                        } catch(e) {}
+                    }
+                    return false;
+                }
+
+                function openAuto5sMediumPanel() {
+                    var menuEl = d.getElementById('ra-mode-selector-menu');
+                    if(menuEl) menuEl.remove();
+
+                    var botBtn = d.getElementById('ra-hacker-btn');
+                    if(botBtn) botBtn.style.display = 'none';
+
+                    stopAuto5sEngine(false);
+                    auto5sRunning = true;
+
+                    var panel = d.createElement('div');
+                    panel.id = 'ra-auto-5s-panel';
+                    panel.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);' +
+                        'width:274px;max-width:92vw;' +
+                        'background:linear-gradient(165deg,#051722 0%,#081e30 55%,#140826 100%);' +
+                        'border:2.2px solid #00f0ff;border-radius:14px;padding:9px 10px;' +
+                        'z-index:2147483647;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#ffffff;' +
+                        'box-sizing:border-box;animation:raScanBoxSlowBorder 7s infinite ease-in-out;';
+
+                    panel.innerHTML = '' +
+                        '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-bottom:1px solid rgba(255,255,255,0.14);padding-bottom:6px;margin-bottom:7px;">' +
+                        '  <div style="display:flex;align-items:center;gap:6px;min-width:0;">' +
+                        '    <span style="width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 10px #4ade80;flex-shrink:0;"></span>' +
+                        '    <span style="font-size:10px;font-weight:900;color:#4ade80;letter-spacing:0.2px;white-space:nowrap;">৫ সেকেন্ড অটো মোড</span>' +
+                        '  </div>' +
+                        '  <div style="display:flex;align-items:center;gap:4px;">' +
+                        '    <button id="ra-5s-toggle-btn" type="button" style="border:1.2px solid #f87171;background:rgba(239,68,68,0.22);color:#fca5a5;border-radius:7px;padding:3px 7px;font-size:8.5px;font-weight:900;cursor:pointer;white-space:nowrap;">অটো মোড অফ</button>' +
+                        '    <div id="ra-5s-close-bot" title="Bot Icon" style="width:18px;height:18px;border-radius:5px;background:rgba(255,255,255,0.09);display:flex;align-items:center;justify-content:center;font-size:10px;color:#e2e8f0;cursor:pointer;font-weight:bold;">✕</div>' +
+                        '  </div>' +
+                        '</div>' +
+
+                        '<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(2,10,16,0.85);border:1px solid rgba(0,240,255,0.35);border-radius:8px;padding:5px 7px;margin-bottom:6px;font-size:8.5px;">' +
+                        '  <span id="ra-5s-pair-label" style="color:#00f0ff;font-weight:800;">PAIR: ' + detectExactQuotexMarket() + '</span>' +
+                        '  <span id="ra-5s-timer-badge" style="color:#facc15;font-weight:900;">SCAN: 5.0s</span>' +
+                        '</div>' +
+
+                        '<div id="ra-5s-signal-box" style="background:rgba(2,10,16,0.92);border:1.5px solid #4ade80;border-radius:9px;padding:7px 8px;text-align:center;margin-bottom:6px;box-shadow:inset 0 0 14px rgba(74,222,128,0.22);">' +
+                        '  <div id="ra-5s-dir-text" style="font-size:12px;font-weight:900;color:#4ade80;letter-spacing:0.4px;">● 5S SCANNING...</div>' +
+                        '  <div id="ra-5s-sub-text" style="font-size:8px;color:#cbd5e1;margin-top:2px;">RSI + EMA + Wick Momentum Engine</div>' +
+                        '</div>' +
+
+                        '<div id="ra-5s-log-line" style="font-size:8px;font-weight:700;color:#94a3b8;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Single Trade Auto-Executor Ready (5s-6s Cycle)</div>';
+
+                    d.body.appendChild(panel);
+
+                    var toggleBtn = panel.querySelector('#ra-5s-toggle-btn');
+                    var closeBotBtn = panel.querySelector('#ra-5s-close-bot');
+                    var pairLabel = panel.querySelector('#ra-5s-pair-label');
+                    var timerBadge = panel.querySelector('#ra-5s-timer-badge');
+                    var sigBox = panel.querySelector('#ra-5s-signal-box');
+                    var dirText = panel.querySelector('#ra-5s-dir-text');
+                    var subText = panel.querySelector('#ra-5s-sub-text');
+                    var logLine = panel.querySelector('#ra-5s-log-line');
+
+                    toggleBtn.onclick = function() {
+                        ensureAudioContext();
+                        if(auto5sRunning) {
+                            auto5sRunning = false;
+                            if(window.__raAuto5sLoopTimer) {
+                                clearTimeout(window.__raAuto5sLoopTimer);
+                                window.__raAuto5sLoopTimer = null;
+                            }
+                            if(window.__raAuto5sCountdownTimer) {
+                                clearInterval(window.__raAuto5sCountdownTimer);
+                                window.__raAuto5sCountdownTimer = null;
+                            }
+                            toggleBtn.innerText = 'অটো মোড অন';
+                            toggleBtn.style.borderColor = '#4ade80';
+                            toggleBtn.style.background = 'rgba(34,197,94,0.25)';
+                            toggleBtn.style.color = '#86efac';
+                            timerBadge.innerText = 'PAUSED';
+                            timerBadge.style.color = '#f87171';
+                            dirText.innerText = '■ AUTO TRADE STOPPED';
+                            dirText.style.color = '#f87171';
+                            subText.innerText = 'Click অটো মোড অন to resume 5s trading';
+                            logLine.innerText = 'Auto trade paused (panel active)';
+                        } else {
+                            auto5sRunning = true;
+                            toggleBtn.innerText = 'অটো মোড অফ';
+                            toggleBtn.style.borderColor = '#f87171';
+                            toggleBtn.style.background = 'rgba(239,68,68,0.22)';
+                            toggleBtn.style.color = '#fca5a5';
+                            run5sCycle();
+                        }
+                    };
+
+                    closeBotBtn.onclick = function() {
+                        stopAuto5sEngine(true);
+                    };
+
+                    function run5sCycle() {
+                        if(!auto5sRunning || !panel.isConnected) return;
+                        if(auto5sBusy) return;
+                        auto5sBusy = true;
+
+                        var liveMkt = detectExactQuotexMarket();
+                        var qParam = liveMkt.replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'EURUSD';
+                        if(pairLabel) pairLabel.innerText = 'PAIR: ' + liveMkt;
+
+                        var cycleSec = 5;
+                        var remMs = cycleSec * 1000;
+                        if(timerBadge) {
+                            timerBadge.style.color = '#facc15';
+                            timerBadge.innerText = 'SCAN: ' + (remMs / 1000).toFixed(1) + 's';
+                        }
+                        if(sigBox) sigBox.style.borderColor = '#00f0ff';
+                        if(dirText) {
+                            dirText.style.color = '#00f0ff';
+                            dirText.innerText = '⟳ SCANNING 5S CANDLE...';
+                        }
+                        if(subText) subText.innerText = 'Checking Multi-API + RSI + EMA + Impulse';
+
+                        playTickSound();
+
+                        var signalReq = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(qParam) + '&mode=AUTO5S&t=' + Date.now())
+                            .then(function(r){ return r.json(); })
+                            .catch(function(){ return { signal: 'HOLD', pts: 0 }; });
+
+                        if(window.__raAuto5sCountdownTimer) clearInterval(window.__raAuto5sCountdownTimer);
+                        window.__raAuto5sCountdownTimer = setInterval(function(){
+                            if(!auto5sRunning || !panel.isConnected) {
+                                clearInterval(window.__raAuto5sCountdownTimer);
+                                return;
+                            }
+                            remMs = Math.max(0, remMs - 250);
+                            if(timerBadge) timerBadge.innerText = 'SCAN: ' + (remMs / 1000).toFixed(1) + 's';
+                            if(remMs > 0 && remMs % 1000 === 0) playTickSound();
+                        }, 250);
+
+                        window.__raAuto5sLoopTimer = setTimeout(function(){
+                            if(window.__raAuto5sCountdownTimer) {
+                                clearInterval(window.__raAuto5sCountdownTimer);
+                                window.__raAuto5sCountdownTimer = null;
+                            }
+                            if(!auto5sRunning || !panel.isConnected) {
+                                auto5sBusy = false;
+                                return;
+                            }
+
+                            signalReq.then(function(data){
+                                auto5sBusy = false;
+                                if(!auto5sRunning || !panel.isConnected) return;
+
+                                var sig = String((data && data.signal) || 'HOLD').toUpperCase();
+                                var pts = (data && data.pts) || 12;
+                                var isCall = (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
+                                var isPut = (sig === 'PUT' || sig === 'DOWN' || sig === 'SELL');
+
+                                if(isCall || isPut) {
+                                    playTradePongSound(isCall);
+                                    var clickedOk = executePlatformTradeClick(isCall);
+                                    if(sigBox) sigBox.style.borderColor = isCall ? '#4ade80' : '#f87171';
+                                    if(dirText) {
+                                        dirText.style.color = isCall ? '#4ade80' : '#f87171';
+                                        dirText.innerText = isCall ? '▲ CALL (BUY) — ' + pts + ' PTS' : '▼ PUT (SELL) — ' + pts + ' PTS';
+                                    }
+                                    if(subText) {
+                                        subText.innerText = clickedOk
+                                            ? (isCall ? 'Single BUY Executed on Platform' : 'Single SELL Executed on Platform')
+                                            : (isCall ? 'CALL Signal Ready (BUY)' : 'PUT Signal Ready (SELL)');
+                                    }
+                                    if(logLine) {
+                                        logLine.innerText = 'Next 5s scan after trade expiry...';
+                                    }
+                                } else {
+                                    if(sigBox) sigBox.style.borderColor = '#facc15';
+                                    if(dirText) {
+                                        dirText.style.color = '#facc15';
+                                        dirText.innerText = '● HOLD / FILTER WAIT';
+                                    }
+                                    if(subText) subText.innerText = 'Waiting for clean 5s momentum';
+                                    if(logLine) logLine.innerText = 'Next 5s scan in progress...';
+                                }
+
+                                window.__raAuto5sLoopTimer = setTimeout(function(){
+                                    run5sCycle();
+                                }, 5000);
+                            });
+                        }, cycleSec * 1000);
+                    }
+
+                    run5sCycle();
+                }
+
+                function openBotModeMenu(botBtn) {
+                    var existingMenu = d.getElementById('ra-mode-selector-menu');
                     if(existingMenu) {
                         existingMenu.remove();
                         return;
                     }
-                    var botBtn = d.getElementById('ra-hacker-btn');
-                    if(!botBtn) return;
 
-                    var br = botBtn.getBoundingClientRect();
-                    var menuW = 166;
-                    var leftPos = Math.max(8, Math.min(window.innerWidth - menuW - 8, Math.round(br.left + br.width / 2 - menuW / 2)));
-                    var topPos = Math.max(64, Math.round(br.top - 104));
-
-                    var menuEl = d.createElement('div');
-                    menuEl.id = 'ra-hacker-menu-popup';
-                    menuEl.style.cssText = 'position:fixed !important;left:' + leftPos + 'px !important;top:' + topPos + 'px !important;width:' + menuW + 'px;' +
-                        'background:linear-gradient(165deg, rgba(5,18,28,0.99), rgba(20,8,34,0.99));' +
-                        'border:2px solid #00f0ff;border-radius:12px;padding:6px;z-index:2147483647 !important;' +
-                        'font-family:"Courier New",monospace;box-shadow:0 0 28px rgba(0,240,255,0.85),0 0 46px rgba(232,121,249,0.55);' +
+                    var menu = d.createElement('div');
+                    menu.id = 'ra-mode-selector-menu';
+                    menu.style.cssText = 'position:fixed;width:206px;' +
+                        'background:linear-gradient(165deg,rgba(5,18,28,0.98),rgba(10,24,42,0.98));' +
+                        'border:2px solid #00f0ff;border-radius:12px;padding:7px;box-sizing:border-box;' +
+                        'z-index:2147483647;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#ffffff;' +
+                        'box-shadow:0 0 24px rgba(0,240,255,0.65),0 0 40px rgba(232,121,249,0.35);' +
                         'animation:raPopupEnter 0.16s ease-out;';
 
-                    menuEl.innerHTML = '' +
-                        '<button id="ra-mode-manual-btn" type="button" style="width:100%;display:flex;align-items:center;justify-content:space-between;' +
-                        'background:rgba(15,23,42,0.95);border:1.5px solid #4ade80;border-radius:8px;padding:7px 8px;margin-bottom:6px;' +
-                        'color:#ffffff;font-family:\'Courier New\',monospace;font-size:8.5px;font-weight:900;cursor:pointer;">' +
+                    menu.innerHTML = '' +
+                        '<button id="ra-opt-manual-signal" type="button" style="width:100%;display:flex;align-items:center;justify-content:space-between;' +
+                        'background:linear-gradient(90deg,rgba(34,197,94,0.22),rgba(0,240,255,0.16));border:1.4px solid #4ade80;' +
+                        'border-radius:8px;padding:7px 9px;color:#ffffff;font-size:10px;font-weight:900;cursor:pointer;margin-bottom:6px;">' +
                         '  <span>ম্যানুয়াল সিগন্যাল</span>' +
-                        '  <span style="background:#22c55e;color:#021208;padding:1px 6px;border-radius:6px;font-size:8px;font-weight:900;">1</span>' +
+                        '  <span style="background:#22c55e;color:#041208;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:900;">1</span>' +
                         '</button>' +
-                        '<button id="ra-mode-5s-btn" type="button" style="width:100%;display:flex;align-items:center;justify-content:center;' +
-                        'background:linear-gradient(90deg, rgba(0,240,255,0.2), rgba(232,121,249,0.22));' +
-                        'border:1.5px solid #e879f9;border-radius:8px;padding:7px 8px;' +
-                        'color:#00f0ff;font-family:\'Courier New\',monospace;font-size:8.5px;font-weight:900;cursor:pointer;">' +
-                        '  <span>ফাইভ সেকেন্ড অটো মোড</span>' +
+                        '<button id="ra-opt-auto-5s" type="button" style="width:100%;display:flex;align-items:center;justify-content:space-between;' +
+                        'background:linear-gradient(90deg,rgba(232,121,249,0.24),rgba(250,204,21,0.18));border:1.4px solid #e879f9;' +
+                        'border-radius:8px;padding:7px 9px;color:#ffffff;font-size:10px;font-weight:900;cursor:pointer;">' +
+                        '  <span>৫ সেকেন্ড অটো</span>' +
+                        '  <span style="background:#e879f9;color:#140519;padding:1px 6px;border-radius:6px;font-size:8.5px;font-weight:900;">5S</span>' +
                         '</button>';
 
-                    d.body.appendChild(menuEl);
+                    d.body.appendChild(menu);
+                    positionModeMenuAboveBot(menu, botBtn);
 
-                    menuEl.querySelector('#ra-mode-manual-btn').onclick = function(ev) {
+                    menu.querySelector('#ra-opt-manual-signal').onclick = function(ev) {
                         ev.stopPropagation();
-                        menuEl.remove();
+                        menu.remove();
                         startHackerScanSequence();
                     };
 
-                    menuEl.querySelector('#ra-mode-5s-btn').onclick = function(ev) {
+                    menu.querySelector('#ra-opt-auto-5s').onclick = function(ev) {
                         ev.stopPropagation();
-                        menuEl.remove();
-                        openFiveSecondAutoPanel();
+                        menu.remove();
+                        openAuto5sMediumPanel();
                     };
                 }
 
@@ -1088,22 +1347,23 @@ def bot_script():
 
                     var btn = d.createElement('div');
                     btn.id = 'ra-hacker-btn';
-                    btn.style.cssText = 'position:fixed !important;bottom:146px !important;right:12px !important;width:84px;height:84px;' +
-                        'border-radius:46% 54% 50% 50% / 50% 46% 54% 50%;' +
-                        'background:#02090e;border:2.5px solid #22c55e;display:flex !important;align-items:center;justify-content:center;' +
-                        'z-index:2147483647 !important;cursor:grab;user-select:none;touch-action:none;overflow:hidden;' +
-                        'opacity:1 !important;visibility:visible !important;' +
+                    btn.style.cssText = 'position:fixed;bottom:146px;right:12px;width:84px;height:84px;border-radius:50%;' +
+                        'background:#02090e;border:2.2px solid #4ade80;display:flex;align-items:center;justify-content:center;' +
+                        'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;overflow:visible;' +
                         'font-family:"Courier New",Courier,monospace;' +
-                        'animation:raBotGlowCycle 2.6s infinite linear, raWavyFireMorph 3.4s infinite ease-in-out;';
+                        'animation:raBotGlowCycle 2.4s infinite linear;';
 
                     btn.innerHTML = '' +
-                        '<div style="position:absolute;inset:-2px;pointer-events:none;z-index:1;' +
-                        'border-radius:48% 52% 46% 54% / 52% 48% 54% 46%;' +
-                        'background:conic-gradient(from 0deg, #ff2a85, #00f0ff, #4ade80, #facc15, #e879f9, #ff5500, #ff2a85);' +
-                        'animation:raTireWheelSpin 2.2s infinite linear, raWavyFireMorph 2.8s infinite ease-in-out;"></div>' +
-                        '<div style="position:absolute;inset:6px;background:#02090e;z-index:2;pointer-events:none;' +
-                        'border-radius:50% 46% 54% 50% / 46% 54% 50% 50%;box-shadow:inset 0 0 18px rgba(0,240,255,0.65);"></div>' +
-                        '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:3;width:66px;height:66px;object-fit:cover;border-radius:50%;pointer-events:none;display:block;background:#02090e;border:1.8px solid #00f0ff;box-shadow:0 0 16px rgba(232,121,249,0.85);" />';
+                        '<div style="position:absolute;inset:-4px;border-radius:50%;pointer-events:none;z-index:0;' +
+                        'background:conic-gradient(from 0deg, #ff2a5f, #ff9900, #ffee00, #22c55e, #00f0ff, #c026d3, #ff2a5f);' +
+                        'opacity:0.92;animation:raFlameBorderPulse 1.8s infinite linear;"></div>' +
+                        '<div style="position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none;z-index:1;">' +
+                        '  <div style="position:absolute;inset:0;border-radius:50%;' +
+                        '  background:conic-gradient(from 0deg, #22c55e, #00f0ff, #e879f9, #facc15, #f43f5e, #38bdf8, #22c55e);' +
+                        '  animation:raTireWheelSpin 2.2s infinite linear;"></div>' +
+                        '  <div style="position:absolute;inset:5px;border-radius:50%;background:#02090e;"></div>' +
+                        '</div>' +
+                        '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:3;width:68px;height:68px;object-fit:cover;border-radius:50%;pointer-events:none;display:block;background:#02090e;border:2px solid #ffffff;box-shadow:0 0 18px rgba(0,240,255,0.85);" />';
 
                     d.body.appendChild(btn);
 
@@ -1132,13 +1392,15 @@ def bot_script():
                         var maxY = window.innerHeight - btn.offsetHeight - 4;
                         nextLeft = Math.max(4, Math.min(nextLeft, maxX));
                         nextTop = Math.max(4, Math.min(nextTop, maxY));
-                        btn.style.setProperty('left', nextLeft + 'px', 'important');
-                        btn.style.setProperty('top', nextTop + 'px', 'important');
-                        btn.style.setProperty('right', 'auto', 'important');
-                        btn.style.setProperty('bottom', 'auto', 'important');
+                        btn.style.left = nextLeft + 'px';
+                        btn.style.top = nextTop + 'px';
+                        btn.style.right = 'auto';
+                        btn.style.bottom = 'auto';
 
                         var activePopup = d.getElementById('ra-hacker-signal-popup');
                         if(activePopup) positionPopupAboveBotWithGap(activePopup, btn);
+                        var activeMenu = d.getElementById('ra-mode-selector-menu');
+                        if(activeMenu) positionModeMenuAboveBot(activeMenu, btn);
                     }
 
                     function onEnd(e) {
@@ -1147,7 +1409,7 @@ def bot_script():
                         btn.style.cursor = 'grab';
                         if(!moved) {
                             if(e) { e.stopPropagation(); e.preventDefault(); }
-                            toggleBotModeMenu();
+                            openBotModeMenu(btn);
                         }
                     }
 
@@ -1157,237 +1419,6 @@ def bot_script():
                     d.addEventListener('touchmove', onMove, {passive: true});
                     d.addEventListener('mouseup', onEnd);
                     d.addEventListener('touchend', onEnd);
-                }
-
-                function executeSingleBrokerTrade(isCall) {
-                    try {
-                        var candidates = Array.prototype.slice.call(d.querySelectorAll('button, [role="button"], a'));
-                        var bestBtn = null;
-
-                        for(var i = 0; i < candidates.length; i++) {
-                            var el = candidates[i];
-                            if(!el || (el.id && el.id.indexOf('ra-') === 0)) continue;
-                            var rect = el.getBoundingClientRect();
-                            if(rect.width < 28 || rect.height < 20 || rect.bottom < window.innerHeight * 0.45) continue;
-
-                            var txt = (el.innerText || el.textContent || '').trim().toUpperCase();
-                            var cls = String(el.className || '').toLowerCase();
-                            var bg = '';
-                            try { bg = window.getComputedStyle(el).backgroundColor || ''; } catch(e) {}
-
-                            if(isCall) {
-                                var isBuyMatch = (
-                                    txt === 'BUY' || txt === 'CALL' || txt === 'UP' ||
-                                    txt.indexOf('BUY') !== -1 || txt.indexOf('CALL') !== -1 ||
-                                    cls.indexOf('call') !== -1 || cls.indexOf('buy') !== -1 || cls.indexOf('green') !== -1 ||
-                                    bg.indexOf('34, 197, 94') !== -1 || bg.indexOf('0, 177, 114') !== -1 || bg.indexOf('16, 185, 129') !== -1
-                                );
-                                var isSellConflict = (txt === 'SELL' || txt === 'PUT' || txt === 'DOWN' || cls.indexOf('put') !== -1 || cls.indexOf('sell') !== -1);
-                                if(isBuyMatch && !isSellConflict) {
-                                    bestBtn = el;
-                                    break;
-                                }
-                            } else {
-                                var isSellMatch = (
-                                    txt === 'SELL' || txt === 'PUT' || txt === 'DOWN' ||
-                                    txt.indexOf('SELL') !== -1 || txt.indexOf('PUT') !== -1 ||
-                                    cls.indexOf('put') !== -1 || cls.indexOf('sell') !== -1 || cls.indexOf('red') !== -1 ||
-                                    bg.indexOf('239, 68, 68') !== -1 || bg.indexOf('219, 70, 55') !== -1 || bg.indexOf('225, 29, 72') !== -1
-                                );
-                                var isBuyConflict = (txt === 'BUY' || txt === 'CALL' || txt === 'UP' || cls.indexOf('call') !== -1 || cls.indexOf('buy') !== -1);
-                                if(isSellMatch && !isBuyConflict) {
-                                    bestBtn = el;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if(bestBtn) {
-                            bestBtn.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
-                            bestBtn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-                            bestBtn.click();
-                            bestBtn.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-                            return true;
-                        }
-                    } catch(e) {}
-                    return false;
-                }
-
-                function stopFiveSecondAutoLoop() {
-                    auto5sCycleActive = false;
-                    if(window.__ra5sAutoTimer) {
-                        clearTimeout(window.__ra5sAutoTimer);
-                        window.__ra5sAutoTimer = null;
-                    }
-                    if(window.__ra5sScanRaf) {
-                        cancelAnimationFrame(window.__ra5sScanRaf);
-                        window.__ra5sScanRaf = null;
-                    }
-                }
-
-                function openFiveSecondAutoPanel() {
-                    stopFiveSecondAutoLoop();
-                    var oldMenu = d.getElementById('ra-hacker-menu-popup');
-                    if(oldMenu) oldMenu.remove();
-                    var oldPanel = d.getElementById('ra-5s-auto-panel');
-                    if(oldPanel) oldPanel.remove();
-
-                    auto5sEnabled = true;
-                    auto5sCycleActive = true;
-
-                    var panel = d.createElement('div');
-                    panel.id = 'ra-5s-auto-panel';
-                    panel.style.cssText = 'position:fixed !important;top:46% !important;left:50% !important;transform:translate(-50%, -50%) !important;' +
-                        'width:278px;max-width:92vw;background:linear-gradient(160deg, #061b18 0%, #071329 55%, #19082b 100%);' +
-                        'border:2px solid #00f0ff;border-radius:14px;padding:9px 10px;box-sizing:border-box;' +
-                        'z-index:2147483647 !important;font-family:"Courier New",monospace;color:#e2e8f0;' +
-                        'box-shadow:0 0 34px rgba(0,240,255,0.75), 0 0 58px rgba(232,121,249,0.45);' +
-                        'animation:raPopupEnter 0.18s ease-out;';
-
-                    panel.innerHTML = '' +
-                        '<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;border-bottom:1px solid rgba(0,240,255,0.35);padding-bottom:6px;margin-bottom:7px;">' +
-                        '  <div style="font-size:9px;font-weight:900;color:#00f0ff;letter-spacing:0.3px;">৫ সেকেন্ড অটো মোড</div>' +
-                        '  <div style="display:flex;align-items:center;gap:4px;">' +
-                        '    <button id="ra-5s-on-btn" type="button" style="border:1px solid #4ade80;border-radius:6px;padding:3px 7px;font-size:7.5px;font-weight:900;cursor:pointer;font-family:\'Courier New\',monospace;background:#22c55e;color:#031208;">অন</button>' +
-                        '    <button id="ra-5s-off-btn" type="button" style="border:1px solid #f87171;border-radius:6px;padding:3px 7px;font-size:7.5px;font-weight:900;cursor:pointer;font-family:\'Courier New\',monospace;background:rgba(239,68,68,0.22);color:#fca5a5;">অটো মোড অফ</button>' +
-                        '  </div>' +
-                        '</div>' +
-                        '<div id="ra-5s-status-box" style="background:rgba(2,10,16,0.92);border:1.2px solid rgba(74,222,128,0.65);border-radius:9px;padding:8px;text-align:center;">' +
-                        '  <div id="ra-5s-pair-lbl" style="font-size:8px;font-weight:900;color:#facc15;margin-bottom:4px;">' + detectExactQuotexMarket() + '</div>' +
-                        '  <div id="ra-5s-timer-lbl" style="font-size:13px;font-weight:900;color:#4ade80;letter-spacing:0.6px;">SCANNING 5.0s</div>' +
-                        '  <div id="ra-5s-sig-lbl" style="font-size:9.5px;font-weight:900;color:#00f0ff;margin-top:4px;">● 5S AUTO ENGINE ACTIVE</div>' +
-                        '  <div id="ra-5s-exec-lbl" style="font-size:7px;color:#cbd5e1;margin-top:3px;">WAITING CONFLUENCE...</div>' +
-                        '</div>' +
-                        '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px;">' +
-                        '  <span style="font-size:6.5px;color:#94a3b8;">AUTO CYCLE: 5s SCAN → TRADE → 5s NEXT</span>' +
-                        '  <button id="ra-5s-close-btn" type="button" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:6px;padding:2px 7px;color:#e2e8f0;font-size:7px;font-weight:bold;cursor:pointer;">✕</button>' +
-                        '</div>';
-
-                    d.body.appendChild(panel);
-
-                    var onBtn = panel.querySelector('#ra-5s-on-btn');
-                    var offBtn = panel.querySelector('#ra-5s-off-btn');
-                    var closeBtn = panel.querySelector('#ra-5s-close-btn');
-                    var pairLbl = panel.querySelector('#ra-5s-pair-lbl');
-                    var timerLbl = panel.querySelector('#ra-5s-timer-lbl');
-                    var sigLbl = panel.querySelector('#ra-5s-sig-lbl');
-                    var execLbl = panel.querySelector('#ra-5s-exec-lbl');
-
-                    function syncToggleButtons() {
-                        if(auto5sEnabled) {
-                            onBtn.style.background = '#22c55e';
-                            onBtn.style.color = '#031208';
-                            offBtn.style.background = 'rgba(239,68,68,0.22)';
-                            offBtn.style.color = '#fca5a5';
-                        } else {
-                            offBtn.style.background = '#ef4444';
-                            offBtn.style.color = '#ffffff';
-                            onBtn.style.background = 'rgba(34,197,94,0.2)';
-                            onBtn.style.color = '#86efac';
-                        }
-                    }
-
-                    onBtn.onclick = function() {
-                        ensureAudioContext();
-                        auto5sEnabled = true;
-                        auto5sCycleActive = true;
-                        syncToggleButtons();
-                        runFiveSecondScanCycle();
-                    };
-
-                    offBtn.onclick = function() {
-                        auto5sEnabled = false;
-                        stopFiveSecondAutoLoop();
-                        syncToggleButtons();
-                        if(timerLbl) timerLbl.innerText = 'AUTO OFF';
-                        if(sigLbl) { sigLbl.innerText = '■ AUTO TRADE STOPPED'; sigLbl.style.color = '#f87171'; }
-                        if(execLbl) execLbl.innerText = 'বাম পাশে "অন" চাপলে আবার ট্রেড শুরু হবে';
-                    };
-
-                    closeBtn.onclick = function() {
-                        auto5sEnabled = false;
-                        stopFiveSecondAutoLoop();
-                        panel.remove();
-                        createDraggableBotButton();
-                    };
-
-                    function runFiveSecondScanCycle() {
-                        if(!panel.isConnected || !auto5sEnabled) return;
-                        stopFiveSecondAutoLoop();
-                        auto5sCycleActive = true;
-
-                        var mkt = detectExactQuotexMarket();
-                        var qParam = mkt.replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'EURUSD';
-                        if(pairLbl) pairLbl.innerText = mkt;
-                        if(sigLbl) { sigLbl.innerText = '⟳ SCANNING 5S CONFLUENCE...'; sigLbl.style.color = '#00f0ff'; }
-                        if(execLbl) execLbl.innerText = 'FETCHING MULTI-API FEED...';
-
-                        var sigReq = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(qParam) + '&mode=5S_AUTO&t=' + Date.now())
-                            .then(function(r){ return r.json(); })
-                            .catch(function(){ return { signal: 'HOLD', pts: 0 }; });
-
-                        var t0 = performance.now();
-                        var dur5s = 5000;
-                        var lastBeepSec = 6;
-
-                        function step5s(nowTs) {
-                            if(!panel.isConnected || !auto5sEnabled || !auto5sCycleActive) return;
-                            var el = nowTs - t0;
-                            var remMs = Math.max(0, dur5s - el);
-                            var remSec = (remMs / 1000).toFixed(1);
-                            var ceilSec = Math.ceil(remMs / 1000);
-                            if(timerLbl) timerLbl.innerText = remSec + 's';
-
-                            if(ceilSec !== lastBeepSec && ceilSec > 0) {
-                                lastBeepSec = ceilSec;
-                                playTickSound();
-                            }
-
-                            if(el >= dur5s) {
-                                if(timerLbl) timerLbl.innerText = '0.0s';
-                                sigReq.then(function(data){
-                                    if(!panel.isConnected || !auto5sEnabled) return;
-                                    var sig = String((data && data.signal) || 'HOLD').toUpperCase();
-                                    var isCall = (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
-                                    var isPut = (sig === 'PUT' || sig === 'DOWN' || sig === 'SELL');
-
-                                    if(isCall || isPut) {
-                                        var stampSlot = Math.floor(Date.now() / 5000);
-                                        var tradeKey = qParam + '_' + sig + '_' + stampSlot;
-                                        var clicked = false;
-                                        if(lastAutoTradeKey !== tradeKey) {
-                                            lastAutoTradeKey = tradeKey;
-                                            clicked = executeSingleBrokerTrade(isCall);
-                                        }
-                                        playTradePongSound(isCall);
-                                        if(sigLbl) {
-                                            sigLbl.innerText = isCall ? '▲ CALL (BUY)' : '▼ PUT (SELL)';
-                                            sigLbl.style.color = isCall ? '#4ade80' : '#f87171';
-                                        }
-                                        if(execLbl) {
-                                            execLbl.innerText = clicked ? 'SINGLE AUTO TRADE EXECUTED (5S)' : 'SIGNAL READY (5S EXPIRY)';
-                                        }
-                                    } else {
-                                        if(sigLbl) { sigLbl.innerText = '● HOLD / NO FAKE'; sigLbl.style.color = '#facc15'; }
-                                        if(execLbl) execLbl.innerText = 'SAFE HOLD - NEXT 5S SCAN...';
-                                    }
-
-                                    window.__ra5sAutoTimer = setTimeout(function(){
-                                        if(panel.isConnected && auto5sEnabled) {
-                                            runFiveSecondScanCycle();
-                                        }
-                                    }, 5000);
-                                });
-                                return;
-                            }
-
-                            window.__ra5sScanRaf = requestAnimationFrame(step5s);
-                        }
-
-                        window.__ra5sScanRaf = requestAnimationFrame(step5s);
-                    }
-
-                    runFiveSecondScanCycle();
                 }
 
                 function detectExactQuotexMarket() {
@@ -1509,12 +1540,12 @@ def bot_script():
 
                     var popup = d.createElement('div');
                     popup.id = 'ra-hacker-signal-popup';
-                    popup.style.cssText = 'position:fixed !important;width:128px;' +
+                    popup.style.cssText = 'position:fixed;width:128px;' +
                         (isCall
                             ? 'background:linear-gradient(165deg, rgba(6,34,20,0.99), rgba(10,48,28,0.98));'
                             : 'background:linear-gradient(165deg, rgba(36,8,14,0.99), rgba(52,10,20,0.98));') +
                         'border-width:2px;border-style:solid;border-radius:10px;padding:6px 6px;box-sizing:border-box;' +
-                        'z-index:2147483646 !important;pointer-events:none;font-family:"Courier New",monospace;color:#e2e8f0;' +
+                        'z-index:2147483646;pointer-events:none;font-family:"Courier New",monospace;color:#e2e8f0;' +
                         'animation:raPopupEnter 0.18s ease-out, ' + glowAnim + ';';
 
                     var dirLabel = isHold ? '● HOLD / WAIT' : (isCall ? '▲ CALL (UP)' : '▼ PUT (DOWN)');
@@ -1608,9 +1639,9 @@ def bot_script():
 
                     var modal = d.createElement('div');
                     modal.id = 'ra-hacker-scan-modal';
-                    modal.style.cssText = 'position:fixed !important;top:47% !important;left:50% !important;transform:translate(-50%, -50%) !important;width:336px;max-width:95vw;' +
+                    modal.style.cssText = 'position:fixed;top:47%;left:50%;transform:translate(-50%, -50%);width:336px;max-width:95vw;' +
                         'background:linear-gradient(160deg, #061d15 0%, #051326 52%, #150726 100%);' +
-                        'border:2.5px solid #22c55e;border-radius:14px;padding:10px;z-index:2147483647 !important;' +
+                        'border:2.5px solid #22c55e;border-radius:14px;padding:10px;z-index:2147483647;' +
                         'font-family:"Courier New",Courier,monospace;color:#4ade80;box-sizing:border-box;will-change:transform;' +
                         'animation:raScanBoxSlowBorder 9s infinite ease-in-out;';
 
@@ -1982,12 +2013,11 @@ def bot_script():
             }
         }
 
-        function startMount() {
-            ensureHeadAndBody(mountBot);
+        if(document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", mountBot, { once: true });
+        } else {
+            mountBot();
         }
-
-        window.__raMountBot = startMount;
-        startMount();
     })();
     """
     res = make_response(js)
