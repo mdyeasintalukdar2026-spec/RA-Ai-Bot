@@ -176,32 +176,32 @@ class LiveMarketCandleEngine:
 
         score = 0.0
         if delta > 0:
-            score += 1.6
+            score += 1.4
         elif delta < 0:
-            score -= 1.6
+            score -= 1.4
 
         if len(closes) >= 3:
             prev_delta = closes[-2] - closes[-3]
             if delta > 0 and prev_delta > 0:
-                score += 0.65
+                score += 0.6
             elif delta < 0 and prev_delta < 0:
-                score -= 0.65
+                score -= 0.6
 
         if ema_fast is not None and ema_slow is not None:
             if ema_fast > ema_slow:
-                score += 1.15
+                score += 1.0
             elif ema_fast < ema_slow:
-                score -= 1.15
+                score -= 1.0
 
         if rsi is not None:
             if rsi >= 72:
-                score -= 1.5
+                score -= 1.4
             elif rsi <= 28:
-                score += 1.5
+                score += 1.4
             elif rsi > 52:
-                score += 0.6
+                score += 0.5
             elif rsi < 48:
-                score -= 0.6
+                score -= 0.5
         return score
 
     @classmethod
@@ -229,8 +229,8 @@ class LiveMarketCandleEngine:
 
         avg_bias = (weighted_score / total_weight) if total_weight > 0 else 0.0
 
-        # Normal balanced threshold: only HOLD when directional movement is virtually flat
-        if abs(avg_bias) < 0.08:
+        # Normal balanced confirmation: avoid fake/random signals when bias is flat or contradictory
+        if abs(avg_bias) < 0.22:
             return "HOLD", 0, 0, c0
 
         signal = "CALL" if avg_bias > 0 else "PUT"
@@ -238,8 +238,8 @@ class LiveMarketCandleEngine:
         total_votes = max(1, call_votes + put_votes)
         confirm_ratio = aligned_votes / total_votes
 
-        # Balanced ~70% check: hold only on strong opposing multi-source conflict
-        if total_votes >= 2 and confirm_ratio < 0.55 and abs(avg_bias) < 0.45:
+        # Balanced ~65-70% agreement threshold without excessive HOLDs
+        if total_votes >= 2 and confirm_ratio < 0.62 and abs(avg_bias) < 0.65:
             return "HOLD", 0, 0, c0
 
         m_hist = cls._market_history.setdefault(symbol, [])
@@ -264,7 +264,7 @@ class LiveMarketCandleEngine:
         if len(m_hist) > 12:
             m_hist.pop(0)
 
-        conf_pct = min(99, max(72, int(round(72 + min(27.0, (confirm_ratio * 16.0) + abs(avg_bias) * 4.2)))))
+        conf_pct = min(99, max(71, int(round(71 + min(28.0, (confirm_ratio * 16.0) + abs(avg_bias) * 4.2)))))
         return signal, pts_val, conf_pct, c0
 
     @classmethod
@@ -278,7 +278,7 @@ class LiveMarketCandleEngine:
                 continue
             try:
                 url = f"https://finnhub.io/api/v1/calendar/economic?token={key}"
-                response = http_session.get(url, timeout=2.0)
+                response = http_session.get(url, timeout=2.2)
                 if response.status_code == 200:
                     events = response.json().get("economicCalendar", []) or []
                     cls._news_cache = {"ts": now_ts, "events": events}
@@ -405,7 +405,7 @@ class LiveMarketCandleEngine:
                     f"https://api.twelvedata.com/time_series"
                     f"?symbol={formatted_sym}&interval=1min&outputsize=14&apikey={key}"
                 )
-                resp = http_session.get(url_ts, timeout=2.0)
+                resp = http_session.get(url_ts, timeout=2.4)
                 if resp.status_code == 200:
                     values = resp.json().get("values", []) or []
                     if len(values) >= 2:
@@ -425,7 +425,7 @@ class LiveMarketCandleEngine:
                 pair = pair[:-3] + "USDT"
             if len(pair) >= 6:
                 url_b = f"{API_REGISTRY['MASTER_BINANCE_REST_API']}?symbol={pair}&interval=1m&limit=14"
-                resp = http_session.get(url_b, timeout=1.8)
+                resp = http_session.get(url_b, timeout=2.0)
                 if resp.status_code == 200:
                     klines = resp.json()
                     if isinstance(klines, list) and len(klines) >= 2:
@@ -444,7 +444,7 @@ class LiveMarketCandleEngine:
                 continue
             try:
                 url_p = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/prev?adjusted=true&apiKey={key}"
-                resp = http_session.get(url_p, timeout=1.8)
+                resp = http_session.get(url_p, timeout=2.0)
                 if resp.status_code == 200:
                     results = resp.json().get("results", []) or []
                     if results:
@@ -462,7 +462,7 @@ class LiveMarketCandleEngine:
                 continue
             try:
                 url_q = f"https://api.twelvedata.com/price?symbol={formatted_sym}&apikey={key}"
-                q_resp = http_session.get(url_q, timeout=1.7)
+                q_resp = http_session.get(url_q, timeout=1.9)
                 if q_resp.status_code == 200:
                     price_str = q_resp.json().get("price")
                     if price_str is not None:
@@ -480,7 +480,7 @@ class LiveMarketCandleEngine:
                         f"https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE"
                         f"&from_currency={from_curr}&to_currency={to_curr}&apikey={key}"
                     )
-                    resp = http_session.get(url_av, timeout=1.8)
+                    resp = http_session.get(url_av, timeout=2.0)
                     if resp.status_code == 200:
                         rt = resp.json().get("Realtime Currency Exchange Rate", {})
                         px = rt.get("5. Exchange Rate")
@@ -491,7 +491,7 @@ class LiveMarketCandleEngine:
 
             try:
                 url_er = f"https://api.exchangerate-api.com/v4/latest/{from_curr}"
-                resp = http_session.get(url_er, timeout=1.7)
+                resp = http_session.get(url_er, timeout=1.9)
                 if resp.status_code == 200:
                     rates = resp.json().get("rates", {})
                     if to_curr in rates:
@@ -671,7 +671,7 @@ def bot_script():
                     "ra-hacker-btn", "ra-hacker-scan-modal", "ra-hacker-signal-popup",
                     "ra-hacker-login-modal", "ra-bg-blur-overlay", "ra-hacker-style",
                     "ra-mode-selector-menu", "ra-auto-5s-panel", "ra-cyber-5s-overlay",
-                    "ra-bot-power-pill", "ra-auto-trade-toast", "ra-5s-hold-notice"
+                    "ra-bot-power-pill", "ra-auto-trade-toast"
                 ].forEach(function(id){
                     var el = d.getElementById(id);
                     if(el) el.remove();
@@ -807,8 +807,8 @@ def bot_script():
                                     } else {
                                         utter.lang = 'bn-BD';
                                     }
-                                    utter.rate = 1.05;
-                                    utter.pitch = 1.25;
+                                    utter.rate = 1.04;
+                                    utter.pitch = 1.26;
                                     utter.volume = 1.0;
                                     window.speechSynthesis.speak(utter);
                                 } catch(errInner) {}
@@ -821,7 +821,7 @@ def bot_script():
                                     if(typeof prevHandler === "function") prevHandler(ev);
                                     runSpeak();
                                 };
-                                setTimeout(runSpeak, 120);
+                                setTimeout(runSpeak, 140);
                             } else {
                                 runSpeak();
                             }
@@ -832,7 +832,7 @@ def bot_script():
                 function playTickSound() {
                     try {
                         var nowMs = Date.now();
-                        if(nowMs - lastTickMs < 220) return;
+                        if(nowMs - lastTickMs < 180) return;
                         lastTickMs = nowMs;
 
                         var ctx = ensureAudioContext();
@@ -904,18 +904,18 @@ def bot_script():
                     '  100% { transform: rotate(0deg); }' +
                     '}' +
                     '@keyframes raBotNeonAura {' +
-                    '  0%   { box-shadow: 0 0 22px #00f0ff, 0 0 44px rgba(0,240,255,0.85); }' +
+                    '  0%   { box-shadow: 0 0 22px #00f0ff, 0 0 46px rgba(0,240,255,0.85); }' +
                     '  50%  { box-shadow: 0 0 24px #e879f9, 0 0 48px rgba(232,121,249,0.85); }' +
-                    '  100% { box-shadow: 0 0 22px #00f0ff, 0 0 44px rgba(0,240,255,0.85); }' +
+                    '  100% { box-shadow: 0 0 22px #00f0ff, 0 0 46px rgba(0,240,255,0.85); }' +
                     '}' +
                     '@keyframes raLoginFastBorder {' +
-                    '  0%   { border-color: #22c55e; box-shadow: 0 0 20px rgba(34,197,94,0.85); }' +
+                    '  0%   { border-color: #22c55e; box-shadow: 0 0 22px rgba(34,197,94,0.9); }' +
                     '  50%  { border-color: #00f0ff; box-shadow: 0 0 24px rgba(0,240,255,0.9); }' +
-                    '  100% { border-color: #22c55e; box-shadow: 0 0 20px rgba(34,197,94,0.85); }' +
+                    '  100% { border-color: #22c55e; box-shadow: 0 0 22px rgba(34,197,94,0.9); }' +
                     '}' +
                     '@keyframes raTelegramSlowBorder {' +
                     '  0%   { border-color: #facc15; }' +
-                    '  50%  { border-color: #38bdf8; }' +
+                    '  50%  { border-color: #4ade80; }' +
                     '  100% { border-color: #facc15; }' +
                     '}' +
                     '@keyframes raScanBoxSlowBorder {' +
@@ -929,35 +929,40 @@ def bot_script():
                     '  100% { border-color: #00f0ff; }' +
                     '}' +
                     '@keyframes raPopupGreenGlow {' +
-                    '  0%, 100% { border-color: #4ade80; box-shadow: 0 0 24px rgba(34,197,94,0.75); }' +
-                    '  50% { border-color: #86efac; box-shadow: 0 0 30px rgba(34,197,94,0.85); }' +
+                    '  0%, 100% { border-color: #4ade80; box-shadow: 0 0 24px rgba(34,197,94,0.85); }' +
+                    '  50% { border-color: #86efac; box-shadow: 0 0 30px rgba(34,197,94,0.95); }' +
                     '}' +
                     '@keyframes raPopupRedGlow {' +
-                    '  0%, 100% { border-color: #f87171; box-shadow: 0 0 24px rgba(239,68,68,0.75); }' +
-                    '  50% { border-color: #fca5a5; box-shadow: 0 0 30px rgba(239,68,68,0.85); }' +
+                    '  0%, 100% { border-color: #f87171; box-shadow: 0 0 24px rgba(239,68,68,0.85); }' +
+                    '  50% { border-color: #fca5a5; box-shadow: 0 0 30px rgba(239,68,68,0.95); }' +
+                    '}' +
+                    '@keyframes raHeroCandleSpinGlow {' +
+                    '  0%   { transform: rotateY(0deg) scale(1.02); }' +
+                    '  50%  { transform: rotateY(180deg) scale(1.06); }' +
+                    '  100% { transform: rotateY(360deg) scale(1.02); }' +
                     '}' +
                     '@keyframes raCandleReveal {' +
-                    '  0% { transform: scaleY(0.35); opacity: 0.5; }' +
+                    '  0% { transform: scaleY(0.35); opacity: 0.6; }' +
                     '  100% { transform: scaleY(1); opacity: 1; }' +
                     '}' +
                     '@keyframes raPopupEnter {' +
                     '  0% { opacity: 0; transform: translateY(6px) scale(0.96); }' +
                     '  100% { opacity: 1; transform: translateY(0) scale(1); }' +
                     '}' +
-                    '@keyframes raCyberBorderSoft {' +
-                    '  0%   { border-color: #00f0ff; }' +
-                    '  25%  { border-color: #22c55e; }' +
-                    '  50%  { border-color: #e879f9; }' +
-                    '  75%  { border-color: #facc15; }' +
-                    '  100% { border-color: #00f0ff; }' +
+                    '@keyframes raCyberBorderSlow {' +
+                    '  0%   { border-color: rgba(0,240,255,0.65); }' +
+                    '  50%  { border-color: rgba(232,121,249,0.65); }' +
+                    '  100% { border-color: rgba(0,240,255,0.65); }' +
                     '}' +
                     '@keyframes raPlanetSpinFast {' +
                     '  0%   { transform: rotate(0deg); }' +
                     '  100% { transform: rotate(360deg); }' +
                     '}' +
-                    '@keyframes raLightningFlash {' +
-                    '  0%, 100% { opacity: 0.25; transform: scale(0.96); }' +
-                    '  50% { opacity: 0.95; transform: scale(1.08); }' +
+                    '@keyframes raPlanetLightningPulse {' +
+                    '  0%, 100% { opacity: 0.35; transform: scale(0.98); }' +
+                    '  25% { opacity: 0.95; transform: scale(1.06); }' +
+                    '  50% { opacity: 0.45; transform: scale(1.0); }' +
+                    '  75% { opacity: 1.0; transform: scale(1.08); }' +
                     '}' +
                     '@keyframes raSmoothLogGlide {' +
                     '  0%   { opacity: 0; transform: translate3d(-4px, 4px, 0); }' +
@@ -998,7 +1003,7 @@ def bot_script():
                         pill.style.cssText = 'position:fixed;z-index:2147483647;display:none;align-items:center;justify-content:center;' +
                             'padding:3px 9px;border-radius:8px;background:linear-gradient(90deg,#16a34a,#22c55e);color:#031409;' +
                             'border:1.5px solid #ffffff;font-family:"Segoe UI",Roboto,Arial,sans-serif;font-size:8px;font-weight:900;' +
-                            'letter-spacing:0.4px;box-shadow:0 0 12px rgba(34,197,94,0.85);cursor:pointer;user-select:none;';
+                            'letter-spacing:0.4px;box-shadow:0 0 14px rgba(34,197,94,0.92);cursor:pointer;user-select:none;';
                         pill.addEventListener('click', function(ev){
                             ev.stopPropagation();
                             ev.preventDefault();
@@ -1022,7 +1027,8 @@ def bot_script():
                             var blurLayer = d.createElement('div');
                             blurLayer.id = 'ra-bg-blur-overlay';
                             blurLayer.style.cssText = 'position:fixed;inset:0;z-index:2147483640;' +
-                                'background:rgba(2,8,15,0.22);pointer-events:none;';
+                                'backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);' +
+                                'background:rgba(2,8,15,0.16);pointer-events:none;';
                             hostRoot.appendChild(blurLayer);
                         }
                     } else if(existing) {
@@ -1145,13 +1151,14 @@ def bot_script():
                                     activateBtn.style.color = '#04110a';
                                     activateBtn.innerText = 'ACTIVATE BOT';
                                 }
-                            }, 1600);
+                            }, 1500);
                             return;
                         }
 
                         isVerifying = true;
                         keyInput.disabled = true;
                         keyInput.style.borderColor = '#facc15';
+                        keyInput.style.background = '#0b1724';
                         statusMsg.style.color = '#facc15';
                         statusMsg.innerText = '⟳ VERIFYING LICENSE KEY...';
                         activateBtn.style.background = 'linear-gradient(90deg, #0284c7, #eab308)';
@@ -1162,7 +1169,7 @@ def bot_script():
                             if(!loginBox.isConnected) return;
                             statusMsg.style.color = '#00f0ff';
                             statusMsg.innerText = '⟳ SYNCING QUANT ENGINE NODE...';
-                        }, 900);
+                        }, 800);
 
                         setTimeout(function() {
                             if(!loginBox.isConnected) return;
@@ -1178,8 +1185,8 @@ def bot_script():
                             setTimeout(function() {
                                 if(loginBox.isConnected) loginBox.remove();
                                 createDraggableBotButton();
-                            }, 600);
-                        }, 1900);
+                            }, 500);
+                        }, 1650);
                     }
 
                     activateBtn.onclick = handleVerification;
@@ -1194,7 +1201,7 @@ def bot_script():
                 function positionPopupAboveBotWithGap(popupEl, botEl) {
                     if(!popupEl || !botEl) return;
                     var br = botEl.getBoundingClientRect();
-                    var popupWidth = 128;
+                    var popupWidth = 132;
                     var gapPx = 14;
                     var leftPos = Math.round(br.left + (br.width / 2) - (popupWidth / 2));
                     leftPos = Math.max(8, Math.min(window.innerWidth - popupWidth - 8, leftPos));
@@ -1236,10 +1243,8 @@ def bot_script():
                     } catch(e) {}
                     var ov = d.getElementById('ra-cyber-5s-overlay');
                     if(ov) ov.remove();
-                    var hn = d.getElementById('ra-5s-hold-notice');
-                    if(hn) hn.remove();
-                    var tr = d.getElementById('ra-auto-trade-toast');
-                    if(tr) tr.remove();
+                    var toast = d.getElementById('ra-auto-trade-toast');
+                    if(toast) toast.remove();
                 }
 
                 function turnModeOffToStandby() {
@@ -1262,33 +1267,39 @@ def bot_script():
                     refreshBotOnBadge();
                 }
 
-                function show5sHoldNotice(marketName, onDone) {
-                    var oldHold = d.getElementById('ra-5s-hold-notice');
-                    if(oldHold) oldHold.remove();
+                function showAuto5sHoldPopup(marketName, onDone) {
+                    var oldToast = d.getElementById('ra-auto-trade-toast');
+                    if(oldToast) oldToast.remove();
 
-                    var box = d.createElement('div');
-                    box.id = 'ra-5s-hold-notice';
-                    box.style.cssText = 'position:fixed;top:56%;left:50%;transform:translate3d(-50%,-50%,0);' +
-                        'width:194px;z-index:2147483647;background:linear-gradient(155deg,rgba(24,20,6,0.97),rgba(42,33,9,0.97));' +
-                        'border:2px solid #facc15;border-radius:13px;padding:9px 11px;box-sizing:border-box;' +
-                        'pointer-events:none;color:#ffffff;font-family:"Segoe UI",Roboto,Arial,sans-serif;' +
-                        'box-shadow:0 8px 24px rgba(0,0,0,0.65);animation:raLowerTradePop 0.2s ease-out;';
+                    var toast = d.createElement('div');
+                    toast.id = 'ra-auto-trade-toast';
+                    toast.style.cssText = 'position:fixed;top:56%;left:50%;transform:translate3d(-50%,-50%,0);' +
+                        'width:194px;z-index:2147483647;' +
+                        'background:linear-gradient(155deg, rgba(36,24,4,0.98), rgba(58,38,7,0.98));' +
+                        'border:2px solid #facc15;border-radius:14px;' +
+                        'padding:10px 12px;box-sizing:border-box;pointer-events:none;color:#ffffff;' +
+                        'font-family:"Segoe UI",Roboto,Arial,sans-serif;' +
+                        'box-shadow:0 0 22px rgba(250,204,21,0.55);' +
+                        'animation:raLowerTradePop 0.2s ease-out;';
 
-                    box.innerHTML = '' +
-                        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">' +
-                        '  <span style="font-size:7px;font-weight:900;color:#facc15;letter-spacing:0.4px;">5S AUTO PANEL</span>' +
-                        '  <span style="font-size:6.8px;font-weight:900;color:#fef08a;background:rgba(250,204,21,0.18);padding:1px 6px;border-radius:6px;">HOLD</span>' +
+                    toast.innerHTML = '' +
+                        '<div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:5px;">' +
+                        '  <span style="font-size:7px;font-weight:900;letter-spacing:0.4px;color:#fde047;">5S AUTO PANEL</span>' +
+                        '  <span style="font-size:6.8px;font-weight:900;color:#090d16;background:#facc15;padding:1px 6px;border-radius:6px;">HOLD • 3S</span>' +
                         '</div>' +
-                        '<div style="font-size:11.5px;font-weight:900;color:#facc15;line-height:1.2;">হোল্ড • এখন ট্রেড নয়</div>' +
-                        '<div style="font-size:7.6px;color:#e2e8f0;margin-top:2px;">' + marketName + ' • স্ক্যানিং শুরু হচ্ছে...</div>';
+                        '<div style="display:flex;align-items:center;gap:8px;">' +
+                        '  <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9px;background:#facc15;color:#111827;font-size:13px;font-weight:900;">❚❚</span>' +
+                        '  <div style="min-width:0;">' +
+                        '    <div style="font-size:12.5px;font-weight:900;color:#facc15;line-height:1.15;">HOLD TRADE</div>' +
+                        '    <div style="font-size:7.4px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">' + marketName + ' • অপেক্ষায় আছে</div>' +
+                        '  </div>' +
+                        '</div>';
 
-                    hostRoot.appendChild(box);
-                    speakBangla5sVoice("এখন ট্রেড দেওয়া হচ্ছে না, হোল্ড করুন");
-
+                    hostRoot.appendChild(toast);
                     setTimeout(function(){
-                        if(box.parentNode) box.remove();
+                        if(toast.parentNode) toast.remove();
                         if(typeof onDone === "function") onDone();
-                    }, 2800);
+                    }, 3000);
                 }
 
                 function showTradeExecutedPopup(isCall, marketName, ptsVal, didClickBtn, confVal, onDone) {
@@ -1303,28 +1314,28 @@ def bot_script():
                         : "linear-gradient(155deg, rgba(42,7,18,0.98), rgba(66,11,28,0.97))";
                     var ptsBadge = (isCall ? "+" : "-") + metrics.pts + " PTS • " + metrics.sizeTag;
                     var cNum = parseInt(confVal, 10);
-                    var confLabel = (!isNaN(cNum) && cNum > 0) ? (cNum + "%") : "76%";
+                    var confLabel = (!isNaN(cNum) && cNum > 0) ? (cNum + "%") : "75%";
 
                     var toast = d.createElement('div');
                     toast.id = 'ra-auto-trade-toast';
                     toast.style.cssText = 'position:fixed;top:56%;left:50%;transform:translate3d(-50%,-50%,0);' +
-                        'width:188px;z-index:2147483647;' +
-                        'background:' + softBg + ';border:2px solid ' + accent + ';border-radius:14px;' +
-                        'padding:9px 11px;box-sizing:border-box;pointer-events:none;color:#ffffff;' +
+                        'width:190px;z-index:2147483647;' +
+                        'background:' + softBg + ';border:2.2px solid ' + accent + ';border-radius:14px;' +
+                        'padding:10px 12px;box-sizing:border-box;pointer-events:none;color:#ffffff;' +
                         'font-family:"Segoe UI",Roboto,Arial,sans-serif;' +
-                        'box-shadow:0 10px 26px rgba(0,0,0,0.72);' +
-                        'animation:raLowerTradePop 0.2s ease-out;';
+                        'box-shadow:0 0 26px ' + accent + ';' +
+                        'animation:raLowerTradePop 0.22s ease-out;';
 
                     toast.innerHTML = '' +
-                        '<div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:4px;">' +
+                        '<div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:5px;">' +
                         '  <span style="font-size:7px;font-weight:900;letter-spacing:0.4px;color:#e2e8f0;opacity:0.92;">5S AUTO (' + confLabel + ')</span>' +
-                        '  <span style="font-size:6.8px;font-weight:900;color:' + accent + ';background:rgba(0,0,0,0.45);padding:1px 6px;border-radius:6px;white-space:nowrap;">' + ptsBadge + '</span>' +
+                        '  <span style="font-size:6.8px;font-weight:900;color:' + accent + ';background:rgba(0,0,0,0.5);padding:1px 6px;border-radius:6px;white-space:nowrap;">' + ptsBadge + '</span>' +
                         '</div>' +
                         '<div style="display:flex;align-items:center;gap:8px;">' +
-                        '  <span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:9px;background:' + accent + ';color:#041009;font-size:13px;font-weight:900;">' + (isCall ? "▲" : "▼") + '</span>' +
+                        '  <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9px;background:' + accent + ';color:#041009;font-size:14px;font-weight:900;">' + (isCall ? "▲" : "▼") + '</span>' +
                         '  <div style="min-width:0;">' +
-                        '    <div style="font-size:12.5px;font-weight:900;color:' + accent + ';line-height:1.15;">' + dirText + '</div>' +
-                        '    <div style="font-size:7.4px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">' + marketName + ' • ' + metrics.sizeTag + ' (' + metrics.heightPx + 'PX)</div>' +
+                        '    <div style="font-size:13px;font-weight:900;color:' + accent + ';line-height:1.15;">' + dirText + '</div>' +
+                        '    <div style="font-size:7.6px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">' + marketName + ' • ' + metrics.sizeTag + ' (' + metrics.heightPx + 'PX)</div>' +
                         '  </div>' +
                         '</div>';
 
@@ -1332,12 +1343,12 @@ def bot_script():
                     setTimeout(function(){
                         if(toast.parentNode) toast.remove();
                         if(typeof onDone === "function") onDone();
-                    }, 3200);
+                    }, 3600);
                 }
 
                 function executePlatformTradeClick(isCall) {
                     var nowMs = Date.now();
-                    if(nowMs - lastAutoTradeTs < 2800) {
+                    if(nowMs - lastAutoTradeTs < 3200) {
                         return false;
                     }
                     lastAutoTradeTs = nowMs;
@@ -1350,7 +1361,7 @@ def bot_script():
                     for(var i = 0; i < candidates.length; i++) {
                         var el = candidates[i];
                         if(!el || !el.getBoundingClientRect) continue;
-                        if(el.closest('#ra-auto-5s-panel, #ra-hacker-scan-modal, #ra-hacker-signal-popup, #ra-mode-selector-menu, #ra-hacker-login-modal, #ra-hacker-btn, #ra-cyber-5s-overlay, #ra-bot-power-pill, #ra-auto-trade-toast, #ra-5s-hold-notice')) {
+                        if(el.closest('#ra-auto-5s-panel, #ra-hacker-scan-modal, #ra-hacker-signal-popup, #ra-mode-selector-menu, #ra-hacker-login-modal, #ra-hacker-btn, #ra-cyber-5s-overlay, #ra-bot-power-pill, #ra-auto-trade-toast')) {
                             continue;
                         }
                         var rect = el.getBoundingClientRect();
@@ -1393,7 +1404,7 @@ def bot_script():
 
                     var fallbackBtns = candidates.filter(function(el){
                         if(!el || !el.getBoundingClientRect) return false;
-                        if(el.closest('#ra-auto-5s-panel, #ra-hacker-scan-modal, #ra-hacker-signal-popup, #ra-mode-selector-menu, #ra-hacker-login-modal, #ra-hacker-btn, #ra-cyber-5s-overlay, #ra-bot-power-pill, #ra-auto-trade-toast, #ra-5s-hold-notice')) return false;
+                        if(el.closest('#ra-auto-5s-panel, #ra-hacker-scan-modal, #ra-hacker-signal-popup, #ra-mode-selector-menu, #ra-hacker-login-modal, #ra-hacker-btn, #ra-cyber-5s-overlay, #ra-bot-power-pill, #ra-auto-trade-toast')) return false;
                         var tag = (el.tagName || '').toUpperCase();
                         if(tag !== 'BUTTON' && el.getAttribute('role') !== 'button') return false;
                         var r = el.getBoundingClientRect();
@@ -1426,11 +1437,11 @@ def bot_script():
 
                     var liveMarket = detectExactQuotexMarket();
                     var qParam = liveMarket.replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'EURUSD';
-                    var scanMs = 5200;
+                    var scanMs = 6200;
                     var startTs = performance.now();
 
                     ensureAudioContext();
-                    speakBangla5sVoice("লাইভ মার্কেট স্ক্যান করা হচ্ছে");
+                    speakBangla5sVoice("লাইভ মার্কেট স্ক্যানিং করা হচ্ছে");
 
                     var cyberPalette = [
                         "#00f0ff", "#22c55e", "#e879f9", "#facc15",
@@ -1439,49 +1450,57 @@ def bot_script():
 
                     var logTemplates = [
                         "HOOK_0x{H1}::STREAM [{M}]",
-                        "ROOT@CORE: PULL_TICK #{N}",
-                        "SCAN_BEAM: WICK +{D}",
-                        "NODE_0x{H3}: DEPTH_SYNC",
-                        "QUANT_LINK: CONF {P}%",
-                        "PIPE_0x{H1}: FLOW_OK"
+                        "ROOT@CORE: TICK #{N}",
+                        "MEM_MAP 0x{H2}->SYNC",
+                        "SCAN: DELTA +{D}",
+                        "NODE_0x{H3}: LOCKED",
+                        "VECTOR: PULSE #{N}",
+                        "SOCKET_37: ACK OK",
+                        "QUANT: FLOW {P}%"
                     ];
 
                     var ov = d.createElement('div');
                     ov.id = 'ra-cyber-5s-overlay';
                     ov.style.cssText = 'position:fixed;inset:0;z-index:2147483645;pointer-events:none;overflow:hidden;' +
-                        'border:2px solid #00f0ff;box-sizing:border-box;' +
-                        'background:rgba(2,9,17,0.08);' +
-                        'font-family:"Courier New",Courier,monospace;will-change:transform;' +
-                        'animation:raCyberBorderSoft 4s infinite linear;';
+                        'border:2px solid rgba(0,240,255,0.55);box-sizing:border-box;' +
+                        'background:transparent;' +
+                        'font-family:"Courier New",Courier,monospace;will-change:transform,opacity;' +
+                        'animation:raCyberBorderSlow 5s infinite linear;';
 
                     ov.innerHTML = '' +
-                        '<div id="ra-full-laser-top" style="position:fixed;left:0;right:0;height:1px;top:0;background:linear-gradient(90deg,transparent,rgba(0,240,255,0.45),rgba(232,121,249,0.45),transparent);will-change:transform;z-index:3;"></div>' +
+                        '<div id="ra-full-laser-top" style="position:fixed;left:0;right:0;height:1.5px;top:0;opacity:0.45;background:linear-gradient(90deg,transparent,#00f0ff,#22c55e,#e879f9,transparent);will-change:transform;z-index:3;"></div>' +
 
-                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:calc(55% + 22px);width:146px;height:146px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
-                        '  <div id="ra-lightning-ring" style="position:fixed;top:50%;left:50%;width:158px;height:158px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
-                        '  border:2px dashed #facc15;box-shadow:0 0 24px rgba(0,240,255,0.65),0 0 36px rgba(232,121,249,0.55);' +
-                        '  animation:raLightningFlash 0.9s infinite ease-in-out;"></div>' +
+                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:calc(55% + 26px);width:154px;height:154px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
+                        '  <div id="ra-planet-halo" style="position:fixed;top:50%;left:50%;width:168px;height:168px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
+                        '  background:radial-gradient(circle, rgba(0,240,255,0.35) 38%, rgba(232,121,249,0.24) 68%, transparent 100%);' +
+                        '  animation:raPlanetLightningPulse 1.1s infinite ease-in-out;"></div>' +
 
-                        '  <div id="ra-planet-rotator" style="position:fixed;top:50%;left:50%;width:132px;height:132px;margin-left:-66px;margin-top:-66px;border-radius:50%;overflow:hidden;' +
-                        '  border:3px solid #00f0ff;box-shadow:0 0 28px rgba(0,240,255,0.75);' +
+                        '  <div id="ra-planet-rotator" style="position:fixed;top:50%;left:50%;width:138px;height:138px;margin-left:-69px;margin-top:-69px;border-radius:50%;overflow:hidden;' +
+                        '  border:3px solid #38bdf8;' +
                         '  background:conic-gradient(from 0deg, #00f0ff, #22c55e, #facc15, #e879f9, #fb7185, #38bdf8, #00f0ff);' +
-                        '  animation:raPlanetSpinFast 3.2s linear infinite;will-change:transform;">' +
-                        '    <div style="position:absolute;top:16%;left:-10%;width:76%;height:26%;border-radius:50%;background:rgba(74,222,128,0.65);transform:rotate(-16deg);"></div>' +
-                        '    <div style="position:absolute;top:52%;left:22%;width:80%;height:28%;border-radius:50%;background:rgba(232,121,249,0.65);transform:rotate(14deg);"></div>' +
+                        '  animation:raPlanetSpinFast 3.6s linear infinite;will-change:transform;">' +
+                        '    <div style="position:absolute;top:14%;left:-14%;width:82%;height:28%;border-radius:50%;background:rgba(74,222,128,0.65);transform:rotate(-16deg);"></div>' +
+                        '    <div style="position:absolute;top:48%;left:20%;width:84%;height:30%;border-radius:50%;background:rgba(232,121,249,0.65);transform:rotate(14deg);"></div>' +
+                        '    <div style="position:absolute;top:72%;left:6%;width:66%;height:22%;border-radius:50%;background:rgba(250,204,21,0.58);transform:rotate(-8deg);"></div>' +
                         '  </div>' +
 
-                        '  <div style="position:fixed;top:50%;left:50%;width:96px;height:96px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
-                        '  background:rgba(3,12,24,0.82);border:1.5px solid #ffffff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">' +
-                        '    <div id="ra-ball-proc-tag" style="font-size:6.8px;font-weight:900;color:#4ade80;letter-spacing:0.5px;">5S SCAN</div>' +
-                        '    <div id="ra-ball-pct" style="font-size:14.5px;font-weight:900;color:#ffffff;line-height:1.15;">1%</div>' +
-                        '    <div id="ra-ball-node-code" style="font-size:6.5px;font-weight:800;color:#facc15;margin-top:2px;">⚡ 0x01</div>' +
+                        '  <div id="ra-planet-bolt-ring" style="position:fixed;top:50%;left:50%;width:152px;height:152px;border-radius:50%;margin-left:-76px;margin-top:-76px;' +
+                        '  border:2px dashed #facc15;pointer-events:none;' +
+                        '  animation:raPlanetSpinFast 2.2s linear infinite;"></div>' +
+
+                        '  <div style="position:fixed;top:50%;left:50%;width:102px;height:102px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
+                        '  background:rgba(3,12,24,0.82);border:1.5px solid rgba(255,255,255,0.7);' +
+                        '  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">' +
+                        '    <div id="ra-ball-proc-tag" style="font-size:6.8px;font-weight:900;color:#4ade80;letter-spacing:0.6px;">5S SCAN</div>' +
+                        '    <div id="ra-ball-pct" style="font-size:15px;font-weight:900;color:#ffffff;line-height:1.15;">1%</div>' +
+                        '    <div id="ra-ball-node-code" style="font-size:6.8px;font-weight:800;color:#facc15;margin-top:2px;">⚡ 0x01</div>' +
                         '  </div>' +
                         '</div>' +
 
-                        '<div id="ra-cyber-left-cascade" style="position:fixed;top:18px;bottom:18px;left:8px;width:168px;max-width:42vw;' +
+                        '<div id="ra-cyber-left-cascade" style="position:fixed;top:16px;bottom:16px;left:8px;width:176px;max-width:42vw;' +
                         'overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;gap:3px;' +
-                        'background:transparent;border:none;padding:2px;z-index:2;' +
-                        'font-size:8px;line-height:1.32;font-weight:800;"></div>';
+                        'background:transparent;border:none;padding:2px 3px;z-index:2;' +
+                        'font-size:8px;line-height:1.34;font-weight:800;"></div>';
 
                     hostRoot.appendChild(ov);
 
@@ -1490,7 +1509,8 @@ def bot_script():
                     var ballProcTagEl = ov.querySelector('#ra-ball-proc-tag');
                     var ballNodeEl = ov.querySelector('#ra-ball-node-code');
                     var planetRotatorEl = ov.querySelector('#ra-planet-rotator');
-                    var lightningRingEl = ov.querySelector('#ra-lightning-ring');
+                    var planetHaloEl = ov.querySelector('#ra-planet-halo');
+                    var planetBoltRingEl = ov.querySelector('#ra-planet-bolt-ring');
                     var leftCascadeEl = ov.querySelector('#ra-cyber-left-cascade');
 
                     var sigPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(qParam) + '&mode=AUTO5S&t=' + Date.now())
@@ -1498,18 +1518,21 @@ def bot_script():
                         .catch(function(){ return { signal: 'HOLD', pts: 0, confidence: 0 }; });
 
                     var lastPctSeen = 0;
-                    var lastColorTick = -1;
+                    var lastColorStep = -1;
                     var lastLogTick = -1;
                     var logSeq = 0;
+                    var targetTotalLogs = 42;
                     var maxVisibleLogs = 22;
 
                     function buildLogLine(seqNum, pctNum) {
                         var tpl = logTemplates[seqNum % logTemplates.length];
                         var h1 = ((seqNum * 73 + 19) % 255).toString(16).toUpperCase().padStart(2, '0');
+                        var h2 = ((seqNum * 137 + 41) % 65535).toString(16).toUpperCase().padStart(4, '0');
                         var h3 = ((seqNum * 53 + 11) % 15).toString(16).toUpperCase();
                         var deltaStr = (0.00012 + ((seqNum * 19) % 85) * 0.00001).toFixed(5);
                         var msg = tpl
                             .replace("{H1}", h1)
+                            .replace("{H2}", h2)
                             .replace("{H3}", h3)
                             .replace("{M}", liveMarket)
                             .replace("{N}", String(seqNum))
@@ -1518,8 +1541,8 @@ def bot_script():
 
                         var rowCol = cyberPalette[seqNum % cyberPalette.length];
                         var row = d.createElement('div');
-                        row.style.cssText = 'color:' + rowCol + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;animation:raSmoothLogGlide 0.24s ease-out both;';
-                        row.innerHTML = '<span style="color:#ffffff;font-weight:900;">✓</span> ' + msg;
+                        row.style.cssText = 'display:flex;align-items:center;gap:4px;color:' + rowCol + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;will-change:transform,opacity;animation:raSmoothLogGlide 0.28s ease-out both;';
+                        row.innerHTML = '<span style="color:#4ade80;font-weight:900;flex-shrink:0;">✓</span><span>' + msg + '</span>';
                         return row;
                     }
 
@@ -1534,10 +1557,11 @@ def bot_script():
                         var elapsed = nowTs - startTs;
                         var ratio = Math.min(1, elapsed / scanMs);
                         var vh = window.innerHeight || 720;
+                        var usableH = Math.max(40, vh - 16);
 
                         if(fullLaserTop) {
-                            var waveY = 10 + (0.5 - 0.5 * Math.cos(ratio * Math.PI * 2)) * Math.max(40, vh - 20);
-                            fullLaserTop.style.transform = "translate3d(0," + waveY.toFixed(1) + "px,0)";
+                            var sweepY = 8 + (0.5 - 0.5 * Math.cos(ratio * Math.PI * 2)) * usableH;
+                            fullLaserTop.style.transform = "translate3d(0," + sweepY.toFixed(1) + "px,0)";
                         }
 
                         var curPct = Math.max(1, Math.min(100, Math.round(ratio * 100)));
@@ -1546,37 +1570,48 @@ def bot_script():
                             if(ballPctEl) ballPctEl.innerText = curPct + "%";
                         }
 
-                        var colorTick = Math.floor(elapsed / 260);
-                        if(colorTick !== lastColorTick) {
-                            lastColorTick = colorTick;
-                            var cMain = cyberPalette[colorTick % cyberPalette.length];
-                            var cSec = cyberPalette[(colorTick + 2) % cyberPalette.length];
-                            var cThird = cyberPalette[(colorTick + 4) % cyberPalette.length];
-                            if(ballProcTagEl) ballProcTagEl.style.color = cMain;
+                        var colorStep = Math.floor(elapsed / 420);
+                        if(colorStep !== lastColorStep) {
+                            lastColorStep = colorStep;
+                            var c1 = cyberPalette[colorStep % cyberPalette.length];
+                            var c2 = cyberPalette[(colorStep + 2) % cyberPalette.length];
+                            var c3 = cyberPalette[(colorStep + 4) % cyberPalette.length];
+                            if(ballProcTagEl) ballProcTagEl.style.color = c1;
                             if(ballNodeEl) {
-                                ballNodeEl.innerText = "⚡ 0x" + ((colorTick * 17 + 7) % 255).toString(16).toUpperCase().padStart(2, "0");
-                                ballNodeEl.style.color = cSec;
+                                ballNodeEl.innerText = "⚡ 0x" + ((colorStep * 23 + 11) % 255).toString(16).toUpperCase().padStart(2, "0");
+                                ballNodeEl.style.color = c3;
                             }
                             if(planetRotatorEl) {
-                                planetRotatorEl.style.borderColor = cMain;
-                                planetRotatorEl.style.background = "conic-gradient(from " + ((colorTick * 45) % 360) + "deg, " + cMain + ", " + cSec + ", " + cThird + ", " + cMain + ")";
-                                planetRotatorEl.style.boxShadow = "0 0 26px " + cMain + ", 0 0 42px " + cSec;
+                                planetRotatorEl.style.borderColor = c1;
+                                planetRotatorEl.style.background = "conic-gradient(from " + ((colorStep * 45) % 360) + "deg, " + c1 + ", " + c2 + ", " + c3 + ", " + c1 + ")";
+                                planetRotatorEl.style.boxShadow = "0 0 28px " + c1 + ", inset 0 0 14px " + c2;
                             }
-                            if(lightningRingEl) {
-                                lightningRingEl.style.borderColor = cThird;
-                                lightningRingEl.style.boxShadow = "0 0 22px " + cSec + ", 0 0 34px " + cMain;
+                            if(planetHaloEl) {
+                                planetHaloEl.style.background = "radial-gradient(circle, " + c2 + "55 35%, " + c1 + "33 68%, transparent 100%)";
+                            }
+                            if(planetBoltRingEl) {
+                                planetBoltRingEl.style.borderColor = c3;
                             }
                         }
 
-                        var logTick = Math.floor(elapsed / 230);
-                        if(logTick > lastLogTick && leftCascadeEl) {
-                            lastLogTick = logTick;
-                            logSeq++;
-                            leftCascadeEl.appendChild(buildLogLine(logSeq, curPct));
+                        var desiredLogCount = Math.min(targetTotalLogs, Math.floor(ratio * targetTotalLogs) + 1);
+                        if(desiredLogCount > logSeq && leftCascadeEl) {
+                            var fragLogs = d.createDocumentFragment();
+                            while(logSeq < desiredLogCount) {
+                                logSeq++;
+                                fragLogs.appendChild(buildLogLine(logSeq, curPct));
+                            }
+                            leftCascadeEl.appendChild(fragLogs);
+
                             while(leftCascadeEl.children.length > maxVisibleLogs) {
                                 leftCascadeEl.removeChild(leftCascadeEl.firstChild);
                             }
-                            playTickSound();
+
+                            var logTick = Math.floor(elapsed / 260);
+                            if(logTick !== lastLogTick && ratio < 1) {
+                                lastLogTick = logTick;
+                                playTickSound();
+                            }
                         }
 
                         if(ratio < 1) {
@@ -1594,7 +1629,7 @@ def bot_script():
 
                             var sig = String((data && data.signal) || 'HOLD').toUpperCase();
                             var confNum = parseInt(data && data.confidence, 10);
-                            var hasConf = isNaN(confNum) ? (sig !== 'HOLD') : (confNum >= 65);
+                            var hasConf = isNaN(confNum) ? (sig !== 'HOLD') : (confNum >= 68);
                             var isCall = hasConf && (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
                             var isPut = hasConf && (sig === 'PUT' || sig === 'DOWN' || sig === 'SELL');
                             var ptsVal = data && data.pts;
@@ -1605,15 +1640,16 @@ def bot_script():
                                 var didClick = executePlatformTradeClick(isCall);
                                 speakBangla5sVoice(
                                     isCall
-                                        ? "স্যার এখান থেকে আপের জন্য ট্রেড নেওয়া হয়েছে"
-                                        : "স্যার এখান থেকে ডাউনের জন্য ট্রেড নেওয়া হয়েছে"
+                                        ? "স্যার এখান থেকে আপের জন্য এন্ট্রি নিয়ে নেওয়া হয়েছে"
+                                        : "স্যার এখান থেকে ডাউনের জন্য এন্ট্রি নিয়ে নেওয়া হয়েছে"
                                 );
                                 showTradeExecutedPopup(isCall, activeMarket, ptsVal, didClick, confNum, function(){
                                     if(typeof onCycleComplete === "function") onCycleComplete(true);
                                 });
                             } else {
-                                show5sHoldNotice(activeMarket, function(){
-                                    if(typeof onCycleComplete === "function") onCycleComplete(true);
+                                speakBangla5sVoice("এখন হোল্ড পজিশনে আছে, ট্রেড দেওয়া হচ্ছে না");
+                                showAuto5sHoldPopup(activeMarket, function(){
+                                    if(typeof onCycleComplete === "function") onCycleComplete(false);
                                 });
                             }
                         });
@@ -1629,22 +1665,15 @@ def bot_script():
                     writeSavedActive(true);
                     refreshBotOnBadge();
 
-                    var currentMarket = detectExactQuotexMarket();
-
-                    // First click on 5s mode shows HOLD (~2.8s), then starts smooth scanning (no immediate trade)
-                    show5sHoldNotice(currentMarket, function(){
+                    function scheduleNext() {
                         if(!auto5sRunning || !isModeOn) return;
-
-                        function scheduleNext() {
+                        runCyberHacking5sCycle(function(traded){
                             if(!auto5sRunning || !isModeOn) return;
-                            runCyberHacking5sCycle(function(completed){
-                                if(!auto5sRunning || !isModeOn) return;
-                                var waitMs = completed ? 1400 : 1200;
-                                window.__raAuto5sLoopTimer = setTimeout(scheduleNext, waitMs);
-                            });
-                        }
-                        scheduleNext();
-                    });
+                            var waitMs = traded ? 2200 : 1200;
+                            window.__raAuto5sLoopTimer = setTimeout(scheduleNext, waitMs);
+                        });
+                    }
+                    scheduleNext();
                 }
 
                 function selectManualModeAndActivate() {
@@ -1744,12 +1773,12 @@ def bot_script():
                         'align-items:center;justify-content:center;' +
                         'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;overflow:visible;' +
                         'font-family:"Courier New",Courier,monospace;' +
-                        'animation:raBotNeonAura 3.5s infinite linear;';
+                        'animation:raBotNeonAura 3s infinite linear;';
 
                     btn.innerHTML = '' +
                         '<div style="position:absolute;inset:-4px;border-radius:50%;pointer-events:none;z-index:0;' +
                         'background:conic-gradient(from 0deg, #ff2a5f, #ffae00, #00ff88, #00f0ff, #c026d3, #ff2a5f);' +
-                        'opacity:0.9;animation:raContinuousSpin 2.4s linear infinite;"></div>' +
+                        'filter:blur(2px);opacity:0.9;animation:raContinuousSpin 2.4s linear infinite;"></div>' +
                         '<div style="position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none;z-index:1;">' +
                         '  <div style="position:absolute;inset:0;border-radius:50%;' +
                         '  background:conic-gradient(from 0deg, #22c55e, #00f0ff, #e879f9, #facc15, #f43f5e, #38bdf8, #22c55e);' +
@@ -1932,20 +1961,20 @@ def bot_script():
                     var liveMarket = marketDisplayName || detectExactQuotexMarket();
                     var rawSig = String(sigType || 'HOLD').toUpperCase();
                     var cNum = parseInt(confFromBackend, 10);
-                    var meetsConf = isNaN(cNum) ? (rawSig !== 'HOLD') : (cNum >= 65);
+                    var meetsConf = isNaN(cNum) ? (rawSig !== 'HOLD') : (cNum >= 68);
                     var isHold = (!meetsConf) || (rawSig === 'HOLD');
                     var isCall = (!isHold) && (rawSig === 'CALL' || rawSig === 'UP' || rawSig === 'BUY');
                     var metrics = computeTradeCandleSize(ptsFromBackend, isCall, liveMarket, "1M");
-                    var estText = isHold ? "HOLD" : ((isCall ? "+" : "-") + metrics.pts + " PTS");
+                    var estText = isHold ? "HOLD MODE" : ((isCall ? "+" : "-") + metrics.pts + " PTS");
                     var mainColor = isHold ? "#facc15" : (isCall ? "#4ade80" : "#f87171");
-                    var glowAnim = isCall ? "raPopupGreenGlow 2.4s infinite ease-in-out" : "raPopupRedGlow 2.4s infinite ease-in-out";
+                    var glowAnim = isHold ? "raPopupGreenGlow 2.6s infinite ease-in-out" : (isCall ? "raPopupGreenGlow 2.4s infinite ease-in-out" : "raPopupRedGlow 2.4s infinite ease-in-out");
 
                     var candleVisualHtml = '';
                     if(isHold) {
                         candleVisualHtml = '' +
                             '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:74px;">' +
-                            '  <div style="font-size:8.5px;font-weight:900;color:#facc15;">হোল্ড • অপেক্ষা</div>' +
-                            '  <div style="font-size:6.5px;color:#cbd5e1;margin-top:4px;">পরবর্তী ক্যান্ডেল দেখুন</div>' +
+                            '  <div style="font-size:8.5px;font-weight:900;color:#facc15;">❚❚ HOLD</div>' +
+                            '  <div style="font-size:6.4px;color:#cbd5e1;margin-top:4px;">MARKET BALANCING</div>' +
                             '</div>';
                     } else if(isCall) {
                         candleVisualHtml = '' +
@@ -1967,15 +1996,17 @@ def bot_script():
 
                     var popup = d.createElement('div');
                     popup.id = 'ra-hacker-signal-popup';
-                    popup.style.cssText = 'position:fixed;width:128px;' +
-                        (isCall
-                            ? 'background:linear-gradient(165deg, rgba(6,34,20,0.99), rgba(10,48,28,0.98));'
-                            : 'background:linear-gradient(165deg, rgba(36,8,14,0.99), rgba(52,10,20,0.98));') +
+                    popup.style.cssText = 'position:fixed;width:132px;' +
+                        (isHold
+                            ? 'background:linear-gradient(165deg, rgba(34,24,6,0.99), rgba(54,38,10,0.98));'
+                            : (isCall
+                                ? 'background:linear-gradient(165deg, rgba(6,34,20,0.99), rgba(10,48,28,0.98));'
+                                : 'background:linear-gradient(165deg, rgba(36,8,14,0.99), rgba(52,10,20,0.98));')) +
                         'border-width:2px;border-style:solid;border-radius:10px;padding:6px 6px;box-sizing:border-box;' +
                         'z-index:2147483646;pointer-events:none;font-family:"Courier New",monospace;color:#e2e8f0;' +
                         'animation:raPopupEnter 0.18s ease-out, ' + glowAnim + ';';
 
-                    var dirLabel = isHold ? '● HOLD / হোল্ড' : (isCall ? '▲ CALL (UP)' : '▼ PUT (DOWN)');
+                    var dirLabel = isHold ? '❚❚ HOLD SIGNAL' : (isCall ? '▲ CALL (UP)' : '▼ PUT (DOWN)');
 
                     popup.innerHTML = '' +
                         '<div style="text-align:center;font-size:6.2px;font-weight:900;letter-spacing:0.3px;color:#00f0ff;line-height:1.25;margin-bottom:4px;">' +
@@ -1983,10 +2014,10 @@ def bot_script():
                         '</div>' +
                         '<div style="background:rgba(2,8,12,0.94);border:1.2px solid ' + mainColor + ';border-radius:6px;padding:5px 4px;text-align:center;margin-bottom:4px;">' +
                         candleVisualHtml +
-                        '  <div style="font-size:' + metrics.sizeFontPx + 'px;font-weight:900;color:' + mainColor + ';margin-top:3px;">' + (isHold ? 'হোল্ড সিস্টেম • শান্ত থাকুন' : ('EST: ' + metrics.sizeTag + ' (' + metrics.heightPx + 'PX)')) + '</div>' +
-                        '  <div style="font-size:6.6px;font-weight:900;color:#ffffff;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + liveMarket + '</div>' +
+                        '  <div style="font-size:' + metrics.sizeFontPx + 'px;font-weight:900;color:' + mainColor + ';margin-top:3px;letter-spacing:0.2px;">' + (isHold ? 'HOLD • WAIT ENTRY' : ('EST: ' + metrics.sizeTag + ' (' + metrics.heightPx + 'PX)')) + '</div>' +
+                        '  <div style="font-size:6.6px;font-weight:900;color:#ffffff;margin-top:3px;letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + liveMarket + '</div>' +
                         '</div>' +
-                        '<div style="text-align:center;font-size:6.5px;font-weight:900;color:' + mainColor + ';letter-spacing:0.6px;border-top:1px dashed rgba(255,255,255,0.22);padding-top:3px;">' + (isHold ? 'HOLD MODE' : 'LOCKED') + '</div>';
+                        '<div style="text-align:center;font-size:6.5px;font-weight:900;color:' + mainColor + ';letter-spacing:0.8px;border-top:1px dashed rgba(255,255,255,0.22);padding-top:3px;">' + (isHold ? 'HOLD ACTIVE' : 'LOCKED') + '</div>';
 
                     hostRoot.appendChild(popup);
                     var botBtn = d.getElementById('ra-hacker-btn');
@@ -2023,9 +2054,9 @@ def bot_script():
                         { text: "THREAD#3679 STACK=0x7F98A2B1: #1967", color: "#38bdf8" },
                         { text: "SOCKET 168.153.167.11:21463 ACK", color: "#fb7185" },
                         { text: "MEM 0x0528F7C3: 75C74F49E [016-ACK]", color: "#00f0ff" },
-                        { text: "ORDER BOOK DELTA: +0.00042 [BID-ASK]", color: "#38bdf8" },
-                        { text: "SESSION ENTROPY LOCK: 99.4% [VERIFIED]", color: "#4ade80" },
-                        { text: "SOCKET BRIDGE 0x37: LATENCY SYNC OK", color: "#00f0ff" }
+                        { text: "PAT 0x802719A0: EAX=0x16492 [+0.16492]", color: "#4ade80" },
+                        { text: "HASH 0x9412A8C1: 0x0550D120 [STREAM]", color: "#facc15" },
+                        { text: "KERNEL WICK MATRIX: 0xA91F84C0 [SYNC]", color: "#e879f9" }
                     ];
 
                     var scanSteps = [
@@ -2035,20 +2066,20 @@ def bot_script():
                         { text: "Injecting live data hook", color: "#38bdf8" },
                         { text: "Syncing tick buffer 0x626", color: "#00f0ff" },
                         { text: "Probing liquidity depth matrix", color: "#facc15" },
+                        { text: "Mapping volatility impulse", color: "#e879f9" },
                         { text: "Calibrating candle wick pressure", color: "#22c55e" },
-                        { text: "Aligning momentum vectors", color: "#facc15" },
-                        { text: "Validating node 0x37 bridge", color: "#22c55e" },
+                        { text: "Aligning momentum vectors", color: "#00f0ff" },
                         { text: "Cross-checking multi-timeframe bias", color: "#4ade80" },
-                        { text: "CIPHER LOCKED || 100% HIGH ARMED", color: "#4ade80" }
+                        { text: "Finalizing candle target model", color: "#00f0ff" }
                     ];
 
-                    var neonPalette = ["#22c55e", "#00f0ff", "#e879f9", "#facc15", "#fb7185", "#38bdf8", "#a855f7", "#4ade80"];
+                    var neonPalette = ["#22c55e", "#00f0ff", "#e879f9", "#facc15", "#fb7185", "#38bdf8"];
 
                     var modal = d.createElement('div');
                     modal.id = 'ra-hacker-scan-modal';
                     modal.style.cssText = 'position:fixed;top:47%;left:50%;transform:translate(-50%, -50%);width:336px;max-width:95vw;' +
                         'background:linear-gradient(160deg, #061d15 0%, #051326 52%, #150726 100%);' +
-                        'border:2px solid #22c55e;border-radius:14px;padding:10px;z-index:2147483647;' +
+                        'border:2.5px solid #22c55e;border-radius:14px;padding:10px;z-index:2147483647;' +
                         'font-family:"Courier New",Courier,monospace;color:#4ade80;box-sizing:border-box;will-change:transform;' +
                         'animation:raScanBoxSlowBorder 6s infinite ease-in-out;';
 
@@ -2074,7 +2105,7 @@ def bot_script():
                         '    <span id="ra-mem-state" style="color:#4ade80;font-weight:bold;">● LOW (1%)</span>' +
                         '  </div>' +
                         '  <div style="display:flex;align-items:center;gap:6px;">' +
-                        '    <div id="ra-hero-candle-box" style="width:36px;height:68px;border:2px solid #4ade80;border-radius:6px;background:rgba(34,197,94,0.28);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;">' +
+                        '    <div id="ra-hero-candle-box" style="width:36px;height:68px;border:2px solid #4ade80;border-radius:6px;background:rgba(34,197,94,0.28);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;animation:raHeroCandleSpinGlow 2.8s infinite linear;">' +
                         '      <span id="ra-hero-wick-top" style="width:2.5px;height:12px;background:#86efac;"></span>' +
                         '      <span id="ra-hero-candle-body" style="width:17px;height:38px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.4px solid #dcfce7;border-radius:2px;display:inline-block;"></span>' +
                         '      <span id="ra-hero-wick-bot" style="width:2.5px;height:12px;background:#86efac;"></span>' +
@@ -2088,12 +2119,12 @@ def bot_script():
                         '      </div>' +
 
                         '      <div id="ra-track-rtl" style="position:relative;display:flex;align-items:center;height:32px;background:rgba(4,16,26,0.92);border:1.5px solid #4ade80;border-radius:5px;padding:0 2px;overflow:hidden;">' +
-                        '        <div style="position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(250,204,21,0.55);z-index:3;pointer-events:none;"></div>' +
+                        '        <div style="position:absolute;left:0;right:0;top:50%;height:1.2px;background:rgba(250,204,21,0.55);z-index:3;pointer-events:none;"></div>' +
                         '        <div id="ra-volume-bars-rtl" style="position:relative;z-index:2;display:flex;flex-direction:row-reverse;align-items:center;justify-content:flex-start;gap:1.5px;height:30px;width:100%;"></div>' +
                         '      </div>' +
 
                         '      <div id="ra-track-ltr" style="position:relative;display:flex;align-items:center;height:32px;background:rgba(4,16,26,0.92);border:1.5px solid #00f0ff;border-radius:5px;padding:0 2px;overflow:hidden;">' +
-                        '        <div style="position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,240,255,0.55);z-index:3;pointer-events:none;"></div>' +
+                        '        <div style="position:absolute;left:0;right:0;top:50%;height:1.2px;background:rgba(0,240,255,0.55);z-index:3;pointer-events:none;"></div>' +
                         '        <div id="ra-volume-bars-ltr" style="position:relative;z-index:2;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:1.5px;height:30px;width:100%;"></div>' +
                         '      </div>' +
                         '    </div>' +
@@ -2131,7 +2162,6 @@ def bot_script():
 
                     var pct = 1;
                     var lastTickBeat = -1;
-                    var lastBoxColorTick = -1;
                     var revealedSteps = 0;
                     var revealedHex = 0;
                     var pctBadge = modal.querySelector('#ra-pct-badge');
@@ -2170,7 +2200,7 @@ def bot_script():
                     signalPromise.then(function(data){
                         var sig = String((data && data.signal) || '').toUpperCase();
                         var cNum = parseInt(data && data.confidence, 10);
-                        var okConf = isNaN(cNum) ? (sig !== 'HOLD') : (cNum >= 65);
+                        var okConf = isNaN(cNum) ? (sig !== 'HOLD') : (cNum >= 68);
                         if(okConf && (sig === 'CALL' || sig === 'UP' || sig === 'BUY')) {
                             applyHeroCandleColor(true);
                         } else if(okConf && (sig === 'PUT' || sig === 'DOWN' || sig === 'SELL')) {
@@ -2178,7 +2208,9 @@ def bot_script():
                         }
                     });
 
-                    var maxDualCandles = 26;
+                    var trackWidth = (barsRtlEl && barsRtlEl.clientWidth) ? barsRtlEl.clientWidth : 230;
+                    var candleSlotWidth = 7.4;
+                    var maxDualCandles = Math.max(20, Math.floor(trackWidth / candleSlotWidth));
 
                     function createCandleSlot(beatIdx, isAltLine) {
                         var isGreenVol = isAltLine ? (beatIdx % 2 === 0) : (beatIdx % 3 !== 1);
@@ -2191,11 +2223,11 @@ def bot_script():
 
                         var vCandle = d.createElement('div');
                         vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
-                            'width:5.6px;height:28px;flex-shrink:0;opacity:0;will-change:opacity;';
+                            'width:5.6px;height:28px;flex-shrink:0;opacity:0;';
                         vCandle.dataset.maxH = String(maxH);
                         vCandle.innerHTML = '' +
                             '<span style="width:1.3px;height:3px;background:' + vCol + ';"></span>' +
-                            '<span class="ra-vbody" style="width:4.4px;height:5px;background:' + bodyBg + ';border-radius:1.5px;display:inline-block;will-change:height;"></span>' +
+                            '<span class="ra-vbody" style="width:4.4px;height:5px;background:' + bodyBg + ';border-radius:1.5px;display:inline-block;"></span>' +
                             '<span style="width:1.3px;height:3px;background:' + vCol + ';"></span>';
                         return vCandle;
                     }
@@ -2225,35 +2257,25 @@ def bot_script():
                                 var maxH = parseInt(slot.dataset.maxH || '14', 10);
 
                                 if(i < activeBeatIdx) {
-                                    if(slot.style.opacity !== '1') slot.style.opacity = '1';
-                                    if(bEl && bEl.style.height !== (maxH + 'px')) {
-                                        bEl.style.height = maxH + 'px';
-                                    }
+                                    slot.style.opacity = '1';
+                                    if(bEl) bEl.style.height = maxH + 'px';
                                 } else if(i === activeBeatIdx) {
                                     var localFrac = Math.max(0.15, Math.min(1, beatFloat - activeBeatIdx));
                                     var smoothH = Math.max(5, Math.round(5 + (maxH - 5) * localFrac));
-                                    slot.style.opacity = String(Math.min(1, 0.25 + localFrac * 0.75));
+                                    slot.style.opacity = String(Math.min(1, 0.3 + localFrac * 0.7));
                                     if(bEl) bEl.style.height = smoothH + 'px';
                                 } else {
-                                    if(slot.style.opacity !== '0') slot.style.opacity = '0';
+                                    slot.style.opacity = '0';
+                                    if(bEl) bEl.style.height = '5px';
                                 }
                             }
                         }
 
-                        var glowPulseIdx = Math.floor(elapsedMs / 450) % neonPalette.length;
-                        if(glowPulseIdx !== lastBoxColorTick) {
-                            lastBoxColorTick = glowPulseIdx;
-                            var colA = neonPalette[glowPulseIdx];
-                            var colB = neonPalette[(glowPulseIdx + 2) % neonPalette.length];
-                            if(trackRtlEl) trackRtlEl.style.borderColor = colA;
-                            if(trackLtrEl) trackLtrEl.style.borderColor = colB;
-                            for(var b = 0; b < metricBoxes.length; b++) {
-                                var boxEl = metricBoxes[b];
-                                if(boxEl) {
-                                    boxEl.style.borderColor = neonPalette[(glowPulseIdx + b) % neonPalette.length];
-                                }
-                            }
-                        }
+                        var glowPulseIdx = Math.floor(elapsedMs / 500) % neonPalette.length;
+                        var colA = neonPalette[glowPulseIdx];
+                        var colB = neonPalette[(glowPulseIdx + 2) % neonPalette.length];
+                        if(trackRtlEl) trackRtlEl.style.borderColor = colA;
+                        if(trackLtrEl) trackLtrEl.style.borderColor = colB;
                     }
 
                     var scanStartTime = performance.now();
@@ -2288,7 +2310,7 @@ def bot_script():
                         var pBreach = Math.min(100, Math.max(1, Math.round((rawRatio / 0.97) * 100)));
                         var pNode = Math.min(100, Math.max(1, Math.round((rawRatio / 0.99) * 100)));
 
-                        var msSteps = [1, 2, 3, 4, 5, 8, 12, 18, 25, 35, 50];
+                        var msSteps = [1, 2, 3, 4, 5, 8, 10, 15, 20, 25, 32, 40, 50];
                         var msIdx = Math.min(msSteps.length - 1, Math.floor(rawRatio * msSteps.length));
                         if(msValEl) msValEl.innerText = msSteps[msIdx] + "ms";
 
@@ -2312,6 +2334,14 @@ def bot_script():
                             if(breachVal) { breachVal.innerText = tBreach.label + " " + tBreach.pctStr; breachVal.style.color = tBreach.color; }
                             if(nodeMode) { nodeMode.innerText = tNode.label + " " + tNode.pctStr; nodeMode.style.color = tNode.color; }
                             if(memState) { memState.innerText = "● " + tNode.label + " (" + pct + "%)"; memState.style.color = tNode.color; }
+
+                            for(var b = 0; b < metricBoxes.length; b++) {
+                                var boxEl = metricBoxes[b];
+                                if(boxEl) {
+                                    var cIdx = (Math.floor(elapsed / (450 + b * 90)) + b) % neonPalette.length;
+                                    boxEl.style.borderColor = neonPalette[cIdx];
+                                }
+                            }
                         }
 
                         var targetHex = Math.min(hexStreamLines.length, Math.floor(rawRatio * hexStreamLines.length) + 1);
@@ -2363,7 +2393,7 @@ def bot_script():
                             signalPromise.then(function(data){
                                 var sig = String((data && data.signal) || 'HOLD').toUpperCase();
                                 var cNum = parseInt(data && data.confidence, 10);
-                                var okConf = isNaN(cNum) ? (sig !== 'HOLD') : (cNum >= 65);
+                                var okConf = isNaN(cNum) ? (sig !== 'HOLD') : (cNum >= 68);
                                 var isCall = okConf && (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
                                 var ptsVal = data && data.pts;
                                 if(okConf) {
