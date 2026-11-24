@@ -947,6 +947,10 @@ def bot_script():
                     '  0%   { transform: rotate(-160deg) scale(0.55); opacity: 0.35; }' +
                     '  100% { transform: rotate(0deg) scale(1); opacity: 1; }' +
                     '}' +
+                    '@keyframes raSmoothLogGlide {' +
+                    '  0%   { opacity: 0; transform: translate3d(-8px, 10px, 0); }' +
+                    '  100% { opacity: 1; transform: translate3d(0, 0, 0); }' +
+                    '}' +
                     '@keyframes raLowerTradePop {' +
                     '  0%   { opacity: 0; transform: translate3d(-50%, -42%, 0) scale(0.78); }' +
                     '  100% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1); }' +
@@ -1305,7 +1309,7 @@ def bot_script():
                     lastAutoTradeTs = nowMs;
 
                     var candidates = Array.prototype.slice.call(
-                        d.querySelectorAll('button, [role="button"], a, div')
+                        d.querySelectorAll('button, [role="button"], a, div, span')
                     );
 
                     var scored = [];
@@ -1316,24 +1320,33 @@ def bot_script():
                             continue;
                         }
                         var rect = el.getBoundingClientRect();
-                        if(rect.width < 26 || rect.height < 20) continue;
-                        if(rect.top < window.innerHeight * 0.36) continue;
+                        if(rect.width < 24 || rect.height < 18) continue;
+                        if(rect.top < window.innerHeight * 0.32) continue;
 
-                        var txt = ((el.innerText || el.textContent || '') + ' ' + (el.className || '') + ' ' + (el.getAttribute('aria-label') || '')).toUpperCase();
-                        var hasUp = /\b(UP|BUY|CALL|HIGHER|LONG)\b/.test(txt);
-                        var hasDown = /\b(DOWN|SELL|PUT|LOWER|SHORT)\b/.test(txt);
+                        var rawText = (el.innerText || el.textContent || '').trim().toUpperCase();
+                        var metaText = (rawText + ' ' + (el.className || '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('data-testid') || '')).toUpperCase();
+
+                        var hasUp = /\b(UP|BUY|CALL|HIGHER|LONG)\b/.test(metaText);
+                        var hasDown = /\b(DOWN|SELL|PUT|LOWER|SHORT)\b/.test(metaText);
+
+                        var clickableEl = el.closest('button, [role="button"]') || el;
+                        var cRect = clickableEl.getBoundingClientRect();
+                        if(cRect.width < 24 || cRect.height < 18) continue;
 
                         if(isCall && hasUp && !hasDown) {
-                            scored.push({ el: el, rect: rect, score: 100 + rect.bottom });
+                            scored.push({ el: clickableEl, rect: cRect, score: 120 + cRect.bottom });
                         } else if(!isCall && hasDown && !hasUp) {
-                            var rightBonus = rect.left > window.innerWidth * 0.42 ? 40 : 0;
-                            scored.push({ el: el, rect: rect, score: 100 + rect.bottom + rightBonus });
+                            var rightBonus = cRect.left > window.innerWidth * 0.40 ? 45 : 0;
+                            scored.push({ el: clickableEl, rect: cRect, score: 120 + cRect.bottom + rightBonus });
                         }
                     }
 
                     if(scored.length > 0) {
                         scored.sort(function(a, b){ return b.score - a.score; });
                         var target = scored[0].el;
+                        try {
+                            target.focus();
+                        } catch(eFocus) {}
                         try {
                             target.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
                             target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
@@ -1347,8 +1360,10 @@ def bot_script():
                     var fallbackBtns = candidates.filter(function(el){
                         if(!el || !el.getBoundingClientRect) return false;
                         if(el.closest('#ra-auto-5s-panel, #ra-hacker-scan-modal, #ra-hacker-signal-popup, #ra-mode-selector-menu, #ra-hacker-login-modal, #ra-hacker-btn, #ra-cyber-5s-overlay, #ra-bot-power-pill, #ra-auto-trade-toast')) return false;
+                        var tag = (el.tagName || '').toUpperCase();
+                        if(tag !== 'BUTTON' && el.getAttribute('role') !== 'button') return false;
                         var r = el.getBoundingClientRect();
-                        return r.width >= 44 && r.height >= 26 && r.bottom >= window.innerHeight - 140;
+                        return r.width >= 40 && r.height >= 24 && r.bottom >= window.innerHeight * 0.55;
                     });
 
                     if(fallbackBtns.length >= 2) {
@@ -1409,7 +1424,7 @@ def bot_script():
                     ov.style.cssText = 'position:fixed;inset:0;z-index:2147483645;pointer-events:none;overflow:hidden;' +
                         'backdrop-filter:blur(2.5px);-webkit-backdrop-filter:blur(2.5px);' +
                         'border:5px solid #00f0ff;box-sizing:border-box;' +
-                        'background:radial-gradient(circle at 62% 50%, rgba(0,240,255,0.11) 0%, rgba(232,121,249,0.10) 52%, rgba(2,9,17,0.24) 100%);' +
+                        'background:radial-gradient(circle at 55% 50%, rgba(0,240,255,0.10) 0%, rgba(232,121,249,0.09) 52%, rgba(2,9,17,0.22) 100%);' +
                         'font-family:"Courier New",Courier,monospace;will-change:transform,opacity;' +
                         'animation:raCyberBorderSlow 3.6s infinite linear;';
 
@@ -1419,7 +1434,7 @@ def bot_script():
 
                         '<svg id="ra-thread-svg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;"></svg>' +
 
-                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:62%;width:156px;height:156px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
+                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:55%;width:156px;height:156px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
                         '  <div id="ra-planet-halo" style="position:fixed;top:50%;left:50%;width:166px;height:166px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
                         '  background:radial-gradient(circle, rgba(0,240,255,0.42) 42%, rgba(232,121,249,0.28) 66%, rgba(250,204,21,0.16) 84%, transparent 100%);' +
                         '  box-shadow:0 0 46px rgba(0,240,255,0.85), 0 0 82px rgba(232,121,249,0.68);transition:box-shadow 0.24s ease;"></div>' +
@@ -1442,10 +1457,10 @@ def bot_script():
                         '  </div>' +
                         '</div>' +
 
-                        '<div id="ra-cyber-left-cascade" style="position:fixed;top:14px;bottom:14px;left:8px;width:218px;max-width:60vw;' +
-                        'overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;gap:2.5px;' +
-                        'background:rgba(2,8,14,0.44);border-radius:6px;padding:4px 5px;z-index:2;' +
-                        'font-size:8.6px;line-height:1.32;font-weight:900;"></div>';
+                        '<div id="ra-cyber-left-cascade" style="position:fixed;top:16px;bottom:16px;left:8px;width:184px;max-width:44vw;' +
+                        'overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;gap:3px;' +
+                        'background:transparent;border:none;padding:2px 3px;z-index:2;' +
+                        'font-size:8.4px;line-height:1.36;font-weight:900;"></div>';
 
                     hostRoot.appendChild(ov);
 
@@ -1468,7 +1483,7 @@ def bot_script():
                     var lastLogTick = -1;
                     var logSeq = 0;
                     var targetTotalLogs = 185;
-                    var maxVisibleLogs = 72;
+                    var maxVisibleLogs = 68;
                     var svgNs = "http://www.w3.org/2000/svg";
 
                     function syncThreadsToPlanet() {
@@ -1477,7 +1492,7 @@ def bot_script():
                         var vh = window.innerHeight || 720;
                         threadSvg.setAttribute("viewBox", "0 0 " + vw + " " + vh);
 
-                        var cx = Math.round(vw * 0.62);
+                        var cx = Math.round(vw * 0.55);
                         var cy = Math.round(vh * 0.50);
                         var rows = leftCascadeEl.children;
 
@@ -1562,8 +1577,8 @@ def bot_script():
 
                         var row = d.createElement('div');
                         row.dataset.tcol = rowCol;
-                        row.style.cssText = 'display:flex;align-items:center;gap:5px;color:' + rowCol + ';text-shadow:0 0 6px #000000, 0 0 12px ' + rowCol + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-                        row.innerHTML = '<span style="color:' + chkCol + ';font-weight:900;flex-shrink:0;display:inline-block;animation:raTickTurnSpin 0.35s ease-out;">✓</span><span>' + msg + '</span>';
+                        row.style.cssText = 'display:flex;align-items:center;gap:4px;color:' + rowCol + ';text-shadow:0 0 6px rgba(0,0,0,0.9), 0 0 10px ' + rowCol + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;will-change:transform,opacity;animation:raSmoothLogGlide 0.42s cubic-bezier(0.22,1,0.36,1) both;';
+                        row.innerHTML = '<span style="color:' + chkCol + ';font-weight:900;flex-shrink:0;display:inline-block;animation:raTickTurnSpin 0.4s ease-out;">✓</span><span>' + msg + '</span>';
                         return row;
                     }
 
@@ -1632,7 +1647,7 @@ def bot_script():
                             }
                             leftCascadeEl.appendChild(fragLogs);
 
-                            var maxRows = Math.min(maxVisibleLogs, Math.max(20, Math.floor((leftCascadeEl.clientHeight || 420) / 12)));
+                            var maxRows = Math.min(maxVisibleLogs, Math.max(20, Math.floor((leftCascadeEl.clientHeight || 420) / 13)));
                             while(leftCascadeEl.children.length > maxRows) {
                                 leftCascadeEl.removeChild(leftCascadeEl.firstChild);
                             }
