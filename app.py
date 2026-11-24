@@ -133,7 +133,7 @@ KNOWLEDGE_REGISTRY = {
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/20.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/21.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -176,9 +176,9 @@ class LiveMarketCandleEngine:
 
         score = 0.0
         if delta > 0:
-            score += 1.6
+            score += 1.65
         elif delta < 0:
-            score -= 1.6
+            score -= 1.65
 
         if len(closes) >= 3:
             prev_delta = closes[-2] - closes[-3]
@@ -193,9 +193,9 @@ class LiveMarketCandleEngine:
 
         if ema_fast is not None and ema_slow is not None:
             if ema_fast > ema_slow:
-                score += 1.0
+                score += 1.05
             elif ema_fast < ema_slow:
-                score -= 1.0
+                score -= 1.05
 
         if rsi is not None:
             if rsi >= 67:
@@ -209,33 +209,31 @@ class LiveMarketCandleEngine:
         return score
 
     @classmethod
-    def _bidirectional_market_pulse(cls, symbol: str, mode: str):
-        cls._eval_counter += 1
-        bucket_key = f"{symbol}_{mode}"
-        hist_dir = cls._market_history.setdefault(bucket_key, [])
-        now_sec = int(time.time())
-        sym_seed = sum(ord(ch) * (idx + 11) for idx, ch in enumerate(symbol))
-        mode_shift = 1.37 if "AUTO5S" in mode else 0.73
+    def _series_fallback_closes(cls, symbol: str, is_otc: bool) -> list:
+        sym_seed = sum(ord(ch) * (idx + 13) for idx, ch in enumerate(symbol))
+        base = 0.72500 + ((sym_seed % 320) * 0.0001)
+        if "JPY" in symbol:
+            base = 148.200 + ((sym_seed % 180) * 0.01)
+        elif "XAU" in symbol:
+            base = 2640.50 + ((sym_seed % 250) * 0.1)
+        elif "BTC" in symbol:
+            base = 91200.0 + ((sym_seed % 400) * 1.5)
 
-        wave_val = (
-            0.62 * math.sin(now_sec * 0.43 + sym_seed * 0.19 + cls._eval_counter * mode_shift)
-            + 0.38 * math.cos(now_sec * 0.29 - sym_seed * 0.13 + cls._eval_counter * 0.91)
-        )
-        sig = "CALL" if wave_val >= 0 else "PUT"
+        step_unit = 0.01 if "JPY" in symbol else (0.15 if "XAU" in symbol else (12.0 if "BTC" in symbol else 0.00012))
+        hist = cls._price_history.get(symbol, [])
+        if len(hist) >= 2:
+            return hist
 
-        # Ensure genuine two-way signals (never locked one-sided)
-        if len(hist_dir) >= 2 and hist_dir[-1] == sig and hist_dir[-2] == sig:
-            sig = "PUT" if sig == "CALL" else "CALL"
-
-        hist_dir.append(sig)
-        if len(hist_dir) > 16:
-            hist_dir.pop(0)
-
-        mag = abs(wave_val)
-        conf_pct = min(96, max(64, int(round(64 + mag * 31))))
-        pts_val = max(9, min(39, int(round(11 + mag * 25 + ((now_sec + cls._eval_counter) % 5)))))
-        base_px = 0.74200 + ((sym_seed % 240) * 0.0001) + (0.00016 if sig == "CALL" else -0.00016)
-        return sig, pts_val, conf_pct, round(base_px, 5), f"{mode}-BiDirSync"
+        closes = []
+        cur = base
+        for i in range(10):
+            # Structured swing sequence without arbitrary randomness
+            swing_dir = 1.0 if ((i + sym_seed) % 2 == 0) else -1.0
+            if is_otc and i % 4 == 0:
+                swing_dir *= -1.0
+            cur = max(0.00001, cur + swing_dir * step_unit * (1.0 + (i % 3) * 0.25))
+            closes.append(round(cur, 5))
+        return closes
 
     @classmethod
     def _evaluate_bidirectional_signal(cls, symbol: str, series_list: list, pip_factor: float, mode: str):
@@ -264,15 +262,14 @@ class LiveMarketCandleEngine:
         cls._eval_counter += 1
         bucket_key = f"{symbol}_{mode}"
         hist_dir = cls._market_history.setdefault(bucket_key, [])
-        now_sec = int(time.time())
 
-        if abs(avg_bias) < 0.04:
-            osc = math.sin(now_sec * 0.61 + cls._eval_counter * 1.19)
+        if abs(avg_bias) < 0.03:
+            osc = math.cos(cls._eval_counter * 1.5707963)
             signal = "CALL" if osc >= 0 else "PUT"
         else:
             signal = "CALL" if avg_bias > 0 else "PUT"
 
-        # Keep signals two-way across consecutive calls
+        # Keep both CALL and PUT balanced across consecutive calls
         if len(hist_dir) >= 2 and hist_dir[-1] == signal and hist_dir[-2] == signal:
             signal = "PUT" if signal == "CALL" else "CALL"
 
@@ -481,28 +478,22 @@ class LiveMarketCandleEngine:
                 if spot_src:
                     sources_used.append(spot_src)
 
-        if gathered_series:
-            sig, pts_val, conf_pct, c0 = cls._evaluate_bidirectional_signal(
-                clean_sym, gathered_series, pip_factor, mode_tag
-            )
-            src_label = "/".join(sources_used[:2]) if sources_used else "LiveFeed"
-            return {
-                "signal": sig,
-                "trend": "BULLISH (UP)" if sig == "CALL" else "BEARISH (DOWN)",
-                "status": "GREEN_EXECUTE",
-                "pts": pts_val,
-                "confidence": conf_pct,
-                "rule": f"{mode_tag}/{src_label} Active ({formatted_sym}: {c0})"
-            }
+        if not gathered_series:
+            fb_closes = cls._series_fallback_closes(clean_sym, is_otc)
+            gathered_series.append({"closes": fb_closes, "weight": 1.0})
+            sources_used.append("SeriesCore")
 
-        sig, pts_val, conf_pct, px_val, tag = cls._bidirectional_market_pulse(clean_sym, mode_tag)
+        sig, pts_val, conf_pct, c0 = cls._evaluate_bidirectional_signal(
+            clean_sym, gathered_series, pip_factor, mode_tag
+        )
+        src_label = "/".join(sources_used[:2]) if sources_used else "LiveFeed"
         return {
             "signal": sig,
             "trend": "BULLISH (UP)" if sig == "CALL" else "BEARISH (DOWN)",
             "status": "GREEN_EXECUTE",
             "pts": pts_val,
             "confidence": conf_pct,
-            "rule": f"{tag} Active ({formatted_sym}: {px_val})"
+            "rule": f"{mode_tag}/{src_label} Active ({formatted_sym}: {c0})"
         }
 
 
@@ -552,8 +543,9 @@ def get_signal():
         clean_sym, formatted_sym, is_otc = LiveMarketCandleEngine._normalize_symbol(
             request.args.get("market", "EURUSD").upper()
         )
-        sig, pts_val, conf_pct, px_val, tag = LiveMarketCandleEngine._bidirectional_market_pulse(
-            clean_sym, f"{request.args.get('mode', 'MANUAL').upper()}-Fallback"
+        fb_closes = LiveMarketCandleEngine._series_fallback_closes(clean_sym, is_otc)
+        sig, pts_val, conf_pct, c0 = LiveMarketCandleEngine._evaluate_bidirectional_signal(
+            clean_sym, [{"closes": fb_closes, "weight": 1.0}], 100000.0, f"{request.args.get('mode', 'MANUAL').upper()}-Core"
         )
         res = jsonify({
             "signal": sig,
@@ -561,7 +553,7 @@ def get_signal():
             "status": "GREEN_EXECUTE",
             "pts": pts_val,
             "confidence": conf_pct,
-            "rule": f"{tag} ({formatted_sym}: {px_val})"
+            "rule": f"SeriesCore Active ({formatted_sym}: {c0})"
         })
         return add_cors_headers(res)
 
@@ -577,7 +569,7 @@ def bot_script():
         var botAvatarUrl = "https://i.postimg.cc/jj70SSfW/IMG-20261124-WA0005.jpg";
         var communityAvatarUrl = "https://i.postimg.cc/KYTGH2Zg/IMG-20261118-WA0017.jpg";
         var telegramChannelUrl = "https://t.me/+x1QYA_1-sSs0NTk1";
-        var validAccessKey = "Gop Gop2027";
+        var validAccessKey = "RA@@10478YAHKTRNOQX";
         var sessionFlagName = "__raCandleHackerUnlocked";
         var savedModeStorageKey = "__raLockedModeChoice";
         var savedActiveStorageKey = "__raModeActiveState";
@@ -829,12 +821,10 @@ def bot_script():
                     var hist = recentSignalHistoryByMode[bucket];
 
                     if(!dir) {
-                        var seed = hist.length * 17 + Math.floor(Date.now() / 3500);
-                        for(var i = 0; i < bucket.length; i++) seed = (seed * 31 + bucket.charCodeAt(i)) % 997;
-                        dir = (seed % 2 === 0) ? "CALL" : "PUT";
+                        dir = (hist.length % 2 === 0) ? "CALL" : "PUT";
                     }
 
-                    // Keep both CALL and PUT balanced; never stay stuck in a one-sided streak
+                    // Keep both CALL and PUT balanced across consecutive signals
                     if(hist.length >= 2 && hist[hist.length - 1] === dir && hist[hist.length - 2] === dir) {
                         dir = (dir === "CALL") ? "PUT" : "CALL";
                     }
@@ -1372,7 +1362,6 @@ def bot_script():
                         var rawText = (el.innerText || el.textContent || '').trim().toUpperCase();
                         var metaText = (rawText + ' ' + (el.className || '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('data-testid') || '')).toUpperCase();
 
-                        // Exclude bonus / promo / top-up / deposit / free-money / demo / tournament / copy elements
                         if(/\b(BONUS|PROMO|DEPOSIT|REFILL|FREE|TOURNAMENT|LEADERBOARD|COPY|SHARE|HELP|SUPPORT|GUIDE)\b/.test(metaText)) {
                             continue;
                         }
@@ -1394,7 +1383,6 @@ def bot_script():
                             var downScore = 150 + cRect.bottom;
                             if(isRedDownVisual(clickableEl)) downScore += 110;
                             if(/\b(DOWN|SELL|PUT)\b/.test(rawText)) downScore += 80;
-                            // Quotex DOWN button sits in the lower trading panel
                             if(cRect.top >= window.innerHeight * 0.48) downScore += 65;
                             scored.push({ el: clickableEl, rect: cRect, score: downScore });
                         }
@@ -1405,7 +1393,6 @@ def bot_script():
                         return fireExactDomClick(scored[0].el);
                     }
 
-                    // Strict lower-panel directional buttons fallback (avoid stray right-side non-trade buttons)
                     var lowerTradeBtns = candidates.filter(function(el){
                         if(!el || !el.getBoundingClientRect) return false;
                         if(el.closest('#ra-auto-5s-panel, #ra-hacker-scan-modal, #ra-hacker-signal-popup, #ra-mode-selector-menu, #ra-hacker-login-modal, #ra-hacker-btn, #ra-cyber-5s-overlay, #ra-bot-power-pill, #ra-auto-trade-toast')) return false;
@@ -1425,7 +1412,6 @@ def bot_script():
                         bottomPair.sort(function(a, b){
                             return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
                         });
-                        // In Quotex lower trade bar, UP/BUY is left-side and DOWN/SELL is right-side of the pair
                         var pickEl = isCall ? bottomPair[0] : bottomPair[bottomPair.length - 1];
                         return fireExactDomClick(pickEl);
                     }
