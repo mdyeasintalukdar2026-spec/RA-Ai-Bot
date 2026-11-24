@@ -133,7 +133,7 @@ KNOWLEDGE_REGISTRY = {
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/18.2",
+    "User-Agent": "RA-Candle-Hacker-Backend/18.3",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -176,32 +176,32 @@ class LiveMarketCandleEngine:
 
         score = 0.0
         if delta > 0:
-            score += 1.55
+            score += 1.6
         elif delta < 0:
-            score -= 1.55
+            score -= 1.6
 
         if len(closes) >= 3:
             prev_delta = closes[-2] - closes[-3]
             if delta > 0 and prev_delta > 0:
-                score += 0.7
+                score += 0.75
             elif delta < 0 and prev_delta < 0:
-                score -= 0.7
+                score -= 0.75
 
         if ema_fast is not None and ema_slow is not None:
             if ema_fast > ema_slow:
-                score += 1.15
+                score += 1.2
             elif ema_fast < ema_slow:
-                score -= 1.15
+                score -= 1.2
 
         if rsi is not None:
             if rsi >= 72:
-                score -= 1.65
+                score -= 1.6
             elif rsi <= 28:
-                score += 1.65
-            elif rsi > 52:
-                score += 0.65
-            elif rsi < 48:
-                score -= 0.65
+                score += 1.6
+            elif rsi > 50.5:
+                score += 0.75
+            elif rsi < 49.5:
+                score -= 0.75
         return score
 
     @classmethod
@@ -222,15 +222,15 @@ class LiveMarketCandleEngine:
             s_bias = cls._score_series_bias(item["closes"])
             weighted_score += s_bias * w
             total_weight += w
-            if s_bias > 0.15:
+            if s_bias > 0.05:
                 call_votes += 1
-            elif s_bias < -0.15:
+            elif s_bias < -0.05:
                 put_votes += 1
 
         avg_bias = (weighted_score / total_weight) if total_weight > 0 else 0.0
 
-        # Balanced confirmation: light filter so hold doesn't stay stuck
-        if abs(avg_bias) < 0.12:
+        # Light hold filter: only hold when directional momentum is virtually zero
+        if abs(avg_bias) < 0.04:
             return "HOLD", 0, 0, c0
 
         signal = "CALL" if avg_bias > 0 else "PUT"
@@ -238,13 +238,13 @@ class LiveMarketCandleEngine:
         total_votes = max(1, call_votes + put_votes)
         confirm_ratio = aligned_votes / total_votes
 
-        # Balanced ~60-70% confirmation threshold without blocking valid setups
-        if total_votes >= 2 and confirm_ratio < 0.60 and abs(avg_bias) < 0.45:
+        # Light ~60% confirmation threshold so trades execute smoothly
+        if total_votes >= 2 and confirm_ratio < 0.50 and abs(avg_bias) < 0.25:
             return "HOLD", 0, 0, c0
 
         m_hist = cls._market_history.setdefault(symbol, [])
         if len(m_hist) >= 3 and m_hist[-1] == signal and m_hist[-2] == signal and m_hist[-3] == signal:
-            strong_conviction = (signal == "CALL" and avg_bias >= 1.15) or (signal == "PUT" and avg_bias <= -1.15)
+            strong_conviction = (signal == "CALL" and avg_bias >= 1.1) or (signal == "PUT" and avg_bias <= -1.1)
             if not strong_conviction:
                 signal = "PUT" if signal == "CALL" else "CALL"
 
@@ -264,7 +264,7 @@ class LiveMarketCandleEngine:
         if len(m_hist) > 12:
             m_hist.pop(0)
 
-        conf_pct = min(99, max(70, int(round(70 + min(29.0, (confirm_ratio * 18.0) + abs(avg_bias) * 4.8)))))
+        conf_pct = min(99, max(60, int(round(60 + min(39.0, (confirm_ratio * 22.0) + abs(avg_bias) * 6.5)))))
         return signal, pts_val, conf_pct, c0
 
     @classmethod
@@ -1308,10 +1308,10 @@ def bot_script():
                             ? "linear-gradient(155deg, rgba(5,34,21,0.98), rgba(9,56,35,0.97))"
                             : "linear-gradient(155deg, rgba(42,7,18,0.98), rgba(66,11,28,0.97))");
                     var ptsBadge = isHoldMode
-                        ? "SCAN NEXT"
+                        ? "2S HOLD"
                         : ((isCall ? "+" : "-") + metrics.pts + " PTS • " + metrics.sizeTag);
                     var cNum = parseInt(confVal, 10);
-                    var confLabel = (!isNaN(cNum) && cNum > 0) ? (cNum + "%") : (isHoldMode ? "SYNC" : "72%");
+                    var confLabel = (!isNaN(cNum) && cNum > 0) ? (cNum + "%") : (isHoldMode ? "LOW" : "65%");
                     var badgeIcon = isHoldMode ? "⏳" : (isCall ? "▲" : "▼");
                     var subLineText = isHoldMode
                         ? (marketName + " • QUICK RE-SCAN")
@@ -1343,7 +1343,7 @@ def bot_script():
                     hostRoot.appendChild(toast);
                     setTimeout(function(){
                         if(toast.parentNode) toast.remove();
-                    }, isHoldMode ? 1800 : 3600);
+                    }, isHoldMode ? 2000 : 3600);
                 }
 
                 function executePlatformTradeClick(isCall) {
@@ -1473,8 +1473,8 @@ def bot_script():
                         'animation:raCyberBorderSlow 4.5s infinite linear;';
 
                     ov.innerHTML = '' +
-                        '<div id="ra-full-laser-top" style="position:fixed;left:0;right:0;height:3px;top:0;background:linear-gradient(90deg,#00f0ff,#22c55e,#facc15,#e879f9,#fb7185,#00f0ff);box-shadow:0 0 12px #00f0ff;will-change:transform;z-index:4;"></div>' +
-                        '<div id="ra-full-laser-bot" style="position:fixed;left:0;right:0;height:3px;top:0;background:linear-gradient(90deg,#e879f9,#fb7185,#facc15,#22c55e,#00f0ff,#e879f9);box-shadow:0 0 12px #e879f9;will-change:transform;z-index:4;"></div>' +
+                        '<div id="ra-full-laser-top" style="position:fixed;left:0;right:0;height:1.5px;top:0;opacity:0.42;background:linear-gradient(90deg,transparent,#00f0ff,#22c55e,#e879f9,transparent);box-shadow:0 0 5px rgba(0,240,255,0.45);will-change:transform;z-index:4;"></div>' +
+                        '<div id="ra-full-laser-bot" style="position:fixed;left:0;right:0;height:1.5px;top:0;opacity:0.42;background:linear-gradient(90deg,transparent,#e879f9,#facc15,#22c55e,transparent);box-shadow:0 0 5px rgba(232,121,249,0.45);will-change:transform;z-index:4;"></div>' +
 
                         '<svg id="ra-thread-svg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;"></svg>' +
 
@@ -1649,8 +1649,8 @@ def bot_script():
                         var vh = window.innerHeight || 720;
                         var usableH = Math.max(40, vh - 12);
 
-                        var waveTop = 0.5 - 0.5 * Math.cos(ratio * Math.PI * 4);
-                        var waveBot = 0.5 + 0.5 * Math.cos(ratio * Math.PI * 4);
+                        var waveTop = 0.5 - 0.5 * Math.cos(ratio * Math.PI * 2);
+                        var waveBot = 0.5 + 0.5 * Math.cos(ratio * Math.PI * 2);
                         if(fullLaserTop) {
                             fullLaserTop.style.transform = "translate3d(0," + (6 + waveTop * usableH) + "px,0)";
                         }
@@ -1738,7 +1738,7 @@ def bot_script():
 
                             var sig = String((data && data.signal) || 'HOLD').toUpperCase();
                             var confNum = parseInt(data && data.confidence, 10);
-                            var hasConf = isNaN(confNum) ? (sig !== 'HOLD') : (confNum >= 65);
+                            var hasConf = isNaN(confNum) ? (sig !== 'HOLD') : (confNum >= 60);
                             var isCall = hasConf && (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
                             var isPut = hasConf && (sig === 'PUT' || sig === 'DOWN' || sig === 'SELL');
                             var ptsVal = data && data.pts;
@@ -1754,7 +1754,7 @@ def bot_script():
                                         : "স্যার এখান থেকে ডাউনের জন্য এন্ট্রি নিয়ে নেওয়া হয়েছে"
                                 );
                             } else {
-                                speakBangla5sVoice("কনফার্মেশন যাচাই হচ্ছে, পরবর্তী এন্ট্রি স্ক্যান চলছে");
+                                speakBangla5sVoice("মার্কেট ধীরগতিতে রয়েছে, ২ সেকেন্ড হোল্ড করে আবার স্ক্যান করা হচ্ছে");
                                 showTradeExecutedPopup(false, activeMarket, 0, false, confNum, true);
                             }
 
@@ -1778,7 +1778,7 @@ def bot_script():
                         if(!auto5sRunning || !isModeOn) return;
                         runCyberHacking5sCycle(function(completed, wasHold){
                             if(!auto5sRunning || !isModeOn) return;
-                            var waitMs = !completed ? 1200 : (wasHold ? 1800 : 5200);
+                            var waitMs = !completed ? 1200 : (wasHold ? 2000 : 5200);
                             window.__raAuto5sLoopTimer = setTimeout(scheduleNext, waitMs);
                         });
                     }
@@ -2070,11 +2070,11 @@ def bot_script():
                     var liveMarket = marketDisplayName || detectExactQuotexMarket();
                     var rawSig = String(sigType || 'HOLD').toUpperCase();
                     var cNum = parseInt(confFromBackend, 10);
-                    var meetsConf = isNaN(cNum) ? (rawSig !== 'HOLD') : (cNum >= 65);
+                    var meetsConf = isNaN(cNum) ? (rawSig !== 'HOLD') : (cNum >= 60);
                     var isHold = (!meetsConf) || (rawSig === 'HOLD');
                     var isCall = (!isHold) && (rawSig === 'CALL' || rawSig === 'UP' || rawSig === 'BUY');
                     var metrics = computeTradeCandleSize(ptsFromBackend, isCall, liveMarket, "1M");
-                    var estText = isHold ? "HOLD (<65%)" : ((isCall ? "+" : "-") + metrics.pts + " PTS");
+                    var estText = isHold ? "HOLD (<60%)" : ((isCall ? "+" : "-") + metrics.pts + " PTS");
                     var mainColor = isHold ? "#facc15" : (isCall ? "#4ade80" : "#f87171");
                     var glowAnim = isCall ? "raPopupGreenGlow 2.4s infinite ease-in-out" : "raPopupRedGlow 2.4s infinite ease-in-out";
 
@@ -2083,7 +2083,7 @@ def bot_script():
                         candleVisualHtml = '' +
                             '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:74px;">' +
                             '  <div style="font-size:8px;font-weight:900;color:#facc15;">' + estText + '</div>' +
-                            '  <div style="font-size:6.5px;color:#cbd5e1;margin-top:4px;">WAIT FOR CONFIRM</div>' +
+                            '  <div style="font-size:6.5px;color:#cbd5e1;margin-top:4px;">2S HOLD STANDBY</div>' +
                             '</div>';
                     } else if(isCall) {
                         candleVisualHtml = '' +
@@ -2132,7 +2132,7 @@ def bot_script():
 
                     setTimeout(function(){
                         if(popup.parentNode) popup.remove();
-                    }, isHold ? 3800 : 10000);
+                    }, isHold ? 2000 : 10000);
                 }
 
                 function startHackerScanSequence() {
@@ -2327,7 +2327,7 @@ def bot_script():
                     signalPromise.then(function(data){
                         var sig = String((data && data.signal) || '').toUpperCase();
                         var cNum = parseInt(data && data.confidence, 10);
-                        var okConf = isNaN(cNum) ? (sig !== 'HOLD') : (cNum >= 65);
+                        var okConf = isNaN(cNum) ? (sig !== 'HOLD') : (cNum >= 60);
                         if(okConf && (sig === 'CALL' || sig === 'UP' || sig === 'BUY')) {
                             applyHeroCandleColor(true);
                         } else if(okConf && (sig === 'PUT' || sig === 'DOWN' || sig === 'SELL')) {
@@ -2552,7 +2552,7 @@ def bot_script():
                             signalPromise.then(function(data){
                                 var sig = String((data && data.signal) || 'HOLD').toUpperCase();
                                 var cNum = parseInt(data && data.confidence, 10);
-                                var okConf = isNaN(cNum) ? (sig !== 'HOLD') : (cNum >= 65);
+                                var okConf = isNaN(cNum) ? (sig !== 'HOLD') : (cNum >= 60);
                                 var isCall = okConf && (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
                                 var ptsVal = data && data.pts;
                                 if(okConf) {
