@@ -133,7 +133,7 @@ KNOWLEDGE_REGISTRY = {
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/16.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/17.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -616,8 +616,8 @@ def bot_script():
     js = """
     (function(){
         var renderServerUrl = "https://ra-ai-bot.onrender.com";
-        var botAvatarUrl = "https://i.postimg.cc/Fz3xjQGZ/file-000000001cc082119080b22d35ecbaaa.png";
-        var communityAvatarUrl = "https://i.postimg.cc/k5NBY37k/file-0000000016a482119619e0cb99151c28.png";
+        var botAvatarUrl = "https://i.postimg.cc/jj70SSfW/IMG-20261124-WA0005.jpg";
+        var communityAvatarUrl = "https://i.postimg.cc/jj70SSfW/IMG-20261124-WA0005.jpg";
         var telegramChannelUrl = "https://t.me/+x1QYA_1-sSs0NTk1";
         var validAccessKey = "Gop Gop2027";
         var sessionFlagName = "__raCandleHackerUnlocked";
@@ -739,6 +739,35 @@ def bot_script():
                     } catch(e) {
                         return null;
                     }
+                }
+
+                function speakBangla5sVoice(phrase) {
+                    try {
+                        if(!phrase) return;
+                        if('speechSynthesis' in window) {
+                            window.speechSynthesis.cancel();
+                            var utter = new SpeechSynthesisUtterance(phrase);
+                            var voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+                            var bnVoice = null;
+                            for(var i = 0; i < voices.length; i++) {
+                                var lang = String(voices[i].lang || '').toLowerCase();
+                                if(lang.indexOf('bn') === 0 || lang.indexOf('bengali') !== -1) {
+                                    bnVoice = voices[i];
+                                    break;
+                                }
+                            }
+                            if(bnVoice) {
+                                utter.voice = bnVoice;
+                                utter.lang = bnVoice.lang;
+                            } else {
+                                utter.lang = 'bn-BD';
+                            }
+                            utter.rate = 0.88;
+                            utter.pitch = 1.18;
+                            utter.volume = 1.0;
+                            window.speechSynthesis.speak(utter);
+                        }
+                    } catch(e) {}
                 }
 
                 function playTickSound() {
@@ -884,8 +913,8 @@ def bot_script():
                     '  0%   { transform: rotate(-160deg) scale(0.55); opacity: 0.35; }' +
                     '  100% { transform: rotate(0deg) scale(1); opacity: 1; }' +
                     '}' +
-                    '@keyframes raCenterTradePop {' +
-                    '  0%   { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(0.78); }' +
+                    '@keyframes raLowerTradePop {' +
+                    '  0%   { opacity: 0; transform: translate3d(-50%, -42%, 0) scale(0.78); }' +
                     '  100% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1); }' +
                     '}';
                 (d.head || hostRoot).appendChild(styleEl);
@@ -1166,6 +1195,9 @@ def bot_script():
                         cancelAnimationFrame(window.__raCyber5sRaf);
                         window.__raCyber5sRaf = null;
                     }
+                    try {
+                        if('speechSynthesis' in window) window.speechSynthesis.cancel();
+                    } catch(e) {}
                     var ov = d.getElementById('ra-cyber-5s-overlay');
                     if(ov) ov.remove();
                 }
@@ -1204,13 +1236,13 @@ def bot_script():
 
                     var toast = d.createElement('div');
                     toast.id = 'ra-auto-trade-toast';
-                    toast.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate3d(-50%,-50%,0);' +
+                    toast.style.cssText = 'position:fixed;top:56%;left:50%;transform:translate3d(-50%,-50%,0);' +
                         'width:176px;z-index:2147483647;' +
                         'background:' + softBg + ';border:2.2px solid ' + accent + ';border-radius:14px;' +
                         'padding:10px 12px;box-sizing:border-box;pointer-events:none;color:#ffffff;' +
                         'font-family:"Segoe UI",Roboto,Arial,sans-serif;' +
                         'box-shadow:0 0 32px ' + accent + ', 0 12px 32px rgba(0,0,0,0.78);' +
-                        'animation:raCenterTradePop 0.24s ease-out;';
+                        'animation:raLowerTradePop 0.24s ease-out;';
 
                     toast.innerHTML = '' +
                         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">' +
@@ -1314,6 +1346,9 @@ def bot_script():
                     var scanMs = 7500;
                     var startTs = performance.now();
 
+                    ensureAudioContext();
+                    speakBangla5sVoice("লাইভ মার্কেট স্ক্যানিং করা হচ্ছে এবং সব ডাটা সংগ্রহ করা হচ্ছে");
+
                     var cyberPalette = [
                         "#00f0ff", "#22c55e", "#e879f9", "#facc15",
                         "#fb7185", "#38bdf8", "#a855f7", "#4ade80",
@@ -1338,8 +1373,9 @@ def bot_script():
                     var ov = d.createElement('div');
                     ov.id = 'ra-cyber-5s-overlay';
                     ov.style.cssText = 'position:fixed;inset:0;z-index:2147483645;pointer-events:none;overflow:hidden;' +
+                        'backdrop-filter:blur(2.5px);-webkit-backdrop-filter:blur(2.5px);' +
                         'border:5px solid #00f0ff;box-sizing:border-box;' +
-                        'background:radial-gradient(circle at 58% 50%, rgba(0,240,255,0.08) 0%, rgba(232,121,249,0.07) 52%, rgba(2,9,17,0.18) 100%);' +
+                        'background:radial-gradient(circle at 62% 50%, rgba(0,240,255,0.09) 0%, rgba(232,121,249,0.08) 52%, rgba(2,9,17,0.22) 100%);' +
                         'font-family:"Courier New",Courier,monospace;will-change:transform,opacity;' +
                         'animation:raCyberBorderSlow 7.5s infinite ease-in-out;';
 
@@ -1349,7 +1385,7 @@ def bot_script():
 
                         '<svg id="ra-thread-svg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;"></svg>' +
 
-                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:58%;width:154px;height:154px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
+                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:62%;width:154px;height:154px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
                         '  <div id="ra-planet-halo" style="position:fixed;top:50%;left:50%;width:162px;height:162px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
                         '  background:radial-gradient(circle, rgba(0,240,255,0.34) 42%, rgba(232,121,249,0.22) 66%, rgba(250,204,21,0.12) 84%, transparent 100%);' +
                         '  box-shadow:0 0 42px rgba(0,240,255,0.72), 0 0 74px rgba(232,121,249,0.55);transition:box-shadow 1.2s ease;"></div>' +
@@ -1365,18 +1401,18 @@ def bot_script():
                         '  </div>' +
 
                         '  <div style="position:fixed;top:50%;left:50%;width:106px;height:106px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
-                        '  background:radial-gradient(circle, rgba(2,10,20,0.72) 0%, rgba(4,16,32,0.52) 72%, rgba(0,240,255,0.25) 100%);' +
-                        '  border:1.5px solid rgba(255,255,255,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">' +
+                        '  background:radial-gradient(circle, rgba(2,10,20,0.78) 0%, rgba(4,16,32,0.58) 72%, rgba(0,240,255,0.28) 100%);' +
+                        '  border:1.5px solid rgba(255,255,255,0.55);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">' +
                         '    <div id="ra-ball-proc-tag" style="font-size:7px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 8px #000;transition:color 1.1s ease;">DATA PULL</div>' +
                         '    <div id="ra-ball-pct" style="font-size:15px;font-weight:900;color:#ffffff;line-height:1.15;text-shadow:0 0 12px #00f0ff, 0 0 6px #000;">1%</div>' +
                         '    <div id="ra-ball-node-code" style="font-size:6.8px;font-weight:800;color:#facc15;margin-top:2px;text-shadow:0 0 6px #000;transition:color 1.1s ease;">0x01</div>' +
                         '  </div>' +
                         '</div>' +
 
-                        '<div id="ra-cyber-left-cascade" style="position:fixed;top:14px;bottom:14px;left:8px;width:214px;max-width:62vw;' +
+                        '<div id="ra-cyber-left-cascade" style="position:fixed;top:14px;bottom:14px;left:8px;width:216px;max-width:60vw;' +
                         'overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;gap:3px;' +
-                        'background:transparent;border:none;padding:4px 2px;z-index:2;' +
-                        'font-size:8.6px;line-height:1.34;font-weight:800;"></div>';
+                        'background:rgba(2,8,14,0.42);border-radius:6px;padding:4px 5px;z-index:2;' +
+                        'font-size:8.8px;line-height:1.36;font-weight:900;"></div>';
 
                     hostRoot.appendChild(ov);
 
@@ -1407,7 +1443,7 @@ def bot_script():
                         var vh = window.innerHeight || 720;
                         threadSvg.setAttribute("viewBox", "0 0 " + vw + " " + vh);
 
-                        var cx = Math.round(vw * 0.58);
+                        var cx = Math.round(vw * 0.62);
                         var cy = Math.round(vh * 0.50);
                         var rows = leftCascadeEl.children;
 
@@ -1432,14 +1468,14 @@ def bot_script():
                             if(!lineEl) {
                                 lineEl = d.createElementNS(svgNs, "path");
                                 lineEl.setAttribute("fill", "none");
-                                lineEl.setAttribute("stroke-width", "1.25");
-                                lineEl.setAttribute("opacity", "0.72");
+                                lineEl.setAttribute("stroke-width", "1.35");
+                                lineEl.setAttribute("opacity", "0.8");
                                 threadSvg.appendChild(lineEl);
                             }
                             lineEl.setAttribute("d", dPath);
                             lineEl.setAttribute("stroke", col);
 
-                            var prog1 = ((nowPerf * 0.00115 + i * 0.17) % 1);
+                            var prog1 = ((nowPerf * 0.0011 + i * 0.17) % 1);
                             var inv1 = 1 - prog1;
                             var px1 = inv1 * inv1 * x1 + 2 * inv1 * prog1 * midX + prog1 * prog1 * cx;
                             var py1 = inv1 * inv1 * y1 + 2 * inv1 * prog1 * (y1 + curveOffset) + prog1 * prog1 * cy;
@@ -1447,14 +1483,14 @@ def bot_script():
                             var dot1 = threadSvg.children[i * 3 + 1];
                             if(!dot1) {
                                 dot1 = d.createElementNS(svgNs, "circle");
-                                dot1.setAttribute("r", "2.6");
+                                dot1.setAttribute("r", "2.7");
                                 threadSvg.appendChild(dot1);
                             }
                             dot1.setAttribute("cx", String(px1.toFixed(1)));
                             dot1.setAttribute("cy", String(py1.toFixed(1)));
                             dot1.setAttribute("fill", col);
 
-                            var prog2 = ((nowPerf * 0.00115 + i * 0.17 + 0.5) % 1);
+                            var prog2 = ((nowPerf * 0.0011 + i * 0.17 + 0.5) % 1);
                             var inv2 = 1 - prog2;
                             var px2 = inv2 * inv2 * x1 + 2 * inv2 * prog2 * midX + prog2 * prog2 * cx;
                             var py2 = inv2 * inv2 * y1 + 2 * inv2 * prog2 * (y1 + curveOffset) + prog2 * prog2 * cy;
@@ -1462,8 +1498,8 @@ def bot_script():
                             var dot2 = threadSvg.children[i * 3 + 2];
                             if(!dot2) {
                                 dot2 = d.createElementNS(svgNs, "circle");
-                                dot2.setAttribute("r", "1.8");
-                                dot2.setAttribute("opacity", "0.85");
+                                dot2.setAttribute("r", "1.9");
+                                dot2.setAttribute("opacity", "0.9");
                                 threadSvg.appendChild(dot2);
                             }
                             dot2.setAttribute("cx", String(px2.toFixed(1)));
@@ -1492,7 +1528,7 @@ def bot_script():
 
                         var row = d.createElement('div');
                         row.dataset.tcol = rowCol;
-                        row.style.cssText = 'display:flex;align-items:center;gap:5px;color:' + rowCol + ';text-shadow:0 0 8px rgba(0,0,0,0.95), 0 0 10px ' + rowCol + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+                        row.style.cssText = 'display:flex;align-items:center;gap:5px;color:' + rowCol + ';text-shadow:0 0 6px #000000, 0 0 12px ' + rowCol + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
                         row.innerHTML = '<span style="color:' + chkCol + ';font-weight:900;flex-shrink:0;display:inline-block;animation:raTickTurnSpin 0.45s ease-out;">✓</span><span>' + msg + '</span>';
                         return row;
                     }
@@ -1510,7 +1546,6 @@ def bot_script():
                         var vh = window.innerHeight || 720;
                         var usableH = Math.max(40, vh - 12);
 
-                        // Top beam sweeps full screen top -> bottom -> top; bottom beam sweeps bottom -> top -> bottom
                         var waveTop = 0.5 - 0.5 * Math.cos(ratio * Math.PI * 3);
                         var waveBot = 0.5 + 0.5 * Math.cos(ratio * Math.PI * 3);
                         if(fullLaserTop) {
@@ -1529,7 +1564,6 @@ def bot_script():
                             }
                         }
 
-                        // Slow, smooth color progression on the center planet
                         var colorBucket = Math.floor(elapsed / 1250);
                         if(colorBucket !== lastColorBucket) {
                             lastColorBucket = colorBucket;
@@ -1590,7 +1624,13 @@ def bot_script():
                                 playTradePongSound(isCall);
                                 var didClick = executePlatformTradeClick(isCall);
                                 showTradeExecutedPopup(isCall, activeMarket, ptsVal, didClick);
+                                speakBangla5sVoice(
+                                    isCall
+                                        ? "লাইভ মার্কেট স্ক্যানিং সফল হয়েছে। স্যার আপের জন্য এন্ট্রি নিয়ে নেওয়া হয়েছে"
+                                        : "লাইভ মার্কেট স্ক্যানিং সফল হয়েছে। স্যার ডাউনের জন্য এন্ট্রি নিয়ে নেওয়া হয়েছে"
+                                );
                             } else {
+                                speakBangla5sVoice("লাইভ মার্কেট স্ক্যানিং সফল হয়েছে");
                                 showBoxSignalCard(sig, activeMarket, ptsVal);
                             }
 
@@ -1640,7 +1680,26 @@ def bot_script():
                     startAuto5sLoop();
                 }
 
+                function triggerLockedActiveMode(botBtn) {
+                    if(lockedModeChoice === "5S_AUTO") {
+                        if(!auto5sRunning) {
+                            startAuto5sLoop();
+                        }
+                        return;
+                    }
+                    if(lockedModeChoice === "MANUAL") {
+                        startHackerScanSequence();
+                        return;
+                    }
+                    openBotModeMenu(botBtn);
+                }
+
                 function openBotModeMenu(botBtn) {
+                    if(isModeOn && lockedModeChoice) {
+                        triggerLockedActiveMode(botBtn);
+                        return;
+                    }
+
                     var existingMenu = d.getElementById('ra-mode-selector-menu');
                     if(existingMenu) {
                         existingMenu.remove();
@@ -1760,7 +1819,11 @@ def bot_script():
                         btn.style.cursor = 'grab';
                         if(!moved) {
                             if(e) { e.stopPropagation(); e.preventDefault(); }
-                            openBotModeMenu(btn);
+                            if(isModeOn && lockedModeChoice) {
+                                triggerLockedActiveMode(btn);
+                            } else {
+                                openBotModeMenu(btn);
+                            }
                         }
                     }
 
