@@ -740,7 +740,7 @@ def bot_script():
                 function playTickSound() {
                     try {
                         var nowMs = Date.now();
-                        if(nowMs - lastTickMs < 85) return;
+                        if(nowMs - lastTickMs < 95) return;
                         lastTickMs = nowMs;
 
                         var ctx = ensureAudioContext();
@@ -750,14 +750,14 @@ def bot_script():
                         var gain = ctx.createGain();
                         osc.type = "triangle";
                         osc.frequency.setValueAtTime(1120, now);
-                        osc.frequency.exponentialRampToValueAtTime(520, now + 0.032);
+                        osc.frequency.exponentialRampToValueAtTime(520, now + 0.03);
                         gain.gain.setValueAtTime(0.001, now);
-                        gain.gain.linearRampToValueAtTime(0.28, now + 0.004);
-                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                        gain.gain.linearRampToValueAtTime(0.24, now + 0.004);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.036);
                         osc.connect(gain);
                         gain.connect(ctx.destination);
                         osc.start(now);
-                        osc.stop(now + 0.042);
+                        osc.stop(now + 0.038);
                     } catch(e) {}
                 }
 
@@ -865,16 +865,25 @@ def bot_script():
                     '  0% { opacity: 0; transform: translateY(8px) scale(0.95); }' +
                     '  100% { opacity: 1; transform: translateY(0) scale(1); }' +
                     '}' +
-                    '@keyframes raCyberFramePulse {' +
-                    '  0%   { border-color: #00f0ff; box-shadow: inset 0 0 90px rgba(0,240,255,0.34), 0 0 50px rgba(0,240,255,0.82); }' +
-                    '  25%  { border-color: #22c55e; box-shadow: inset 0 0 95px rgba(34,197,94,0.34), 0 0 54px rgba(34,197,94,0.82); }' +
-                    '  50%  { border-color: #e879f9; box-shadow: inset 0 0 95px rgba(232,121,249,0.36), 0 0 54px rgba(232,121,249,0.85); }' +
-                    '  75%  { border-color: #facc15; box-shadow: inset 0 0 95px rgba(250,204,21,0.34), 0 0 54px rgba(250,204,21,0.82); }' +
-                    '  100% { border-color: #00f0ff; box-shadow: inset 0 0 90px rgba(0,240,255,0.34), 0 0 50px rgba(0,240,255,0.82); }' +
+                    '@keyframes raCyberBorderLight {' +
+                    '  0%   { border-color: #00f0ff; box-shadow: inset 0 0 110px rgba(0,240,255,0.44), 0 0 68px rgba(0,240,255,0.95); }' +
+                    '  20%  { border-color: #22c55e; box-shadow: inset 0 0 118px rgba(34,197,94,0.44), 0 0 74px rgba(34,197,94,0.95); }' +
+                    '  40%  { border-color: #e879f9; box-shadow: inset 0 0 118px rgba(232,121,249,0.46), 0 0 74px rgba(232,121,249,0.98); }' +
+                    '  60%  { border-color: #facc15; box-shadow: inset 0 0 118px rgba(250,204,21,0.44), 0 0 74px rgba(250,204,21,0.95); }' +
+                    '  80%  { border-color: #fb7185; box-shadow: inset 0 0 118px rgba(251,113,133,0.45), 0 0 74px rgba(251,113,133,0.95); }' +
+                    '  100% { border-color: #00f0ff; box-shadow: inset 0 0 110px rgba(0,240,255,0.44), 0 0 68px rgba(0,240,255,0.95); }' +
                     '}' +
-                    '@keyframes raCyberLogIn {' +
-                    '  0%   { opacity: 0; transform: translate3d(-12px, 0, 0); }' +
-                    '  100% { opacity: 1; transform: translate3d(0, 0, 0); }' +
+                    '@keyframes raCyberCoreSpin {' +
+                    '  0%   { transform: translate3d(-50%,-50%,0) rotate(0deg); }' +
+                    '  100% { transform: translate3d(-50%,-50%,0) rotate(360deg); }' +
+                    '}' +
+                    '@keyframes raCyberCoreCounterSpin {' +
+                    '  0%   { transform: translate3d(-50%,-50%,0) rotate(360deg); }' +
+                    '  100% { transform: translate3d(-50%,-50%,0) rotate(0deg); }' +
+                    '}' +
+                    '@keyframes raCyberCheckPop {' +
+                    '  0%   { transform: scale(0.5); opacity: 0.35; }' +
+                    '  100% { transform: scale(1); opacity: 1; }' +
                     '}';
                 (d.head || hostRoot).appendChild(styleEl);
 
@@ -1230,61 +1239,107 @@ def bot_script():
                         "#fb7185", "#38bdf8", "#a855f7", "#4ade80"
                     ];
 
-                    var leftLogStream = [
-                        { t: "0x7F8A::HOOK_CANDLE_TICK [" + liveMarket + "]", c: "#00f0ff" },
-                        { t: "ROOT@QUANT-CORE: INJECTING STREAM PACKET", c: "#4ade80" },
-                        { t: "MEM_MAP 0x0550D120 -> ORDERFLOW_BUS LOCK", c: "#e879f9" },
-                        { t: "LASER_SCAN_01: WICK IMPULSE +0.00048", c: "#facc15" },
-                        { t: "BREACH_NODE_09: LIQUIDITY DEPTH SYNCED", c: "#38bdf8" },
-                        { t: "CYBER_GRID: MICRO-REJECTION VECTOR ARMED", c: "#fb7185" },
-                        { t: "SOCKET_0x37: BID/ASK SPREAD DELTA VERIFIED", c: "#4ade80" },
-                        { t: "QUANT_ENGINE: MULTI-API CONSENSUS 98.6%", c: "#00f0ff" },
-                        { t: "EXPLOIT_PIPE: CANDLE MOMENTUM ACCELERATED", c: "#e879f9" },
-                        { t: "SCAN_BEAM_03: VOLATILITY SURGE CAPTURED", c: "#facc15" },
-                        { t: "KERNEL_HOOK: EXECUTION TRIGGER STANDBY", c: "#4ade80" },
-                        { t: "MATRIX_SYNC: 5S SNIPER WINDOW LOCKED", c: "#38bdf8" }
+                    var logTemplates = [
+                        "HOOK_0x{H1}::STREAM [{M}]",
+                        "ROOT@CORE: PULL_TICK #{N}",
+                        "MEM_MAP 0x{H2}->BUS_SYNC",
+                        "SCAN_BEAM: WICK_DELTA +{D}",
+                        "NODE_0x{H3}: DEPTH_LOCKED",
+                        "VECTOR_INJECT: PULSE #{N}",
+                        "SOCKET_37: SPREAD_ACK OK",
+                        "QUANT_LINK: CONSENSUS {P}%",
+                        "PIPE_0x{H1}: MOMENTUM_FLOW",
+                        "RING_CORE: PACKET_IN #{N}",
+                        "KERNEL_HOOK: FRAME_SYNC",
+                        "MATRIX_0x{H2}: SIGNAL_PIPE"
                     ];
 
                     var ov = d.createElement('div');
                     ov.id = 'ra-cyber-5s-overlay';
                     ov.style.cssText = 'position:fixed;inset:0;z-index:2147483645;pointer-events:none;overflow:hidden;' +
-                        'border:3px solid #00f0ff;box-sizing:border-box;' +
-                        'background:radial-gradient(circle at center, rgba(0,240,255,0.09) 0%, rgba(232,121,249,0.11) 45%, rgba(34,197,94,0.09) 75%, rgba(2,9,17,0.28) 100%);' +
+                        'border:5px solid #00f0ff;box-sizing:border-box;' +
+                        'background:radial-gradient(circle at center, rgba(0,240,255,0.08) 0%, rgba(232,121,249,0.09) 48%, rgba(34,197,94,0.08) 80%, rgba(2,9,17,0.22) 100%);' +
                         'font-family:"Courier New",Courier,monospace;will-change:transform,opacity;' +
-                        'animation:raCyberFramePulse 1.6s infinite linear;';
+                        'animation:raCyberBorderLight 1.35s infinite linear;';
 
                     ov.innerHTML = '' +
-                        '<div style="position:fixed;inset:0;background-image:linear-gradient(rgba(0,240,255,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(232,121,249,0.11) 1px, transparent 1px);background-size:30px 30px;opacity:0.85;"></div>' +
+                        '<div id="ra-thin-beam-1" style="position:fixed;left:0;right:0;height:3px;top:16%;background:linear-gradient(90deg,transparent,#00f0ff 22%,#22c55e 52%,#e879f9 80%,transparent);box-shadow:0 0 14px #00f0ff;will-change:transform;"></div>' +
+                        '<div id="ra-thin-beam-2" style="position:fixed;left:0;right:0;height:3px;top:52%;background:linear-gradient(90deg,transparent,#e879f9 25%,#facc15 52%,#00f0ff 78%,transparent);box-shadow:0 0 14px #e879f9;will-change:transform;"></div>' +
+                        '<div id="ra-thin-beam-3" style="position:fixed;left:0;right:0;height:3px;top:82%;background:linear-gradient(90deg,transparent,#22c55e 20%,#00f0ff 54%,#fb7185 82%,transparent);box-shadow:0 0 14px #22c55e;will-change:transform;"></div>' +
 
-                        '<div id="ra-cbeam-a" style="position:fixed;left:0;right:0;height:8px;top:14%;background:linear-gradient(90deg,transparent,#00f0ff 20%,#22c55e 52%,#e879f9 84%,transparent);box-shadow:0 0 28px #00f0ff,0 0 52px #22c55e;will-change:transform;"></div>' +
-                        '<div id="ra-cbeam-b" style="position:fixed;left:0;right:0;height:7px;top:46%;background:linear-gradient(90deg,transparent,#e879f9 22%,#facc15 50%,#00f0ff 80%,transparent);box-shadow:0 0 28px #e879f9,0 0 50px #facc15;will-change:transform;"></div>' +
-                        '<div id="ra-cbeam-c" style="position:fixed;left:0;right:0;height:8px;top:76%;background:linear-gradient(90deg,transparent,#22c55e 18%,#00f0ff 54%,#fb7185 86%,transparent);box-shadow:0 0 28px #22c55e,0 0 50px #00f0ff;will-change:transform;"></div>' +
-
-                        '<div style="position:fixed;top:46px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
-                        '  <div id="ra-cyber-top-status" style="background:rgba(3,12,22,0.9);border:1.6px solid #22c55e;border-radius:8px;padding:5px 9px;color:#4ade80;font-size:9px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%;box-shadow:0 0 20px rgba(34,197,94,0.65);">⚡ 5S CYBER BREACH [' + liveMarket + ']</div>' +
-                        '  <div id="ra-cyber-pct-pill" style="background:rgba(16,6,30,0.92);border:1.8px solid #e879f9;border-radius:8px;padding:5px 11px;color:#00f0ff;font-size:11px;font-weight:900;box-shadow:0 0 22px rgba(232,121,249,0.75);">SCANNING 1%</div>' +
+                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:50%;width:102px;height:102px;transform:translate3d(-50%,-50%,0);pointer-events:none;">' +
+                        '  <div id="ra-ball-outer-ring" style="position:fixed;top:50%;left:50%;width:102px;height:102px;border-radius:50%;' +
+                        '  background:conic-gradient(from 0deg, #00f0ff, #22c55e, #e879f9, #facc15, #fb7185, #00f0ff);' +
+                        '  box-shadow:0 0 28px #00f0ff, 0 0 48px rgba(232,121,249,0.75);' +
+                        '  animation:raCyberCoreSpin 1.3s linear infinite;will-change:transform;"></div>' +
+                        '  <div id="ra-ball-mid-ring" style="position:fixed;top:50%;left:50%;width:84px;height:84px;border-radius:50%;' +
+                        '  border:2.5px dashed #facc15;box-shadow:0 0 18px #facc15;' +
+                        '  animation:raCyberCoreCounterSpin 1.8s linear infinite;will-change:transform;"></div>' +
+                        '  <div id="ra-ball-inner-sphere" style="position:fixed;top:50%;left:50%;width:66px;height:66px;border-radius:50%;' +
+                        '  transform:translate3d(-50%,-50%,0);' +
+                        '  background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.35) 0%, rgba(0,240,255,0.42) 34%, rgba(16,8,34,0.92) 78%, rgba(4,14,22,0.98) 100%);' +
+                        '  border:2px solid #4ade80;box-shadow:inset 0 0 18px rgba(232,121,249,0.75), 0 0 24px rgba(34,197,94,0.85);' +
+                        '  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">' +
+                        '    <div id="ra-ball-proc-tag" style="font-size:6.5px;font-weight:900;color:#4ade80;letter-spacing:0.5px;">PROC IN</div>' +
+                        '    <div id="ra-ball-pct" style="font-size:12px;font-weight:900;color:#ffffff;line-height:1.1;text-shadow:0 0 10px #00f0ff;">1%</div>' +
+                        '    <div id="ra-ball-node-code" style="font-size:6px;font-weight:800;color:#facc15;margin-top:1px;">0x01</div>' +
+                        '  </div>' +
                         '</div>' +
 
-                        '<div id="ra-cyber-left-logs" style="position:fixed;top:82px;left:10px;width:224px;max-width:68vw;max-height:164px;overflow:hidden;' +
-                        'background:rgba(2,9,16,0.84);border-left:3px solid #00f0ff;border-radius:0 9px 9px 0;padding:6px 8px;' +
-                        'font-size:8px;line-height:1.38;box-shadow:0 0 22px rgba(0,240,255,0.38);"></div>';
+                        '<div id="ra-cyber-left-cascade" style="position:fixed;top:12px;bottom:12px;left:8px;width:214px;max-width:66vw;' +
+                        'overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;gap:2px;' +
+                        'background:linear-gradient(180deg, rgba(2,10,18,0.82) 0%, rgba(10,5,24,0.78) 50%, rgba(2,14,14,0.84) 100%);' +
+                        'border-left:3px solid #00f0ff;border-radius:0 10px 10px 0;padding:6px 7px;' +
+                        'font-size:7.6px;line-height:1.25;font-weight:800;box-shadow:0 0 24px rgba(0,240,255,0.4);"></div>';
 
                     hostRoot.appendChild(ov);
 
-                    var beamA = ov.querySelector('#ra-cbeam-a');
-                    var beamB = ov.querySelector('#ra-cbeam-b');
-                    var beamC = ov.querySelector('#ra-cbeam-c');
-                    var topStatusEl = ov.querySelector('#ra-cyber-top-status');
-                    var pctPillEl = ov.querySelector('#ra-cyber-pct-pill');
-                    var leftLogsEl = ov.querySelector('#ra-cyber-left-logs');
+                    var beam1 = ov.querySelector('#ra-thin-beam-1');
+                    var beam2 = ov.querySelector('#ra-thin-beam-2');
+                    var beam3 = ov.querySelector('#ra-thin-beam-3');
+                    var ballPctEl = ov.querySelector('#ra-ball-pct');
+                    var ballProcTagEl = ov.querySelector('#ra-ball-proc-tag');
+                    var ballNodeEl = ov.querySelector('#ra-ball-node-code');
+                    var ballInnerEl = ov.querySelector('#ra-ball-inner-sphere');
+                    var ballMidEl = ov.querySelector('#ra-ball-mid-ring');
+                    var leftCascadeEl = ov.querySelector('#ra-cyber-left-cascade');
 
                     var sigPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(qParam) + '&mode=AUTO5S&t=' + Date.now())
                         .then(function(r){ return r.json(); })
                         .catch(function(){ return { signal: 'HOLD', pts: 0 }; });
 
                     var lastPctSeen = 0;
-                    var lastLogStep = -1;
-                    var logCursor = 0;
+                    var lastLogTick = -1;
+                    var logSeq = 0;
+
+                    function buildLogLine(seqNum, pctNum) {
+                        var tpl = logTemplates[seqNum % logTemplates.length];
+                        var h1 = ((seqNum * 73 + 19) % 255).toString(16).toUpperCase().padStart(2, '0');
+                        var h2 = ((seqNum * 137 + 41) % 65535).toString(16).toUpperCase().padStart(4, '0');
+                        var h3 = ((seqNum * 53 + 11) % 15).toString(16).toUpperCase();
+                        var deltaStr = (0.00012 + ((seqNum * 19) % 85) * 0.00001).toFixed(5);
+                        var msg = tpl
+                            .replace("{H1}", h1)
+                            .replace("{H2}", h2)
+                            .replace("{H3}", h3)
+                            .replace("{M}", liveMarket)
+                            .replace("{N}", String((seqNum % 220) + 1))
+                            .replace("{D}", deltaStr)
+                            .replace("{P}", String(pctNum));
+
+                        var rowCol = cyberPalette[seqNum % cyberPalette.length];
+                        var chkCol = cyberPalette[(seqNum + 2) % cyberPalette.length];
+                        var showTick = (seqNum % 2 === 0);
+
+                        var row = d.createElement('div');
+                        row.style.cssText = 'display:flex;align-items:center;gap:4px;color:' + rowCol + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+                        if(showTick) {
+                            row.innerHTML = '<span style="color:' + chkCol + ';font-weight:900;flex-shrink:0;animation:raCyberCheckPop 0.12s ease-out;">✓</span><span>' + msg + '</span>';
+                        } else {
+                            row.innerHTML = '<span style="color:' + rowCol + ';opacity:0.75;flex-shrink:0;">›</span><span>' + msg + '</span>';
+                        }
+                        return row;
+                    }
 
                     function stepCyber5s(nowTs) {
                         if(!ov.isConnected || !auto5sRunning) {
@@ -1298,44 +1353,53 @@ def bot_script():
                         var ratio = Math.min(1, elapsed / scanMs);
                         var vh = window.innerHeight || 720;
 
-                        if(beamA) beamA.style.transform = "translate3d(0," + ((Math.sin(elapsed * 0.0046) * 0.43 + 0.43) * vh * 0.84) + "px,0)";
-                        if(beamB) beamB.style.transform = "translate3d(0," + ((Math.cos(elapsed * 0.0056) * 0.44 + 0.44) * vh * 0.84) + "px,0)";
-                        if(beamC) beamC.style.transform = "translate3d(0," + ((Math.sin(elapsed * 0.0068 + 1.5) * 0.43 + 0.43) * vh * 0.84) + "px,0)";
+                        if(beam1) beam1.style.transform = "translate3d(0," + ((Math.sin(elapsed * 0.0052) * 0.44 + 0.44) * vh * 0.85) + "px,0)";
+                        if(beam2) beam2.style.transform = "translate3d(0," + ((Math.cos(elapsed * 0.0061) * 0.44 + 0.44) * vh * 0.85) + "px,0)";
+                        if(beam3) beam3.style.transform = "translate3d(0," + ((Math.sin(elapsed * 0.0073 + 1.4) * 0.44 + 0.44) * vh * 0.85) + "px,0)";
 
                         var curPct = Math.max(1, Math.min(100, Math.round(ratio * 100)));
                         if(curPct !== lastPctSeen) {
                             lastPctSeen = curPct;
-                            var c1 = cyberPalette[curPct % cyberPalette.length];
-                            var c2 = cyberPalette[(curPct + 3) % cyberPalette.length];
-                            if(pctPillEl) {
-                                pctPillEl.innerText = "SCANNING " + curPct + "%";
-                                pctPillEl.style.color = c1;
-                                pctPillEl.style.borderColor = c2;
+                            var cMain = cyberPalette[curPct % cyberPalette.length];
+                            var cSec = cyberPalette[(curPct + 3) % cyberPalette.length];
+                            if(ballPctEl) {
+                                ballPctEl.innerText = curPct + "%";
+                                ballPctEl.style.color = cMain;
+                            }
+                            if(ballProcTagEl) {
+                                ballProcTagEl.innerText = (curPct % 2 === 0) ? "DATA IN" : "CORE SYNC";
+                                ballProcTagEl.style.color = cSec;
+                            }
+                            if(ballNodeEl) {
+                                ballNodeEl.innerText = "0x" + ((curPct * 3) % 99).toString(16).toUpperCase().padStart(2, "0");
+                                ballNodeEl.style.color = cMain;
+                            }
+                            if(ballInnerEl) {
+                                ballInnerEl.style.borderColor = cMain;
+                                ballInnerEl.style.boxShadow = "inset 0 0 20px " + cSec + ", 0 0 28px " + cMain;
+                            }
+                            if(ballMidEl) {
+                                ballMidEl.style.borderColor = cSec;
                             }
                         }
 
-                        var logStep = Math.floor(elapsed / 190);
-                        if(logStep !== lastLogStep && leftLogsEl) {
-                            lastLogStep = logStep;
-                            var item = leftLogStream[logCursor % leftLogStream.length];
-                            var rowColor = cyberPalette[(logCursor + 1) % cyberPalette.length];
-                            logCursor++;
-
-                            if(topStatusEl) {
-                                topStatusEl.innerText = "⚡ " + item.t;
-                                topStatusEl.style.color = rowColor;
-                                topStatusEl.style.borderColor = rowColor;
+                        var logTick = Math.floor(elapsed / 52);
+                        if(logTick !== lastLogTick && leftCascadeEl) {
+                            lastLogTick = logTick;
+                            var batchCount = 2;
+                            var frag = d.createDocumentFragment();
+                            for(var b = 0; b < batchCount; b++) {
+                                logSeq++;
+                                frag.appendChild(buildLogLine(logSeq, curPct));
                             }
-                            leftLogsEl.style.borderLeftColor = rowColor;
+                            leftCascadeEl.appendChild(frag);
 
-                            var lineDiv = d.createElement('div');
-                            lineDiv.style.color = rowColor;
-                            lineDiv.style.animation = "raCyberLogIn 0.14s ease-out";
-                            lineDiv.innerText = "▸ " + item.t;
-                            leftLogsEl.insertBefore(lineDiv, leftLogsEl.firstChild);
-                            while(leftLogsEl.children.length > 9) {
-                                leftLogsEl.removeChild(leftLogsEl.lastChild);
+                            var maxRows = Math.max(24, Math.floor((leftCascadeEl.clientHeight || 360) / 11));
+                            while(leftCascadeEl.children.length > maxRows) {
+                                leftCascadeEl.removeChild(leftCascadeEl.firstChild);
                             }
+                            var lCol = cyberPalette[logSeq % cyberPalette.length];
+                            leftCascadeEl.style.borderLeftColor = lCol;
                             playTickSound();
                         }
 
