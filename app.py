@@ -128,12 +128,12 @@ KNOWLEDGE_REGISTRY = {
     "master_keys_count": 12,
     "dev_apis_count": 5,
     "international_knowledge_nodes": 12_000_000,
-    "signal_mode": "BIDIRECTIONAL_AUTHENTIC_ACCURATE_ENGINE",
+    "signal_mode": "BIDIRECTIONAL_ACCURATE_ALL_MARKET_ENGINE",
 }
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/22.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/21.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -227,6 +227,7 @@ class LiveMarketCandleEngine:
         closes = []
         cur = base
         for i in range(10):
+            # Structured swing sequence without arbitrary randomness
             swing_dir = 1.0 if ((i + sym_seed) % 2 == 0) else -1.0
             if is_otc and i % 4 == 0:
                 swing_dir *= -1.0
@@ -684,51 +685,28 @@ def bot_script():
                     }
                 }
 
-                function scoreFemaleVoice(voiceObj) {
-                    if(!voiceObj) return -1;
-                    var nm = String(voiceObj.name || "").toLowerCase();
-                    var lang = String(voiceObj.lang || "").toLowerCase();
-                    var score = 0;
-
-                    if(lang.indexOf("bn") === 0 || lang.indexOf("bengali") !== -1 || nm.indexOf("bangla") !== -1 || nm.indexOf("bengali") !== -1) {
-                        score += 120;
-                    }
-
-                    var strongFemaleNames = [
-                        "female", "woman", "girl", "zira", "samantha", "priya",
-                        "salma", "tanisha", "lekha", "heera", "aria", "jenny",
-                        "google বাংলা", "bangla female", "bengali female", "nishi", "mou", "tuli"
-                    ];
-                    for(var i = 0; i < strongFemaleNames.length; i++) {
-                        if(nm.indexOf(strongFemaleNames[i]) !== -1) {
-                            score += 95;
-                        }
-                    }
-
-                    var maleNames = [
-                        "male", "man", "boy", "david", "mark", "rishi", "prabhat", "guy", "arjun", "rahul"
-                    ];
-                    for(var m = 0; m < maleNames.length; m++) {
-                        if(nm.indexOf(maleNames[m]) !== -1) {
-                            score -= 140;
-                        }
-                    }
-
-                    return score;
-                }
-
                 function pickEnhancedFemaleBanglaVoice(voices) {
                     if(!voices || !voices.length) return null;
-                    var bestVoice = null;
-                    var bestScore = -999;
-                    for(var i = 0; i < voices.length; i++) {
-                        var sc = scoreFemaleVoice(voices[i]);
-                        if(sc > bestScore) {
-                            bestScore = sc;
-                            bestVoice = voices[i];
+                    var femaleHints = [
+                        "female", "woman", "girl", "zira", "samantha", "priya",
+                        "salma", "tanisha", "lekha", "heera", "aria", "jenny",
+                        "google বাংলা", "bangla female", "bengali female"
+                    ];
+                    var bnList = voices.filter(function(v){
+                        var l = String(v.lang || "").toLowerCase();
+                        return l.indexOf("bn") === 0 || l.indexOf("bengali") !== -1;
+                    });
+                    var pool = bnList.length ? bnList : voices;
+
+                    for(var i = 0; i < pool.length; i++) {
+                        var nm = String(pool[i].name || "").toLowerCase();
+                        for(var h = 0; h < femaleHints.length; h++) {
+                            if(nm.indexOf(femaleHints[h]) !== -1) {
+                                return pool[i];
+                            }
                         }
                     }
-                    return bestVoice;
+                    return bnList.length ? bnList[0] : null;
                 }
 
                 function speakBangla5sVoice(phrase) {
@@ -747,8 +725,8 @@ def bot_script():
                                     } else {
                                         utter.lang = 'bn-BD';
                                     }
-                                    utter.rate = 1.02;
-                                    utter.pitch = 1.32;
+                                    utter.rate = 1.05;
+                                    utter.pitch = 1.26;
                                     utter.volume = 1.0;
                                     window.speechSynthesis.speak(utter);
                                 } catch(errInner) {}
@@ -2086,12 +2064,6 @@ def bot_script():
                     var mainColor = isCall ? "#4ade80" : "#f87171";
                     var glowAnim = isCall ? "raPopupGreenGlow 2.2s infinite ease-in-out" : "raPopupRedGlow 2.2s infinite ease-in-out";
 
-                    speakBangla5sVoice(
-                        isCall
-                            ? "স্যার এখান থেকে আপের সিগন্যাল এসেছে"
-                            : "স্যার এখান থেকে ডাউনের সিগন্যাল এসেছে"
-                    );
-
                     var candleVisualHtml = isCall
                         ? '' +
                             '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:74px;animation:raCandleReveal 0.25s ease-out;">' +
@@ -2142,7 +2114,6 @@ def bot_script():
 
                 function startHackerScanSequence() {
                     ensureAudioContext();
-                    speakBangla5sVoice("লাইভ মার্কেট স্ক্যান করা হচ্ছে, অনুগ্রহ করে অপেক্ষা করুন");
                     var oldModal = d.getElementById('ra-hacker-scan-modal');
                     if(oldModal) oldModal.remove();
                     if(window.__raScanTimer) {
