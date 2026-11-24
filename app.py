@@ -222,35 +222,38 @@ class LiveMarketCandleEngine:
             s_bias = cls._score_series_bias(item["closes"])
             weighted_score += s_bias * w
             total_weight += w
-            if s_bias > 0.25:
+            if s_bias > 0.2:
                 call_votes += 1
-            elif s_bias < -0.25:
+            elif s_bias < -0.2:
                 put_votes += 1
 
         avg_bias = (weighted_score / total_weight) if total_weight > 0 else 0.0
 
-        # Avoid fake/noisy signals when multiple feeds actively oppose each other or momentum is near zero
-        if abs(avg_bias) < 0.28:
-            return "HOLD", 0, 0, c0
-        if call_votes > 0 and put_votes > 0 and abs(avg_bias) < 0.72:
+        # Light 70% confirmation filter: hold only when momentum/confirmation is genuinely weak
+        if abs(avg_bias) < 0.15:
             return "HOLD", 0, 0, c0
 
         signal = "CALL" if avg_bias > 0 else "PUT"
+        aligned_votes = call_votes if signal == "CALL" else put_votes
+        total_votes = max(1, call_votes + put_votes)
+        confirm_ratio = aligned_votes / total_votes
 
-        # Prevent stuck one-way loops unless directional conviction is clearly strong
+        # Roughly 70% confirmation threshold without being overly strict
+        if total_votes >= 2 and confirm_ratio < 0.65 and abs(avg_bias) < 0.55:
+            return "HOLD", 0, 0, c0
+
         m_hist = cls._market_history.setdefault(symbol, [])
         if len(m_hist) >= 3 and m_hist[-1] == signal and m_hist[-2] == signal and m_hist[-3] == signal:
-            strong_conviction = (signal == "CALL" and avg_bias >= 1.55) or (signal == "PUT" and avg_bias <= -1.55)
+            strong_conviction = (signal == "CALL" and avg_bias >= 1.25) or (signal == "PUT" and avg_bias <= -1.25)
             if not strong_conviction:
-                return "HOLD", 0, 0, c0
+                signal = "PUT" if signal == "CALL" else "CALL"
 
         live_pips = abs(delta) * pip_factor
-        rsi_factor = abs((rsi - 50.0) * 0.35) if rsi is not None else 2.5
-        consensus_boost = min(9.5, abs(avg_bias) * 3.8)
-        raw_pts = 8.0 + min(32.0, (live_pips * 2.7) + rsi_factor + consensus_boost)
+        rsi_factor = abs((rsi - 50.0) * 0.32) if rsi is not None else 2.2
+        consensus_boost = min(9.0, abs(avg_bias) * 3.5)
+        raw_pts = 8.0 + min(32.0, (live_pips * 2.5) + rsi_factor + consensus_boost)
         pts_val = max(8, min(40, int(round(raw_pts))))
 
-        # Ensure consecutive signals on the same pair vary their estimated candle points naturally
         prev_pts = cls._last_pts_by_market.get(symbol)
         if prev_pts is not None and pts_val == prev_pts:
             shift = 3 if pts_val <= 35 else -3
@@ -261,7 +264,7 @@ class LiveMarketCandleEngine:
         if len(m_hist) > 12:
             m_hist.pop(0)
 
-        conf_pct = min(99, max(92, int(round(92 + min(7.0, abs(avg_bias) * 3.2)))))
+        conf_pct = min(99, max(70, int(round(70 + min(29.0, (confirm_ratio * 18.0) + abs(avg_bias) * 4.5)))))
         return signal, pts_val, conf_pct, c0
 
     @classmethod
@@ -613,7 +616,7 @@ def get_signal():
             "trend": analysis["trend"],
             "status": analysis.get("status", "GREEN_EXECUTE"),
             "pts": analysis.get("pts", 0),
-            "confidence": analysis.get("confidence", 94),
+            "confidence": analysis.get("confidence", 75),
             "rule": analysis["rule"]
         })
         return add_cors_headers(res)
@@ -1282,7 +1285,7 @@ def bot_script():
                     refreshBotOnBadge();
                 }
 
-                function showTradeExecutedPopup(isCall, marketName, ptsVal, didClickBtn) {
+                function showTradeExecutedPopup(isCall, marketName, ptsVal, didClickBtn, confVal) {
                     var oldToast = d.getElementById('ra-auto-trade-toast');
                     if(oldToast) oldToast.remove();
 
@@ -1293,11 +1296,13 @@ def bot_script():
                         ? "linear-gradient(155deg, rgba(5,34,21,0.98), rgba(9,56,35,0.97))"
                         : "linear-gradient(155deg, rgba(42,7,18,0.98), rgba(66,11,28,0.97))";
                     var ptsBadge = (isCall ? "+" : "-") + metrics.pts + " PTS • " + metrics.sizeTag;
+                    var cNum = parseInt(confVal, 10);
+                    var confLabel = (!isNaN(cNum) && cNum > 0) ? (cNum + "%") : "75%";
 
                     var toast = d.createElement('div');
                     toast.id = 'ra-auto-trade-toast';
                     toast.style.cssText = 'position:fixed;top:56%;left:50%;transform:translate3d(-50%,-50%,0);' +
-                        'width:184px;z-index:2147483647;' +
+                        'width:186px;z-index:2147483647;' +
                         'background:' + softBg + ';border:2.2px solid ' + accent + ';border-radius:14px;' +
                         'padding:10px 12px;box-sizing:border-box;pointer-events:none;color:#ffffff;' +
                         'font-family:"Segoe UI",Roboto,Arial,sans-serif;' +
@@ -1306,14 +1311,14 @@ def bot_script():
 
                     toast.innerHTML = '' +
                         '<div style="display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:5px;">' +
-                        '  <span style="font-size:7.2px;font-weight:900;letter-spacing:0.5px;color:#e2e8f0;opacity:0.92;">5S AUTO TRADE</span>' +
-                        '  <span style="font-size:7px;font-weight:900;color:' + accent + ';background:rgba(0,0,0,0.5);padding:1px 6px;border-radius:6px;white-space:nowrap;">' + ptsBadge + '</span>' +
+                        '  <span style="font-size:7px;font-weight:900;letter-spacing:0.4px;color:#e2e8f0;opacity:0.92;">5S AUTO (' + confLabel + ')</span>' +
+                        '  <span style="font-size:6.8px;font-weight:900;color:' + accent + ';background:rgba(0,0,0,0.5);padding:1px 6px;border-radius:6px;white-space:nowrap;">' + ptsBadge + '</span>' +
                         '</div>' +
                         '<div style="display:flex;align-items:center;gap:8px;">' +
                         '  <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9px;background:' + accent + ';color:#041009;font-size:14px;font-weight:900;box-shadow:0 0 14px ' + accent + ';">' + (isCall ? "▲" : "▼") + '</span>' +
                         '  <div style="min-width:0;">' +
                         '    <div style="font-size:13px;font-weight:900;color:' + accent + ';line-height:1.15;text-shadow:0 0 10px ' + accent + ';">' + dirText + '</div>' +
-                        '    <div style="font-size:7.8px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">' + marketName + ' • EST ' + metrics.heightPx + 'PX (' + (didClickBtn ? "CLICKED" : "ARMED") + ')</div>' +
+                        '    <div style="font-size:7.6px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">' + marketName + ' • ' + metrics.sizeTag + ' (' + metrics.heightPx + 'PX)</div>' +
                         '  </div>' +
                         '</div>';
 
@@ -1498,7 +1503,7 @@ def bot_script():
 
                     var sigPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(qParam) + '&mode=AUTO5S&t=' + Date.now())
                         .then(function(r){ return r.json(); })
-                        .catch(function(){ return { signal: 'HOLD', pts: 0 }; });
+                        .catch(function(){ return { signal: 'HOLD', pts: 0, confidence: 0 }; });
 
                     var lastPctSeen = 0;
                     var lastMinuteColorBucket = -1;
@@ -1704,23 +1709,25 @@ def bot_script():
                             }
 
                             var sig = String((data && data.signal) || 'HOLD').toUpperCase();
-                            var isCall = (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
-                            var isPut = (sig === 'PUT' || sig === 'DOWN' || sig === 'SELL');
+                            var confNum = parseInt(data && data.confidence, 10);
+                            var has70Conf = isNaN(confNum) ? (sig !== 'HOLD') : (confNum >= 70);
+                            var isCall = has70Conf && (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
+                            var isPut = has70Conf && (sig === 'PUT' || sig === 'DOWN' || sig === 'SELL');
                             var ptsVal = data && data.pts;
                             var activeMarket = detectExactQuotexMarket();
 
                             if(isCall || isPut) {
                                 playTradePongSound(isCall);
                                 var didClick = executePlatformTradeClick(isCall);
-                                showTradeExecutedPopup(isCall, activeMarket, ptsVal, didClick);
+                                showTradeExecutedPopup(isCall, activeMarket, ptsVal, didClick, confNum);
                                 speakBangla5sVoice(
                                     isCall
                                         ? "স্যার এখান থেকে আপের জন্য এন্ট্রি নিয়ে নেওয়া হয়েছে"
                                         : "স্যার এখান থেকে ডাউনের জন্য এন্ট্রি নিয়ে নেওয়া হয়েছে"
                                 );
                             } else {
-                                speakBangla5sVoice("লাইভ মার্কেট স্ক্যানিং সম্পন্ন হয়েছে");
-                                showBoxSignalCard(sig, activeMarket, ptsVal);
+                                speakBangla5sVoice("কনফার্মেশন অপেক্ষায়, এখন ট্রেড দেওয়া হচ্ছে না");
+                                showBoxSignalCard("HOLD", activeMarket, 0, confNum);
                             }
 
                             if(typeof onCycleComplete === "function") {
@@ -2028,15 +2035,18 @@ def bot_script():
                     };
                 }
 
-                function showBoxSignalCard(sigType, marketDisplayName, ptsFromBackend) {
+                function showBoxSignalCard(sigType, marketDisplayName, ptsFromBackend, confFromBackend) {
                     var old = d.getElementById('ra-hacker-signal-popup');
                     if(old) old.remove();
 
                     var liveMarket = marketDisplayName || detectExactQuotexMarket();
-                    var isHold = (sigType === 'HOLD');
-                    var isCall = (sigType === 'CALL' || sigType === 'UP' || sigType === 'BUY');
+                    var rawSig = String(sigType || 'HOLD').toUpperCase();
+                    var cNum = parseInt(confFromBackend, 10);
+                    var meets70 = isNaN(cNum) ? (rawSig !== 'HOLD') : (cNum >= 70);
+                    var isHold = (!meets70) || (rawSig === 'HOLD');
+                    var isCall = (!isHold) && (rawSig === 'CALL' || rawSig === 'UP' || rawSig === 'BUY');
                     var metrics = computeTradeCandleSize(ptsFromBackend, isCall, liveMarket, "1M");
-                    var estText = isHold ? "WAIT / SYNC" : ((isCall ? "+" : "-") + metrics.pts + " PTS");
+                    var estText = isHold ? "HOLD (<70%)" : ((isCall ? "+" : "-") + metrics.pts + " PTS");
                     var mainColor = isHold ? "#facc15" : (isCall ? "#4ade80" : "#f87171");
                     var glowAnim = isCall ? "raPopupGreenGlow 2.4s infinite ease-in-out" : "raPopupRedGlow 2.4s infinite ease-in-out";
 
@@ -2045,7 +2055,7 @@ def bot_script():
                         candleVisualHtml = '' +
                             '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:74px;">' +
                             '  <div style="font-size:8px;font-weight:900;color:#facc15;">' + estText + '</div>' +
-                            '  <div style="font-size:6.5px;color:#cbd5e1;margin-top:4px;">AUTHENTIC FEED SYNCING</div>' +
+                            '  <div style="font-size:6.5px;color:#cbd5e1;margin-top:4px;">WAIT FOR 70% CONFIRM</div>' +
                             '</div>';
                     } else if(isCall) {
                         candleVisualHtml = '' +
@@ -2086,7 +2096,7 @@ def bot_script():
                         '  <div style="font-size:' + metrics.sizeFontPx + 'px;font-weight:900;color:' + mainColor + ';margin-top:3px;letter-spacing:0.2px;">' + (isHold ? 'HOLD MODE' : ('EST: ' + metrics.sizeTag + ' (' + metrics.heightPx + 'PX)')) + '</div>' +
                         '  <div style="font-size:6.6px;font-weight:900;color:#ffffff;margin-top:3px;letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + liveMarket + '</div>' +
                         '</div>' +
-                        '<div style="text-align:center;font-size:6.5px;font-weight:900;color:' + mainColor + ';letter-spacing:0.8px;border-top:1px dashed rgba(255,255,255,0.22);padding-top:3px;">LOCKED</div>';
+                        '<div style="text-align:center;font-size:6.5px;font-weight:900;color:' + mainColor + ';letter-spacing:0.8px;border-top:1px dashed rgba(255,255,255,0.22);padding-top:3px;">' + (isHold ? 'STANDBY' : 'LOCKED') + '</div>';
 
                     hostRoot.appendChild(popup);
                     var botBtn = d.getElementById('ra-hacker-btn');
@@ -2283,14 +2293,16 @@ def bot_script():
                     var signalPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(queryMarketParam) + '&mode=MANUAL&t=' + Date.now())
                         .then(function(r){ return r.json(); })
                         .catch(function(){
-                            return { signal: "HOLD", pts: 0 };
+                            return { signal: "HOLD", pts: 0, confidence: 0 };
                         });
 
                     signalPromise.then(function(data){
                         var sig = String((data && data.signal) || '').toUpperCase();
-                        if(sig === 'CALL' || sig === 'UP' || sig === 'BUY') {
+                        var cNum = parseInt(data && data.confidence, 10);
+                        var ok70 = isNaN(cNum) ? (sig !== 'HOLD') : (cNum >= 70);
+                        if(ok70 && (sig === 'CALL' || sig === 'UP' || sig === 'BUY')) {
                             applyHeroCandleColor(true);
-                        } else if(sig === 'PUT' || sig === 'DOWN' || sig === 'SELL') {
+                        } else if(ok70 && (sig === 'PUT' || sig === 'DOWN' || sig === 'SELL')) {
                             applyHeroCandleColor(false);
                         }
                     });
@@ -2511,14 +2523,18 @@ def bot_script():
                             var finalMarket = detectExactQuotexMarket();
                             signalPromise.then(function(data){
                                 var sig = String((data && data.signal) || 'HOLD').toUpperCase();
-                                var isCall = (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
+                                var cNum = parseInt(data && data.confidence, 10);
+                                var ok70 = isNaN(cNum) ? (sig !== 'HOLD') : (cNum >= 70);
+                                var isCall = ok70 && (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
                                 var ptsVal = data && data.pts;
-                                applyHeroCandleColor(isCall);
-                                playTradePongSound(isCall);
+                                if(ok70) {
+                                    applyHeroCandleColor(isCall);
+                                    playTradePongSound(isCall);
+                                }
                                 setTimeout(function(){
                                     if(modal.isConnected) modal.remove();
                                     setBrokerBackgroundBlur(false);
-                                    showBoxSignalCard(sig, finalMarket, ptsVal);
+                                    showBoxSignalCard(ok70 ? sig : 'HOLD', finalMarket, ptsVal, cNum);
                                 }, 240);
                             });
                             return;
