@@ -617,7 +617,7 @@ def bot_script():
     (function(){
         var renderServerUrl = "https://ra-ai-bot.onrender.com";
         var botAvatarUrl = "https://i.postimg.cc/jj70SSfW/IMG-20261124-WA0005.jpg";
-        var communityAvatarUrl = "https://i.postimg.cc/jj70SSfW/IMG-20261124-WA0005.jpg";
+        var communityAvatarUrl = "https://i.postimg.cc/KYTGH2Zg/IMG-20261118-WA0017.jpg";
         var telegramChannelUrl = "https://t.me/+x1QYA_1-sSs0NTk1";
         var validAccessKey = "Gop Gop2027";
         var sessionFlagName = "__raCandleHackerUnlocked";
@@ -948,7 +948,7 @@ def bot_script():
                     '  100% { transform: rotate(0deg) scale(1); opacity: 1; }' +
                     '}' +
                     '@keyframes raSmoothLogGlide {' +
-                    '  0%   { opacity: 0; transform: translate3d(-8px, 10px, 0); }' +
+                    '  0%   { opacity: 0; transform: translate3d(-6px, 8px, 0); }' +
                     '  100% { opacity: 1; transform: translate3d(0, 0, 0); }' +
                     '}' +
                     '@keyframes raLowerTradePop {' +
@@ -1424,7 +1424,7 @@ def bot_script():
                     ov.style.cssText = 'position:fixed;inset:0;z-index:2147483645;pointer-events:none;overflow:hidden;' +
                         'backdrop-filter:blur(2.5px);-webkit-backdrop-filter:blur(2.5px);' +
                         'border:5px solid #00f0ff;box-sizing:border-box;' +
-                        'background:radial-gradient(circle at 55% 50%, rgba(0,240,255,0.10) 0%, rgba(232,121,249,0.09) 52%, rgba(2,9,17,0.22) 100%);' +
+                        'background:radial-gradient(circle at 58% 50%, rgba(0,240,255,0.10) 0%, rgba(232,121,249,0.09) 52%, rgba(2,9,17,0.22) 100%);' +
                         'font-family:"Courier New",Courier,monospace;will-change:transform,opacity;' +
                         'animation:raCyberBorderSlow 3.6s infinite linear;';
 
@@ -1434,7 +1434,7 @@ def bot_script():
 
                         '<svg id="ra-thread-svg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;"></svg>' +
 
-                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:55%;width:156px;height:156px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
+                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:calc(55% + 12px);width:156px;height:156px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
                         '  <div id="ra-planet-halo" style="position:fixed;top:50%;left:50%;width:166px;height:166px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
                         '  background:radial-gradient(circle, rgba(0,240,255,0.42) 42%, rgba(232,121,249,0.28) 66%, rgba(250,204,21,0.16) 84%, transparent 100%);' +
                         '  box-shadow:0 0 46px rgba(0,240,255,0.85), 0 0 82px rgba(232,121,249,0.68);transition:box-shadow 0.24s ease;"></div>' +
@@ -1473,13 +1473,14 @@ def bot_script():
                     var planetRotatorEl = ov.querySelector('#ra-planet-rotator');
                     var planetHaloEl = ov.querySelector('#ra-planet-halo');
                     var leftCascadeEl = ov.querySelector('#ra-cyber-left-cascade');
+                    var centerBallEl = ov.querySelector('#ra-cyber-center-ball');
 
                     var sigPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(qParam) + '&mode=AUTO5S&t=' + Date.now())
                         .then(function(r){ return r.json(); })
                         .catch(function(){ return { signal: 'HOLD', pts: 0 }; });
 
                     var lastPctSeen = 0;
-                    var lastColorBucket = -1;
+                    var lastMinuteColorBucket = -1;
                     var lastLogTick = -1;
                     var logSeq = 0;
                     var targetTotalLogs = 185;
@@ -1492,8 +1493,9 @@ def bot_script():
                         var vh = window.innerHeight || 720;
                         threadSvg.setAttribute("viewBox", "0 0 " + vw + " " + vh);
 
-                        var cx = Math.round(vw * 0.55);
-                        var cy = Math.round(vh * 0.50);
+                        var ballRect = centerBallEl ? centerBallEl.getBoundingClientRect() : null;
+                        var cx = ballRect ? Math.round(ballRect.left + ballRect.width * 0.5) : Math.round(vw * 0.55 + 12);
+                        var cy = ballRect ? Math.round(ballRect.top + ballRect.height * 0.5) : Math.round(vh * 0.50);
                         var rows = leftCascadeEl.children;
 
                         while(threadSvg.children.length > rows.length * 3) {
@@ -1517,14 +1519,14 @@ def bot_script():
                             if(!lineEl) {
                                 lineEl = d.createElementNS(svgNs, "path");
                                 lineEl.setAttribute("fill", "none");
-                                lineEl.setAttribute("stroke-width", "1.35");
-                                lineEl.setAttribute("opacity", "0.84");
+                                lineEl.setAttribute("stroke-width", "1.45");
+                                lineEl.setAttribute("opacity", "0.86");
                                 threadSvg.appendChild(lineEl);
                             }
                             lineEl.setAttribute("d", dPath);
                             lineEl.setAttribute("stroke", col);
 
-                            var prog1 = ((nowPerf * 0.0014 + i * 0.17) % 1);
+                            var prog1 = ((nowPerf * 0.00145 + i * 0.17) % 1);
                             var inv1 = 1 - prog1;
                             var px1 = inv1 * inv1 * x1 + 2 * inv1 * prog1 * midX + prog1 * prog1 * cx;
                             var py1 = inv1 * inv1 * y1 + 2 * inv1 * prog1 * (y1 + curveOffset) + prog1 * prog1 * cy;
@@ -1532,14 +1534,14 @@ def bot_script():
                             var dot1 = threadSvg.children[i * 3 + 1];
                             if(!dot1) {
                                 dot1 = d.createElementNS(svgNs, "circle");
-                                dot1.setAttribute("r", "2.8");
+                                dot1.setAttribute("r", "2.9");
                                 threadSvg.appendChild(dot1);
                             }
                             dot1.setAttribute("cx", String(px1.toFixed(1)));
                             dot1.setAttribute("cy", String(py1.toFixed(1)));
                             dot1.setAttribute("fill", col);
 
-                            var prog2 = ((nowPerf * 0.0014 + i * 0.17 + 0.5) % 1);
+                            var prog2 = ((nowPerf * 0.00145 + i * 0.17 + 0.5) % 1);
                             var inv2 = 1 - prog2;
                             var px2 = inv2 * inv2 * x1 + 2 * inv2 * prog2 * midX + prog2 * prog2 * cx;
                             var py2 = inv2 * inv2 * y1 + 2 * inv2 * prog2 * (y1 + curveOffset) + prog2 * prog2 * cy;
@@ -1547,7 +1549,7 @@ def bot_script():
                             var dot2 = threadSvg.children[i * 3 + 2];
                             if(!dot2) {
                                 dot2 = d.createElementNS(svgNs, "circle");
-                                dot2.setAttribute("r", "2.0");
+                                dot2.setAttribute("r", "2.1");
                                 dot2.setAttribute("opacity", "0.95");
                                 threadSvg.appendChild(dot2);
                             }
@@ -1613,9 +1615,11 @@ def bot_script():
                             }
                         }
 
-                        var colorBucket = Math.floor(elapsed / 260);
-                        if(colorBucket !== lastColorBucket) {
-                            lastColorBucket = colorBucket;
+                        var minuteBucket = Math.floor(Date.now() / 60000);
+                        var pulsePhase = Math.floor(elapsed / 420);
+                        var colorBucket = (minuteBucket * 3) + pulsePhase;
+                        if(colorBucket !== lastMinuteColorBucket) {
+                            lastMinuteColorBucket = colorBucket;
                             var cMain = cyberPalette[colorBucket % cyberPalette.length];
                             var cSec = cyberPalette[(colorBucket + 3) % cyberPalette.length];
                             var cThird = cyberPalette[(colorBucket + 6) % cyberPalette.length];
@@ -1629,12 +1633,12 @@ def bot_script():
                             }
                             if(planetRotatorEl) {
                                 planetRotatorEl.style.borderColor = cMain;
-                                planetRotatorEl.style.background = "conic-gradient(from " + ((colorBucket * 45) % 360) + "deg, " + cMain + ", " + cSec + ", " + cThird + ", " + cFourth + ", " + cMain + ")";
-                                planetRotatorEl.style.boxShadow = "inset -16px -14px 28px rgba(2,6,23,0.85), inset 10px 10px 22px rgba(255,255,255,0.34), 0 0 42px " + cMain + ", 0 0 68px " + cThird;
+                                planetRotatorEl.style.background = "conic-gradient(from " + ((minuteBucket * 72 + pulsePhase * 36) % 360) + "deg, " + cMain + ", " + cSec + ", " + cThird + ", " + cFourth + ", " + cMain + ")";
+                                planetRotatorEl.style.boxShadow = "inset -16px -14px 28px rgba(2,6,23,0.85), inset 10px 10px 22px rgba(255,255,255,0.38), 0 0 48px " + cMain + ", 0 0 82px " + cSec;
                             }
                             if(planetHaloEl) {
-                                planetHaloEl.style.background = "radial-gradient(circle, " + cMain + "55 38%, " + cSec + "38 66%, " + cThird + "22 86%, transparent 100%)";
-                                planetHaloEl.style.boxShadow = "0 0 50px " + cMain + ", 0 0 86px " + cSec;
+                                planetHaloEl.style.background = "radial-gradient(circle, " + cMain + "66 36%, " + cSec + "44 64%, " + cThird + "28 86%, transparent 100%)";
+                                planetHaloEl.style.boxShadow = "0 0 58px " + cMain + ", 0 0 96px " + cSec + ", 0 0 120px " + cThird;
                             }
                         }
 
@@ -1944,10 +1948,16 @@ def bot_script():
 
                 function computeTradeCandleSize(ptsRaw, isCall, marketStr) {
                     var ptsNum = parseInt(ptsRaw, 10);
-                    if(isNaN(ptsNum) || ptsNum <= 0) {
-                        ptsNum = 16;
+                    var symSeed = 0;
+                    var sClean = String(marketStr || "EURUSD");
+                    for(var c = 0; c < sClean.length; c++) {
+                        symSeed = (symSeed * 31 + sClean.charCodeAt(c)) % 997;
                     }
-                    var clampedPts = Math.max(8, Math.min(40, ptsNum));
+                    if(isNaN(ptsNum) || ptsNum <= 0) {
+                        ptsNum = 10 + (symSeed % 25);
+                    }
+                    var marketAdjust = ((symSeed % 5) - 2);
+                    var clampedPts = Math.max(8, Math.min(40, ptsNum + marketAdjust));
                     var ratio = (clampedPts - 8) / 32;
                     var candleHeightPx = Math.round(11 + (ratio * 44));
                     var candleWidthPx = Math.round(10 + (ratio * 10));
