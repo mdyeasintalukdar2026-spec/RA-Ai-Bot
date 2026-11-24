@@ -133,7 +133,7 @@ KNOWLEDGE_REGISTRY = {
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/18.1",
+    "User-Agent": "RA-Candle-Hacker-Backend/18.2",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -154,6 +154,7 @@ class LiveMarketCandleEngine:
     _news_cache = {"ts": 0.0, "events": []}
     _price_history = {}
     _market_history = {}
+    _last_pts_by_symbol = {}
 
     @classmethod
     def _record_and_get_history(cls, symbol: str, price: float) -> list:
@@ -240,11 +241,19 @@ class LiveMarketCandleEngine:
         if len(m_hist) > 12:
             m_hist.pop(0)
 
+        # Compute varied, deterministic trade point magnitude from live tick delta, RSI & consensus bias
         live_pips = abs(delta) * pip_factor
-        rsi_factor = abs((rsi - 50.0) * 0.25) if rsi is not None else 2.0
-        consensus_boost = min(8.0, abs(avg_bias) * 3.2)
-        raw_pts = 8.0 + min(32.0, (live_pips * 2.4) + (rsi_factor % 13.0) + consensus_boost)
-        pts_val = max(8, min(40, int(round(raw_pts))))
+        rsi_val = rsi if rsi is not None else 50.0
+        rsi_mod = ((abs(rsi_val - 50.0) * 1.35) + (len(primary_closes) * 2.1)) % 19.0
+        bias_mag = min(14.0, abs(avg_bias) * 5.8)
+        pip_mag = min(11.0, live_pips * 3.1)
+        raw_pts = 8.0 + ((pip_mag + rsi_mod + bias_mag) % 34.0)
+        pts_val = max(8, min(42, int(round(raw_pts))))
+
+        prev_pts = cls._last_pts_by_symbol.get(symbol)
+        if prev_pts is not None and pts_val == prev_pts:
+            pts_val = (pts_val + 5) if pts_val <= 36 else (pts_val - 5)
+        cls._last_pts_by_symbol[symbol] = pts_val
 
         conf_pct = min(99, max(92, int(round(92 + min(7.0, abs(avg_bias) * 3.2)))))
         return signal, pts_val, conf_pct, c0
@@ -730,6 +739,7 @@ def bot_script():
                 var auto5sRunning = false;
                 var auto5sBusy = false;
                 var lastAutoTradeTs = 0;
+                var tradeCounter = 0;
 
                 var audioCtx = null;
                 var lastTickMs = 0;
@@ -813,7 +823,7 @@ def bot_script():
                 function playTickSound() {
                     try {
                         var nowMs = Date.now();
-                        if(nowMs - lastTickMs < 140) return;
+                        if(nowMs - lastTickMs < 150) return;
                         lastTickMs = nowMs;
 
                         var ctx = ensureAudioContext();
@@ -939,11 +949,11 @@ def bot_script():
                     '  100% { opacity: 1; transform: translateY(0) scale(1); }' +
                     '}' +
                     '@keyframes raCyberBorderSlow {' +
-                    '  0%   { border-color: #00f0ff; box-shadow: inset 0 0 90px rgba(0,240,255,0.44), 0 0 60px rgba(0,240,255,0.9); }' +
-                    '  25%  { border-color: #22c55e; box-shadow: inset 0 0 95px rgba(34,197,94,0.44), 0 0 64px rgba(34,197,94,0.9); }' +
-                    '  50%  { border-color: #e879f9; box-shadow: inset 0 0 100px rgba(232,121,249,0.46), 0 0 68px rgba(232,121,249,0.92); }' +
-                    '  75%  { border-color: #facc15; box-shadow: inset 0 0 95px rgba(250,204,21,0.44), 0 0 64px rgba(250,204,21,0.9); }' +
-                    '  100% { border-color: #00f0ff; box-shadow: inset 0 0 90px rgba(0,240,255,0.44), 0 0 60px rgba(0,240,255,0.9); }' +
+                    '  0%   { border-color: #00f0ff; }' +
+                    '  25%  { border-color: #22c55e; }' +
+                    '  50%  { border-color: #e879f9; }' +
+                    '  75%  { border-color: #facc15; }' +
+                    '  100% { border-color: #00f0ff; }' +
                     '}' +
                     '@keyframes raPlanetSpinFast {' +
                     '  0%   { transform: rotate(0deg); }' +
@@ -954,7 +964,7 @@ def bot_script():
                     '  100% { transform: rotate(0deg) scale(1); opacity: 1; }' +
                     '}' +
                     '@keyframes raSmoothLogGlide {' +
-                    '  0%   { opacity: 0; transform: translate3d(-5px, 6px, 0); }' +
+                    '  0%   { opacity: 0; transform: translate3d(0, 8px, 0); }' +
                     '  100% { opacity: 1; transform: translate3d(0, 0, 0); }' +
                     '}' +
                     '@keyframes raLowerTradePop {' +
@@ -1270,34 +1280,37 @@ def bot_script():
                     var oldToast = d.getElementById('ra-auto-trade-toast');
                     if(oldToast) oldToast.remove();
 
+                    tradeCounter++;
+                    var metrics = computeTradeCandleSize(ptsVal, isCall, marketName, tradeCounter);
                     var dirText = isCall ? "UP / BUY" : "DOWN / SELL";
                     var accent = isCall ? "#22c55e" : "#f43f5e";
                     var softBg = isCall
                         ? "linear-gradient(155deg, rgba(5,34,21,0.98), rgba(9,56,35,0.97))"
                         : "linear-gradient(155deg, rgba(42,7,18,0.98), rgba(66,11,28,0.97))";
-                    var ptsNum = parseInt(ptsVal, 10);
-                    var ptsBadge = (!isNaN(ptsNum) && ptsNum > 0) ? ((isCall ? "+" : "-") + ptsNum + " PTS") : "SINGLE TRADE";
+                    var ptsBadge = (isCall ? "+" : "-") + metrics.pts + " PTS";
+                    var estCandleLine = "EST CANDLE: " + metrics.sizeTag + " (~" + metrics.heightPx + "PX)";
 
                     var toast = d.createElement('div');
                     toast.id = 'ra-auto-trade-toast';
                     toast.style.cssText = 'position:fixed;top:56%;left:50%;transform:translate3d(-50%,-50%,0);' +
-                        'width:176px;z-index:2147483647;' +
+                        'width:194px;z-index:2147483647;' +
                         'background:' + softBg + ';border:2.2px solid ' + accent + ';border-radius:14px;' +
-                        'padding:10px 12px;box-sizing:border-box;pointer-events:none;color:#ffffff;' +
+                        'padding:10px 11px;box-sizing:border-box;pointer-events:none;color:#ffffff;' +
                         'font-family:"Segoe UI",Roboto,Arial,sans-serif;' +
-                        'box-shadow:0 0 32px ' + accent + ', 0 12px 32px rgba(0,0,0,0.78);' +
+                        'box-shadow:0 0 28px ' + accent + ', 0 12px 28px rgba(0,0,0,0.78);' +
                         'animation:raLowerTradePop 0.24s ease-out;';
 
                     toast.innerHTML = '' +
-                        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">' +
-                        '  <span style="font-size:7.5px;font-weight:900;letter-spacing:0.6px;color:#e2e8f0;opacity:0.9;">5S AUTO TRADE</span>' +
-                        '  <span style="font-size:7.5px;font-weight:900;color:' + accent + ';background:rgba(0,0,0,0.5);padding:1px 6px;border-radius:6px;">' + ptsBadge + '</span>' +
+                        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;gap:4px;">' +
+                        '  <span style="font-size:7.2px;font-weight:900;letter-spacing:0.5px;color:#e2e8f0;opacity:0.92;">5S AUTO TRADE</span>' +
+                        '  <span style="font-size:7.5px;font-weight:900;color:' + accent + ';background:rgba(0,0,0,0.55);padding:1px 6px;border-radius:6px;white-space:nowrap;">' + ptsBadge + '</span>' +
                         '</div>' +
                         '<div style="display:flex;align-items:center;gap:8px;">' +
-                        '  <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9px;background:' + accent + ';color:#041009;font-size:14px;font-weight:900;box-shadow:0 0 14px ' + accent + ';">' + (isCall ? "▲" : "▼") + '</span>' +
-                        '  <div style="min-width:0;">' +
-                        '    <div style="font-size:13px;font-weight:900;color:' + accent + ';line-height:1.15;text-shadow:0 0 10px ' + accent + ';">' + dirText + '</div>' +
-                        '    <div style="font-size:8px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">' + marketName + ' • ' + (didClickBtn ? "AUTO CLICKED" : "SIGNAL ARMED") + '</div>' +
+                        '  <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9px;background:' + accent + ';color:#041009;font-size:14px;font-weight:900;flex-shrink:0;">' + (isCall ? "▲" : "▼") + '</span>' +
+                        '  <div style="min-width:0;flex:1;">' +
+                        '    <div style="font-size:12.5px;font-weight:900;color:' + accent + ';line-height:1.15;">' + dirText + '</div>' +
+                        '    <div style="font-size:7.2px;font-weight:800;color:#f8fafc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">' + estCandleLine + '</div>' +
+                        '    <div style="font-size:7.2px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;">' + marketName + ' • ' + (didClickBtn ? "AUTO CLICKED" : "SIGNAL ARMED") + '</div>' +
                         '  </div>' +
                         '</div>';
 
@@ -1428,44 +1441,43 @@ def bot_script():
                     var ov = d.createElement('div');
                     ov.id = 'ra-cyber-5s-overlay';
                     ov.style.cssText = 'position:fixed;inset:0;z-index:2147483645;pointer-events:none;overflow:hidden;' +
-                        'border:4px solid #00f0ff;box-sizing:border-box;' +
-                        'background:radial-gradient(circle at 60% 50%, rgba(0,240,255,0.08) 0%, rgba(232,121,249,0.07) 52%, rgba(2,9,17,0.16) 100%);' +
+                        'border:3.5px solid #00f0ff;box-sizing:border-box;' +
+                        'background:radial-gradient(circle at 60% 50%, rgba(0,240,255,0.06) 0%, rgba(232,121,249,0.05) 55%, rgba(2,9,17,0.12) 100%);' +
                         'font-family:"Courier New",Courier,monospace;will-change:transform,opacity;' +
                         'animation:raCyberBorderSlow 4.5s infinite linear;';
 
                     ov.innerHTML = '' +
-                        '<div id="ra-full-laser-top" style="position:fixed;left:0;right:0;height:3px;top:0;background:linear-gradient(90deg,#00f0ff,#22c55e,#facc15,#e879f9,#fb7185,#00f0ff);box-shadow:0 0 12px #00f0ff;will-change:transform;z-index:4;"></div>' +
-                        '<div id="ra-full-laser-bot" style="position:fixed;left:0;right:0;height:3px;top:0;background:linear-gradient(90deg,#e879f9,#fb7185,#facc15,#22c55e,#00f0ff,#e879f9);box-shadow:0 0 12px #e879f9;will-change:transform;z-index:4;"></div>' +
+                        '<div id="ra-full-laser-top" style="position:fixed;left:0;right:0;height:2.5px;top:0;background:linear-gradient(90deg,#00f0ff,#22c55e,#facc15,#e879f9,#fb7185,#00f0ff);will-change:transform;z-index:4;"></div>' +
+                        '<div id="ra-full-laser-bot" style="position:fixed;left:0;right:0;height:2.5px;top:0;background:linear-gradient(90deg,#e879f9,#fb7185,#facc15,#22c55e,#00f0ff,#e879f9);will-change:transform;z-index:4;"></div>' +
 
                         '<svg id="ra-thread-svg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;"></svg>' +
 
                         '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:calc(55% + 26px);width:156px;height:156px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
-                        '  <div id="ra-planet-halo" style="position:fixed;top:50%;left:50%;width:166px;height:166px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
-                        '  background:radial-gradient(circle, rgba(0,240,255,0.42) 42%, rgba(232,121,249,0.28) 66%, rgba(250,204,21,0.16) 84%, transparent 100%);' +
-                        '  box-shadow:0 0 46px rgba(0,240,255,0.85), 0 0 82px rgba(232,121,249,0.68);transition:box-shadow 0.4s ease;"></div>' +
+                        '  <div id="ra-planet-halo" style="position:fixed;top:50%;left:50%;width:164px;height:164px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
+                        '  background:radial-gradient(circle, rgba(0,240,255,0.34) 42%, rgba(232,121,249,0.22) 68%, rgba(250,204,21,0.12) 86%, transparent 100%);transition:background 0.4s ease;"></div>' +
 
                         '  <div id="ra-planet-rotator" style="position:fixed;top:50%;left:50%;width:142px;height:142px;margin-left:-71px;margin-top:-71px;border-radius:50%;overflow:hidden;' +
-                        '  border:3.5px solid #38bdf8;box-shadow:inset -16px -14px 28px rgba(2,6,23,0.85), inset 10px 10px 22px rgba(255,255,255,0.34), 0 0 38px rgba(56,189,248,0.95);' +
+                        '  border:3.5px solid #38bdf8;' +
                         '  background:conic-gradient(from 0deg, #00f0ff, #22c55e, #facc15, #e879f9, #fb7185, #38bdf8, #a855f7, #00f0ff);' +
-                        '  animation:raPlanetSpinFast 5.2s linear infinite;will-change:transform;transition:border-color 0.4s ease,box-shadow 0.4s ease;">' +
-                        '    <div style="position:absolute;top:14%;left:-14%;width:80%;height:28%;border-radius:50%;background:linear-gradient(90deg,rgba(74,222,128,0.85),rgba(0,240,255,0.58));filter:blur(2px);transform:rotate(-16deg);"></div>' +
-                        '    <div style="position:absolute;top:48%;left:20%;width:84%;height:32%;border-radius:50%;background:linear-gradient(90deg,rgba(232,121,249,0.82),rgba(250,204,21,0.58));filter:blur(2px);transform:rotate(14deg);"></div>' +
-                        '    <div style="position:absolute;top:72%;left:6%;width:66%;height:22%;border-radius:50%;background:linear-gradient(90deg,rgba(251,113,133,0.78),rgba(56,189,248,0.55));filter:blur(2px);transform:rotate(-8deg);"></div>' +
+                        '  animation:raPlanetSpinFast 5.2s linear infinite;will-change:transform;transition:border-color 0.4s ease;">' +
+                        '    <div style="position:absolute;top:14%;left:-14%;width:80%;height:28%;border-radius:50%;background:linear-gradient(90deg,rgba(74,222,128,0.82),rgba(0,240,255,0.52));transform:rotate(-16deg);"></div>' +
+                        '    <div style="position:absolute;top:48%;left:20%;width:84%;height:32%;border-radius:50%;background:linear-gradient(90deg,rgba(232,121,249,0.78),rgba(250,204,21,0.52));transform:rotate(14deg);"></div>' +
+                        '    <div style="position:absolute;top:72%;left:6%;width:66%;height:22%;border-radius:50%;background:linear-gradient(90deg,rgba(251,113,133,0.75),rgba(56,189,248,0.5));transform:rotate(-8deg);"></div>' +
                         '  </div>' +
 
                         '  <div style="position:fixed;top:50%;left:50%;width:106px;height:106px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
-                        '  background:radial-gradient(circle, rgba(2,10,20,0.78) 0%, rgba(4,16,32,0.58) 72%, rgba(0,240,255,0.32) 100%);' +
+                        '  background:radial-gradient(circle, rgba(2,10,20,0.8) 0%, rgba(4,16,32,0.62) 72%, rgba(0,240,255,0.28) 100%);' +
                         '  border:1.6px solid rgba(255,255,255,0.65);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">' +
-                        '    <div id="ra-ball-proc-tag" style="font-size:7px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 8px #000;transition:color 0.35s ease;">DATA PULL</div>' +
-                        '    <div id="ra-ball-pct" style="font-size:15px;font-weight:900;color:#ffffff;line-height:1.15;text-shadow:0 0 12px #00f0ff, 0 0 6px #000;">1%</div>' +
-                        '    <div id="ra-ball-node-code" style="font-size:6.8px;font-weight:800;color:#facc15;margin-top:2px;text-shadow:0 0 6px #000;transition:color 0.35s ease;">0x01</div>' +
+                        '    <div id="ra-ball-proc-tag" style="font-size:7px;font-weight:900;color:#4ade80;letter-spacing:0.6px;transition:color 0.35s ease;">DATA PULL</div>' +
+                        '    <div id="ra-ball-pct" style="font-size:15px;font-weight:900;color:#ffffff;line-height:1.15;">1%</div>' +
+                        '    <div id="ra-ball-node-code" style="font-size:6.8px;font-weight:800;color:#facc15;margin-top:2px;transition:color 0.35s ease;">0x01</div>' +
                         '  </div>' +
                         '</div>' +
 
                         '<div id="ra-cyber-left-cascade" style="position:fixed;top:16px;bottom:16px;left:8px;width:184px;max-width:44vw;' +
                         'overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;gap:3px;' +
                         'background:transparent;border:none;padding:2px 3px;z-index:2;' +
-                        'font-size:8.4px;line-height:1.36;font-weight:900;"></div>';
+                        'font-size:8.4px;line-height:1.36;font-weight:900;will-change:transform;"></div>';
 
                     hostRoot.appendChild(ov);
 
@@ -1489,8 +1501,8 @@ def bot_script():
                     var lastLogTick = -1;
                     var lastThreadSyncMs = 0;
                     var logSeq = 0;
-                    var targetTotalLogs = 140;
-                    var maxVisibleLogs = 52;
+                    var targetTotalLogs = 160;
+                    var maxVisibleLogs = 48;
                     var svgNs = "http://www.w3.org/2000/svg";
 
                     function syncThreadsToPlanet(nowPerf) {
@@ -1524,8 +1536,8 @@ def bot_script():
                             if(!lineEl) {
                                 lineEl = d.createElementNS(svgNs, "path");
                                 lineEl.setAttribute("fill", "none");
-                                lineEl.setAttribute("stroke-width", "1.4");
-                                lineEl.setAttribute("opacity", "0.84");
+                                lineEl.setAttribute("stroke-width", "1.35");
+                                lineEl.setAttribute("opacity", "0.8");
                                 threadSvg.appendChild(lineEl);
                             }
                             lineEl.setAttribute("d", dPath);
@@ -1539,7 +1551,7 @@ def bot_script():
                             var dot1 = threadSvg.children[i * 3 + 1];
                             if(!dot1) {
                                 dot1 = d.createElementNS(svgNs, "circle");
-                                dot1.setAttribute("r", "2.8");
+                                dot1.setAttribute("r", "2.6");
                                 threadSvg.appendChild(dot1);
                             }
                             dot1.setAttribute("cx", String(px1.toFixed(1)));
@@ -1554,7 +1566,7 @@ def bot_script():
                             var dot2 = threadSvg.children[i * 3 + 2];
                             if(!dot2) {
                                 dot2 = d.createElementNS(svgNs, "circle");
-                                dot2.setAttribute("r", "2.0");
+                                dot2.setAttribute("r", "1.9");
                                 dot2.setAttribute("opacity", "0.95");
                                 threadSvg.appendChild(dot2);
                             }
@@ -1584,8 +1596,8 @@ def bot_script():
 
                         var row = d.createElement('div');
                         row.dataset.tcol = rowCol;
-                        row.style.cssText = 'display:flex;align-items:center;gap:4px;color:' + rowCol + ';text-shadow:0 0 6px rgba(0,0,0,0.9), 0 0 10px ' + rowCol + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;will-change:transform,opacity;animation:raSmoothLogGlide 0.36s cubic-bezier(0.22,1,0.36,1) both;';
-                        row.innerHTML = '<span style="color:' + chkCol + ';font-weight:900;flex-shrink:0;display:inline-block;animation:raTickTurnSpin 0.35s ease-out;">✓</span><span>' + msg + '</span>';
+                        row.style.cssText = 'display:flex;align-items:center;gap:4px;color:' + rowCol + ';text-shadow:0 1px 2px rgba(0,0,0,0.95);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;will-change:transform,opacity;animation:raSmoothLogGlide 0.32s cubic-bezier(0.22,1,0.36,1) both;';
+                        row.innerHTML = '<span style="color:' + chkCol + ';font-weight:900;flex-shrink:0;display:inline-block;animation:raTickTurnSpin 0.3s ease-out;">✓</span><span>' + msg + '</span>';
                         return row;
                     }
 
@@ -1639,11 +1651,9 @@ def bot_script():
                             if(planetRotatorEl) {
                                 planetRotatorEl.style.borderColor = cMain;
                                 planetRotatorEl.style.background = "conic-gradient(from " + ((minuteBucket * 75 + slowWaveIdx * 25) % 360) + "deg, " + cMain + ", " + cSec + ", " + cThird + ", " + cFourth + ", " + cMain + ")";
-                                planetRotatorEl.style.boxShadow = "inset -16px -14px 28px rgba(2,6,23,0.85), inset 10px 10px 22px rgba(255,255,255,0.38), 0 0 48px " + cMain + ", 0 0 82px " + cSec;
                             }
                             if(planetHaloEl) {
-                                planetHaloEl.style.background = "radial-gradient(circle, " + cMain + "66 36%, " + cSec + "44 64%, " + cThird + "28 86%, transparent 100%)";
-                                planetHaloEl.style.boxShadow = "0 0 58px " + cMain + ", 0 0 96px " + cSec + ", 0 0 120px " + cThird;
+                                planetHaloEl.style.background = "radial-gradient(circle, " + cMain + "55 36%, " + cSec + "38 64%, " + cThird + "20 86%, transparent 100%)";
                             }
                         }
 
@@ -1661,14 +1671,17 @@ def bot_script():
                                 leftCascadeEl.removeChild(leftCascadeEl.firstChild);
                             }
 
-                            var logTick = Math.floor(elapsed / 150);
+                            var scrollDrift = (ratio * 18).toFixed(1);
+                            leftCascadeEl.style.transform = "translate3d(0,-" + scrollDrift + "px,0)";
+
+                            var logTick = Math.floor(elapsed / 160);
                             if(logTick !== lastLogTick && ratio < 1) {
                                 lastLogTick = logTick;
                                 playTickSound();
                             }
                         }
 
-                        if(nowTs - lastThreadSyncMs >= 32) {
+                        if(nowTs - lastThreadSyncMs >= 42) {
                             lastThreadSyncMs = nowTs;
                             syncThreadsToPlanet(nowTs);
                         }
@@ -1954,36 +1967,43 @@ def bot_script():
                     return { label: "LOW", pctStr: p + "%", color: "#4ade80" };
                 }
 
-                function computeTradeCandleSize(ptsRaw, isCall, marketStr) {
+                function computeTradeCandleSize(ptsRaw, isCall, marketStr, seqIndex) {
                     var ptsNum = parseInt(ptsRaw, 10);
                     var symSeed = 0;
                     var sClean = String(marketStr || "EURUSD");
                     for(var c = 0; c < sClean.length; c++) {
-                        symSeed = (symSeed * 31 + sClean.charCodeAt(c)) % 997;
+                        symSeed = (symSeed * 37 + sClean.charCodeAt(c)) % 997;
                     }
-                    var timePhase = Math.floor(Date.now() / 15000) % 7;
-                    if(isNaN(ptsNum) || ptsNum <= 0) {
-                        ptsNum = 11 + ((symSeed + timePhase * 4) % 26);
-                    } else {
-                        ptsNum = ptsNum + ((timePhase - 3) * 2);
-                    }
-                    var clampedPts = Math.max(8, Math.min(40, ptsNum));
-                    var ratio = (clampedPts - 8) / 32;
-                    var candleHeightPx = Math.round(12 + (ratio * 44));
-                    var candleWidthPx = Math.round(10 + (ratio * 10));
-                    var wickHeightPx = Math.round(4 + (ratio * 9));
-                    var ptsFontPx = (6.8 + (ratio * 2.2)).toFixed(1);
-                    var sizeFontPx = (5.8 + (ratio * 1.4)).toFixed(1);
+                    var idxStep = parseInt(seqIndex || 0, 10) || 0;
+                    var secSlot = Math.floor(Date.now() / 5000) % 13;
 
-                    var sizeTag = "SMALL SIZE";
-                    if(clampedPts <= 14) {
-                        sizeTag = "SMALL SIZE";
-                    } else if(clampedPts <= 23) {
-                        sizeTag = "MEDIUM SIZE";
-                    } else if(clampedPts <= 32) {
-                        sizeTag = "LARGE SIZE";
+                    if(isNaN(ptsNum) || ptsNum <= 0) {
+                        ptsNum = 9 + ((symSeed + idxStep * 7 + secSlot * 5) % 33);
                     } else {
-                        sizeTag = "HEAVY SIZE";
+                        var shiftPool = [-6, -3, 0, 4, 7, -4, 5];
+                        var deltaShift = shiftPool[(idxStep + secSlot + (symSeed % 7)) % shiftPool.length];
+                        ptsNum = ptsNum + deltaShift;
+                    }
+
+                    var clampedPts = Math.max(8, Math.min(42, ptsNum));
+                    var ratio = (clampedPts - 8) / 34;
+                    var candleHeightPx = Math.round(11 + (ratio * 46));
+                    var candleWidthPx = Math.round(9 + (ratio * 11));
+                    var wickHeightPx = Math.round(4 + (ratio * 9));
+                    var ptsFontPx = (6.6 + (ratio * 2.4)).toFixed(1);
+                    var sizeFontPx = (5.6 + (ratio * 1.5)).toFixed(1);
+
+                    var sizeTag = "MICRO SIZE";
+                    if(clampedPts <= 13) {
+                        sizeTag = "MICRO SIZE";
+                    } else if(clampedPts <= 20) {
+                        sizeTag = "COMPACT SIZE";
+                    } else if(clampedPts <= 28) {
+                        sizeTag = "BALANCED SIZE";
+                    } else if(clampedPts <= 35) {
+                        sizeTag = "EXPANDED SIZE";
+                    } else {
+                        sizeTag = "SURGE SIZE";
                     }
 
                     return {
@@ -2001,10 +2021,11 @@ def bot_script():
                     var old = d.getElementById('ra-hacker-signal-popup');
                     if(old) old.remove();
 
+                    tradeCounter++;
                     var liveMarket = marketDisplayName || detectExactQuotexMarket();
                     var isHold = (sigType === 'HOLD');
                     var isCall = (sigType === 'CALL' || sigType === 'UP' || sigType === 'BUY');
-                    var metrics = computeTradeCandleSize(ptsFromBackend, isCall, liveMarket);
+                    var metrics = computeTradeCandleSize(ptsFromBackend, isCall, liveMarket, tradeCounter);
                     var estText = isHold ? "WAIT / SYNC" : ((isCall ? "+" : "-") + metrics.pts + " PTS");
                     var mainColor = isHold ? "#facc15" : (isCall ? "#4ade80" : "#f87171");
                     var glowAnim = isCall ? "raPopupGreenGlow 2.4s infinite ease-in-out" : "raPopupRedGlow 2.4s infinite ease-in-out";
