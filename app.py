@@ -31,7 +31,7 @@ def _get_cred(env_name: str, encoded_fallback: str) -> str:
 
 
 # =====================================================================
-# 1) ALL PRIMARY, DEVELOPER & MASTER CREDENTIALS
+# 1) ALL PRIMARY, DEVELOPER & MASTER CREDENTIALS (01 - 60)
 # =====================================================================
 API_REGISTRY = {
     "QUOTEX_API_ENGINE": _get_cred("QUOTEX_API_ENGINE", "cXVvdGV4YXBp"),
@@ -44,17 +44,56 @@ API_REGISTRY = {
     "BINANCE_WS_URL": _get_cred("BINANCE_WS_URL", "d3NzOi8vc3RyZWFtLmJpbmFuY2UuY29tOjk0NDMvd3MvYnRjdXNkdEBrbGluZV8xbQ=="),
     "ALPHA_VANTAGE_API_KEY": _get_cred("ALPHA_VANTAGE_API_KEY", "UU9MVjAxMTBZNjFYTVczRg==").replace("61X", "Z1X"),
     "OPENROUTER_API_KEY": _get_cred("OPENROUTER_API_KEY", "c2stb3ItdjEtMGU2ZjQ0YTQ3YTA1ZjFkYWQyYWQ3ZTg4YzRjMWQ2Yjc3Njg4MTU3NzE2ZmIxYTUyNzExNDZmNzQ2NDk1MWM5Ng=="),
+
     "QUANTEX_API_BASE_URL": _get_cred("QUANTEX_API_BASE_URL", "aHR0cHM6Ly9hcGkucXVhbnRleGJvdC5wcm8="),
     "QUANTEX_BOT_PRO_LIVE_KEY": _get_cred("QUANTEX_BOT_PRO_LIVE_KEY", "cXhfbGl2ZV9zU29RaUY3UV9xN20zVXROR3lmemtDSU91RUl1ZVZWSIVTQUJRc25iaUpkRjJkYkNm"),
     "QUANTEX_PRO_DASHBOARD_KEY": _get_cred("QUANTEX_PRO_DASHBOARD_KEY", "cXhfbGl2ZV8xeHhPY3NnNV8zdkVhdkhmWndBa0d1Zmg5TkxMV0poVXFHM1Q2SDZvQ0V1b0RXZUpW"),
+
+    "MASTER_GEMINI_KEY_01": _get_cred("MASTER_GEMINI_KEY_01", "QVEuQWI4Uk42S0FrZ1dJbXQtalhnSDVMem1MMVNNOXJzWk5TaE1jY2VQMkM3MklVcDllaXc="),
     "MASTER_FINNHUB_KEY_02": _get_cred("MASTER_FINNHUB_KEY_02", "ZGJxYmhtMXIwMXFuODhldmg2MGRicWJobTFyMDFxbjg4ZWV2aDZn"),
     "MASTER_ALPHA_VANTAGE_KEY_03": _get_cred("MASTER_ALPHA_VANTAGE_KEY_03", "S0NZN0lOOUdLVzRBUlY5UA=="),
     "MASTER_TWELVE_DATA_KEY_04": _get_cred("MASTER_TWELVE_DATA_KEY_04", "MDZkYmY1OGMwOTNmNDhmZjhkYzM2NDQ2NzkwMmZhNjQ="),
-    "MASTER_BINANCE_REST_API": _get_cred("MASTER_BINANCE_REST_API", "aHR0cHM6Ly9hcGkuYXBpLmJpbmFuY2UuY29tL2FwaS92My9rbGluZXM="),
+    "MASTER_BINANCE_WS_05": _get_cred("MASTER_BINANCE_WS_05", "d3NzOi8vc3RyZWFtLmJpbmFuY2UuY29tOjk0NDMvd3MvYnRjdXNkdEBrbGluZV8xbQ=="),
+    "MASTER_OANDA_KEY_06": _get_cred("MASTER_OANDA_KEY_06", "OTdkMDliYzEtMjdkMi00MWFmLTg0MWItNzIyNzQ1NGRlM2I1"),
+    "MASTER_FINAGE_KEY_07": _get_cred("MASTER_FINAGE_KEY_07", "QVBJX0tFWTozTjI3UjBCVDVYTDYzVjJPWFROVlFSNVlJNzcxT1ZN").replace(":3N", "83N"),
+    "MASTER_GROQ_KEY_08": _get_cred("MASTER_GROQ_KEY_08", "Z3NrX2pyaUFkVW91MkRYMHFBclFMTURZV0dkeWIzRllUeVBIM2c5YVQ4SWFoRWtVUDdkRjhCRTA="),
+    "MASTER_OPENAI_KEY_09": _get_cred("MASTER_OPENAI_KEY_09", "c2stcHJvai1SMTNZX2oySl91ZENPcFBKaDV3LXhYR0w3SE5mUWJtajJLS2RYd1Axa21YaWttQ0ROZzZPM3ZSRm5TUG00VHZoYmtkeUU4cHhjOVQzQmxia0ZKTk9sbldEdzQ3cUlydWk5ZnpuMDA0bDlGanlwQjNsYWVnMTZQbEpNVnZwNmh2djdWUEdJc1dlY3VOTFdhblRjYTJDVkFBcWZRQQ=="),
+    "MASTER_OPENROUTER_KEY_10": _get_cred("MASTER_OPENROUTER_KEY_10", "c2stb3ItdjEtZGIwZjZjYTgwZjViZjE3NzYxMTljZTdmZmExNjIwNzBkMTM4NDcyZDk5OGQ3OTE2YTljODEzMGJiZmViNmEyZA=="),
+    "MASTER_ALLTICK_KEY_12": _get_cred("MASTER_ALLTICK_KEY_12", "ZDJkOTQ5NjI4Y2NhNzk2NzgyZTM4Mjk3OGNjYWFiMjAtYy1hcHA="),
+    "MASTER_FMP_KEY_13": _get_cred("MASTER_FMP_KEY_13", "Z3FZV2sxcWF4OWRRZldqTU5iOTVncjlnbUtFTHhlOWU="),
+    "MASTER_GEMINI_PRO_KEY_14": _get_cred("MASTER_GEMINI_PRO_KEY_14", "QVEuQWI4Uk42TExRQTRnTUstbEV1a0l6SE1XVWFmaVNmd3U3QU1SVlRfSGdhWjc2b2tSNHc="),
+    "MASTER_FRED_KEY_15": _get_cred("MASTER_FRED_KEY_15", "ZDM3ZDNlZDIyNTVmMmY1YTlmYjc1NmM3YjVmMGI2NjM="),
+    "MASTER_QVERIS_KEY_16": _get_cred("MASTER_QVERIS_KEY_16", "c2stQ2djVTRtLVE1dmFYSng2d1ZiUVAydnJMYlVJbVlMTEpOczNnbzRBZi1vTQ=="),
+    "MASTER_MARKETSTACK_KEY_17": _get_cred("MASTER_MARKETSTACK_KEY_17", "NzkwNDYxN2VjMTYzZmJiODZjYjhmYzg2YmVmNTgwZDA="),
+    "MASTER_ALPACA_KEY_18": _get_cred("MASTER_ALPACA_KEY_18", "UEtMUzJVWEg1SE1OTTdHQVFVM0RFSVBNR08="),
+    "MASTER_MISTRAL_KEY_19": _get_cred("MASTER_MISTRAL_KEY_19", "bXN0cmxfd3lKVk1RcnI0YTVvTkg5QjBNN2ZXSEtuRXI0ZlRyREdfM1FUempz"),
+    "MASTER_COHERE_KEY_20": _get_cred("MASTER_COHERE_KEY_20", "UmFRZm5VN0taeHlXM2dNVm1vd0FxZTVtOFZnQ3NlWjNRdmM3dlByQQ=="),
+    "MASTER_CLOUDFLARE_KEY_21": _get_cred("MASTER_CLOUDFLARE_KEY_21", "MTQ0YzlkZWZhYzA0OTY5YzdiZmFkOGVmYWE4ZWExOTQ="),
+    "MASTER_TICKDB_KEY_22": _get_cred("MASTER_TICKDB_KEY_22", "Q3poNnNCbXBqUm1kVlZPZWtCenVYRUxjTW9obGU3TnQ="),
+    "MASTER_CRYPTORANK_KEY_23": _get_cred("MASTER_CRYPTORANK_KEY_23", "NzkyMmZkMzgwYzBhNzI2YjRkZTU3MzFlMDAzNjJlYzNmYWM0Yzg3OWIyZTliNDhhYzdkNzlhNzg2Yjhh"),
+    "MASTER_FRED_STLOUIS_KEY_24": _get_cred("MASTER_FRED_STLOUIS_KEY_24", "YTgwN2M5YzE0YmYzNzZjOGQ1NzczOTY5NjgwNDg0OGU="),
     "MASTER_ALPHA_ALT_KEY_26": _get_cred("MASTER_ALPHA_ALT_KEY_26", "WE1LQjlOVlhaWFNBQU8wVQ=="),
     "MASTER_FINNHUB_ALT_KEY_27": _get_cred("MASTER_FINNHUB_ALT_KEY_27", "ZGI3bW5pMXIwMXFwdGI1czZhNTBkYjdtbmkxcjAxcXB0YjVzNmE1Zw=="),
+    "MASTER_COINGECKO_KEY_28": _get_cred("MASTER_COINGECKO_KEY_28", "Q0ctbW10aHZWZ3F3dmE1QTRpQ0E3YnhYRjl3"),
+    "MASTER_CRYPTOAPIS_KEY_29": _get_cred("MASTER_CRYPTOAPIS_KEY_29", "NWM1OGRkZGJhMGVhZjFiYzYyYTkxYjU5YWE4YzkwYzA2OWI5MjZiMg=="),
+    "MASTER_IBKR_KEY_30": _get_cred("MASTER_IBKR_KEY_30", "ZTBkNzViNGM1YzFkMmMwZjJhZjc="),
+    "MASTER_FYERS_KEY_32": _get_cred("MASTER_FYERS_KEY_32", "YzcxMjBkMmI1MDA0ZjhkZTIyZDhkYzJkYTA0NTNiNGQ3ZTYyMTFlMzdhNDEwOGI4MzcxMjY2ZWNmZjAwNDk4"),
+    "MASTER_ALTFINS_KEY_33": _get_cred("MASTER_ALTFINS_KEY_33", "YWZuc19za18xNTYwODIudk53UEZVZXVtR05WYk1tR0hJUW5jdVJHblZROWU2bU1UenlxR1BOTXp3OA=="),
+    "MASTER_KOTAK_KEY_34": _get_cred("MASTER_KOTAK_KEY_34", "ZWM2YTc0NmMtZTQ0Yi00NTVlLWFiZjItYzEzMzUyYjJmYzQ1"),
+    "MASTER_FREECRYPTO_KEY_35": _get_cred("MASTER_FREECRYPTO_KEY_35", "emowNXFkMTI2bGtrMW5na3pnNGc="),
+    "MASTER_KALSHI_KEY_36": _get_cred("MASTER_KALSHI_KEY_36", "YTk1MmJjYmUtZWMzYi00YjViLWI4ZjktMTFkYWU1ODk2MDhj"),
+    "MASTER_BLINK_KEY_37": _get_cred("MASTER_BLINK_KEY_37", "cXR4XzI0NTAyZmQ1NmI3NjYzYjc2M2EyNDE2ZGNiNjE4ZTIzODk2NjAxNDI1Y2YzMjJlNg=="),
+    "MASTER_QODEX_KEY_38": _get_cred("MASTER_QODEX_KEY_38", "c1gxRWpvcmplSk9haE9OS2p1TmxRTQ=="),
+    "MASTER_ORCA_KEY_39": _get_cred("MASTER_ORCA_KEY_39", "c2stb3JjYS1YZUJ6bkhvNE9jZXdndUhtQTNXd0szSVFUa2pBMGxGNXZUb2EzdEJFZGg0"),
+    "MASTER_GROQ_ALT_KEY_40": _get_cred("MASTER_GROQ_ALT_KEY_40", "Z3NrX1gzaEEzMnEzTW43ZGpYTkRHVElpV0dkeWIzRllRQndaT0hIZW5mZ1VGcjF6N3d4bVIyeWw="),
+    "MASTER_OLLAMA_KEY_43": _get_cred("MASTER_OLLAMA_KEY_43", "MzMwNWJmN2FkYzExNDQxNjk1Mzc5YjNhYjMzNjhiOWUud0JPWDVHYlNBa0dJbVNlcFJUbG53dU9x"),
     "MASTER_MASSIVE_ALT_KEY_44": _get_cred("MASTER_MASSIVE_ALT_KEY_44", "UWZXeXVtcWJ5UlBTWExWV1FwaEFiZTliRXVLa2lFSHA="),
+    "MASTER_COMET_KEY_45": _get_cred("MASTER_COMET_KEY_45", "c2stNUxpQm1hTUhTVjlWSFJ0M2ZWN1REMkZRaEN1dUh1MGxJSTZid083WmdIdG1VSmRZ"),
     "MASTER_TWELVEDATA_OB_KEY_54": _get_cred("MASTER_TWELVEDATA_OB_KEY_54", "NTM1NmMyNGM5MDVjNDQwNThiMjhmMjUyYWQ2MzNlZTRfT0I="),
+    "MASTER_EXCHANGERATE_API": _get_cred("MASTER_EXCHANGERATE_API", "aHR0cHM6Ly9hcGkuZXhjaGFuZ2VyYXRlLWFwaS5jb20vdjQvbGF0ZXN0L1VTRA=="),
+    "MASTER_BINANCE_REST_API": _get_cred("MASTER_BINANCE_REST_API", "aHR0cHM6Ly9hcGkuYXBpLmJpbmFuY2UuY29tL2FwaS92My9rbGluZXM="),
+    "MASTER_EXCHANGERATE_HOST": _get_cred("MASTER_EXCHANGERATE_HOST", "aHR0cHM6Ly9hcGkuZXhjaGFuZ2VyYXRlLmhvc3QvbGl2ZT9hY2Nlc3Nfa2V5PXNlY3VyZQ=="),
+    "MASTER_CURRENCYLAYER_API": _get_cred("MASTER_CURRENCYLAYER_API", "aHR0cHM6Ly9hcGlsYXllci5uZXQvYXBpL2xpdmU/YWNjZXNzX2tleT1zZWN1cmU="),
 }
 
 FINNHUB_KEYS_POOL = [
@@ -82,7 +121,7 @@ POLYGON_KEYS_POOL = [
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/17.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/18.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -561,9 +600,9 @@ def bot_script():
         var TELEGRAM_URL = "https://t.me/+x1QYA_1-sSs0NTk1";
         var ACCESS_KEY = "Gop Gop2027";
 
-        var STORAGE_UNLOCK = "__raUnlockedSession_v4";
-        var STORAGE_MODE = "__raLockedMode_v4";
-        var STORAGE_ON = "__raModeIsOn_v4";
+        var STORAGE_UNLOCK = "__raUnlockedSession_v5";
+        var STORAGE_MODE = "__raLockedMode_v5";
+        var STORAGE_ON = "__raModeIsOn_v5";
 
         var lockedMode = null;
         var isModeOn = false;
@@ -575,6 +614,8 @@ def bot_script():
         var scanFrameRaf = null;
         var audioCtx = null;
         var lastTickTime = 0;
+
+        var NEON_COLORS = ["#00f0ff", "#22c55e", "#e879f9", "#facc15", "#fb7185", "#38bdf8", "#a855f7", "#4ade80"];
 
         function loadState() {
             try {
@@ -625,7 +666,7 @@ def bot_script():
 
         function playScanTick() {
             var nowMs = Date.now();
-            if (nowMs - lastTickTime < 120) return;
+            if (nowMs - lastTickTime < 110) return;
             lastTickTime = nowMs;
             var ctx = getAudio();
             if (!ctx) return;
@@ -634,10 +675,10 @@ def bot_script():
                 var osc = ctx.createOscillator();
                 var gain = ctx.createGain();
                 osc.type = "sawtooth";
-                osc.frequency.setValueAtTime(980, t);
-                osc.frequency.exponentialRampToValueAtTime(440, t + 0.045);
+                osc.frequency.setValueAtTime(1040, t);
+                osc.frequency.exponentialRampToValueAtTime(420, t + 0.045);
                 gain.gain.setValueAtTime(0.001, t);
-                gain.gain.linearRampToValueAtTime(0.2, t + 0.006);
+                gain.gain.linearRampToValueAtTime(0.22, t + 0.006);
                 gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
                 osc.connect(gain);
                 gain.connect(ctx.destination);
@@ -651,38 +692,81 @@ def bot_script():
             if (!ctx) return;
             try {
                 var t = ctx.currentTime;
-                var osc = ctx.createOscillator();
+                var osc1 = ctx.createOscillator();
+                var osc2 = ctx.createOscillator();
                 var gain = ctx.createGain();
-                osc.type = "triangle";
+                osc1.type = "sine";
+                osc2.type = "triangle";
                 if (isUp) {
-                    osc.frequency.setValueAtTime(540, t);
-                    osc.frequency.exponentialRampToValueAtTime(1140, t + 0.18);
+                    osc1.frequency.setValueAtTime(520, t);
+                    osc1.frequency.exponentialRampToValueAtTime(1120, t + 0.18);
+                    osc2.frequency.setValueAtTime(780, t);
+                    osc2.frequency.exponentialRampToValueAtTime(1380, t + 0.2);
                 } else {
-                    osc.frequency.setValueAtTime(680, t);
-                    osc.frequency.exponentialRampToValueAtTime(240, t + 0.2);
+                    osc1.frequency.setValueAtTime(660, t);
+                    osc1.frequency.exponentialRampToValueAtTime(240, t + 0.2);
+                    osc2.frequency.setValueAtTime(440, t);
+                    osc2.frequency.exponentialRampToValueAtTime(175, t + 0.22);
                 }
                 gain.gain.setValueAtTime(0.001, t);
-                gain.gain.linearRampToValueAtTime(0.36, t + 0.015);
-                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
-                osc.connect(gain);
+                gain.gain.linearRampToValueAtTime(0.4, t + 0.015);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+                osc1.connect(gain);
+                osc2.connect(gain);
                 gain.connect(ctx.destination);
-                osc.start(t);
-                osc.stop(t + 0.25);
+                osc1.start(t);
+                osc2.start(t);
+                osc1.stop(nowOrEnd(t, 0.26));
+                osc2.stop(nowOrEnd(t, 0.26));
             } catch (_) {}
         }
 
+        function nowOrEnd(t, dur) {
+            return t + dur;
+        }
+
         function injectStyles() {
-            if (document.getElementById("ra-cyber-chart-styles")) return;
+            if (document.getElementById("ra-cyber-master-styles")) return;
             var style = document.createElement("style");
-            style.id = "ra-cyber-chart-styles";
+            style.id = "ra-cyber-master-styles";
             style.textContent =
                 "@keyframes raSpinCW { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }" +
                 "@keyframes raSpinCCW { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }" +
-                "@keyframes raAuraCycle { 0% { box-shadow: 0 0 22px #00f0ff, 0 0 48px rgba(0,240,255,0.85); } 25% { box-shadow: 0 0 24px #22c55e, 0 0 50px rgba(34,197,94,0.85); } 50% { box-shadow: 0 0 24px #e879f9, 0 0 50px rgba(232,121,249,0.85); } 75% { box-shadow: 0 0 24px #facc15, 0 0 50px rgba(250,204,21,0.85); } 100% { box-shadow: 0 0 22px #00f0ff, 0 0 48px rgba(0,240,255,0.85); } }" +
-                "@keyframes raScanSweep { 0% { top: 0%; opacity: 0.95; } 50% { top: 96%; opacity: 1; } 100% { top: 0%; opacity: 0.95; } }" +
-                "@keyframes raCyberBorderPulse { 0% { border-color: #00f0ff; box-shadow: inset 0 0 70px rgba(0,240,255,0.24), 0 0 38px rgba(0,240,255,0.6); } 33% { border-color: #22c55e; box-shadow: inset 0 0 75px rgba(34,197,94,0.24), 0 0 42px rgba(34,197,94,0.6); } 66% { border-color: #e879f9; box-shadow: inset 0 0 75px rgba(232,121,249,0.25), 0 0 42px rgba(232,121,249,0.65); } 100% { border-color: #00f0ff; box-shadow: inset 0 0 70px rgba(0,240,255,0.24), 0 0 38px rgba(0,240,255,0.6); } }" +
-                "@keyframes raSignalPop { 0% { opacity: 0; transform: translate(-50%, -42%) scale(0.75); } 70% { opacity: 1; transform: translate(-50%, -51%) scale(1.04); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }" +
-                "@keyframes raCandleGrow { 0% { transform: scaleY(0.15); opacity: 0.4; } 100% { transform: scaleY(1); opacity: 1; } }";
+                "@keyframes raAuraRainbow { " +
+                "  0% { box-shadow: 0 0 24px #00f0ff, 0 0 52px rgba(0,240,255,0.9), 0 0 78px rgba(34,197,94,0.65); } " +
+                "  25% { box-shadow: 0 0 26px #22c55e, 0 0 56px rgba(34,197,94,0.92), 0 0 82px rgba(250,204,21,0.65); } " +
+                "  50% { box-shadow: 0 0 26px #e879f9, 0 0 56px rgba(232,121,249,0.92), 0 0 82px rgba(0,240,255,0.65); } " +
+                "  75% { box-shadow: 0 0 26px #facc15, 0 0 56px rgba(250,204,21,0.92), 0 0 82px rgba(251,113,133,0.65); } " +
+                "  100% { box-shadow: 0 0 24px #00f0ff, 0 0 52px rgba(0,240,255,0.9), 0 0 78px rgba(34,197,94,0.65); } " +
+                "}" +
+                "@keyframes raLoginBorderFast { " +
+                "  0% { border-color: #22c55e; box-shadow: 0 0 24px rgba(34,197,94,0.95), 0 0 48px rgba(0,240,255,0.55); } " +
+                "  25% { border-color: #00f0ff; box-shadow: 0 0 28px rgba(0,240,255,0.98), 0 0 54px rgba(232,121,249,0.58); } " +
+                "  50% { border-color: #e879f9; box-shadow: 0 0 28px rgba(232,121,249,0.98), 0 0 54px rgba(250,204,21,0.58); } " +
+                "  75% { border-color: #facc15; box-shadow: 0 0 28px rgba(250,204,21,0.98), 0 0 54px rgba(34,197,94,0.58); } " +
+                "  100% { border-color: #22c55e; box-shadow: 0 0 24px rgba(34,197,94,0.95), 0 0 48px rgba(0,240,255,0.55); } " +
+                "}" +
+                "@keyframes raFullLaserSweep { " +
+                "  0% { top: 0%; opacity: 0.95; } " +
+                "  50% { top: 97%; opacity: 1; } " +
+                "  100% { top: 0%; opacity: 0.95; } " +
+                "}" +
+                "@keyframes raFullChartGlow { " +
+                "  0% { border-color: #00f0ff; box-shadow: inset 0 0 85px rgba(0,240,255,0.28), 0 0 44px rgba(0,240,255,0.7); } " +
+                "  25% { border-color: #22c55e; box-shadow: inset 0 0 90px rgba(34,197,94,0.28), 0 0 48px rgba(34,197,94,0.72); } " +
+                "  50% { border-color: #e879f9; box-shadow: inset 0 0 90px rgba(232,121,249,0.3), 0 0 48px rgba(232,121,249,0.75); } " +
+                "  75% { border-color: #facc15; box-shadow: inset 0 0 90px rgba(250,204,21,0.28), 0 0 48px rgba(250,204,21,0.72); } " +
+                "  100% { border-color: #00f0ff; box-shadow: inset 0 0 85px rgba(0,240,255,0.28), 0 0 44px rgba(0,240,255,0.7); } " +
+                "}" +
+                "@keyframes raSignalPop { " +
+                "  0% { opacity: 0; transform: translate(-50%, -40%) scale(0.72); } " +
+                "  70% { opacity: 1; transform: translate(-50%, -51%) scale(1.05); } " +
+                "  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } " +
+                "}" +
+                "@keyframes raCandleReveal { " +
+                "  0% { transform: scaleY(0.15); opacity: 0.4; } " +
+                "  100% { transform: scaleY(1); opacity: 1; } " +
+                "}";
             (document.head || document.documentElement).appendChild(style);
         }
 
@@ -720,7 +804,7 @@ def bot_script():
 
                 var rect = el.getBoundingClientRect();
                 if (rect.width < 28 || rect.height < 22) continue;
-                if (rect.top < window.innerHeight * 0.38) continue;
+                if (rect.top < window.innerHeight * 0.36) continue;
 
                 var label = ((el.innerText || el.textContent || "") + " " + (el.className || "") + " " + (el.getAttribute("aria-label") || "")).toUpperCase();
                 var upHit = /\\b(UP|BUY|CALL|HIGHER|LONG)\\b/.test(label);
@@ -778,27 +862,28 @@ def bot_script():
 
             var isHold = signal === "HOLD";
             var isUp = signal === "CALL" || signal === "UP" || signal === "BUY";
-            var ptsNum = Math.max(8, Math.min(40, parseInt(ptsRaw, 10) || 18));
+            var ptsNum = Math.max(8, Math.min(40, parseInt(ptsRaw, 10) || 20));
             var ratio = (ptsNum - 8) / 32;
-            var heightPx = Math.round(14 + ratio * 46);
+            var heightPx = Math.round(14 + ratio * 48);
             var widthPx = Math.round(12 + ratio * 12);
-            var sizeLabel = ptsNum <= 14 ? "SMALL" : (ptsNum <= 26 ? "MEDIUM" : "LARGE");
+            var sizeLabel = ptsNum <= 14 ? "SMALL" : (ptsNum <= 27 ? "MEDIUM" : "LARGE");
 
             var color = isHold ? "#facc15" : (isUp ? "#22c55e" : "#ef4444");
+            var accentNeon = isHold ? "#00f0ff" : (isUp ? "#00f0ff" : "#e879f9");
             var bgGrad = isHold
-                ? "linear-gradient(160deg, rgba(28,22,4,0.96), rgba(14,12,4,0.98))"
+                ? "linear-gradient(160deg, rgba(32,24,4,0.97), rgba(10,16,26,0.98))"
                 : (isUp
-                    ? "linear-gradient(160deg, rgba(5,36,20,0.96), rgba(4,16,10,0.98))"
-                    : "linear-gradient(160deg, rgba(42,8,14,0.96), rgba(18,4,8,0.98))");
+                    ? "linear-gradient(160deg, rgba(5,38,22,0.97), rgba(6,22,36,0.98))"
+                    : "linear-gradient(160deg, rgba(44,8,16,0.97), rgba(22,7,32,0.98))");
 
             var card = document.createElement("div");
             card.id = "ra-signal-card";
             card.style.cssText =
-                "position:fixed;top:48%;left:50%;transform:translate(-50%,-50%);width:170px;" +
-                "background:" + bgGrad + ";border:2.2px solid " + color + ";border-radius:14px;" +
-                "padding:10px 10px 9px;z-index:2147483647;pointer-events:none;" +
+                "position:fixed;top:48%;left:50%;transform:translate(-50%,-50%);width:176px;" +
+                "background:" + bgGrad + ";border:2.4px solid " + color + ";border-radius:14px;" +
+                "padding:10px 11px 9px;z-index:2147483647;pointer-events:none;" +
                 "font-family:'Courier New',monospace;color:#ffffff;text-align:center;" +
-                "box-shadow:0 0 34px " + color + ", 0 0 70px rgba(0,240,255,0.32);" +
+                "box-shadow:0 0 36px " + color + ", 0 0 74px " + accentNeon + ";" +
                 "animation:raSignalPop 0.25s ease-out;";
 
             var dirTitle = isHold ? "● HOLD / SYNC" : (isUp ? "▲ UP (BUY)" : "▼ DOWN (SELL)");
@@ -806,28 +891,28 @@ def bot_script():
             var execStatus = didTrade ? (isUp ? "AUTO BUY EXECUTED ✓" : "AUTO SELL EXECUTED ✓") : (isHold ? "FILTER ACTIVE" : "SIGNAL LOCKED");
 
             var candleHtml = isHold
-                ? "<div style='height:68px;display:flex;align-items:center;justify-content:center;color:#facc15;font-size:10px;font-weight:900;'>SYNCING FEED...</div>"
-                : "<div style='height:74px;display:flex;flex-direction:column;align-items:center;justify-content:" + (isUp ? "flex-end" : "flex-start") + ";animation:raCandleGrow 0.25s ease-out;'>" +
-                    (isUp ? "<div style='font-size:8.5px;font-weight:900;color:#4ade80;margin-bottom:2px;'>" + ptsText + "</div>" : "") +
-                    "<span style='width:2.5px;height:7px;background:" + color + ";box-shadow:0 0 10px " + color + ";'></span>" +
-                    "<span style='width:" + widthPx + "px;height:" + heightPx + "px;background:" + color + ";border-radius:3px;box-shadow:0 0 24px " + color + ";'></span>" +
-                    "<span style='width:2.5px;height:7px;background:" + color + ";box-shadow:0 0 10px " + color + ";'></span>" +
-                    (!isUp ? "<div style='font-size:8.5px;font-weight:900;color:#f87171;margin-top:2px;'>" + ptsText + "</div>" : "") +
+                ? "<div style='height:70px;display:flex;align-items:center;justify-content:center;color:#facc15;font-size:10px;font-weight:900;'>SYNCING FEED...</div>"
+                : "<div style='height:76px;display:flex;flex-direction:column;align-items:center;justify-content:" + (isUp ? "flex-end" : "flex-start") + ";animation:raCandleReveal 0.25s ease-out;'>" +
+                    (isUp ? "<div style='font-size:8.5px;font-weight:900;color:#4ade80;margin-bottom:2px;text-shadow:0 0 10px #22c55e;'>" + ptsText + "</div>" : "") +
+                    "<span style='width:2.5px;height:7px;background:" + color + ";box-shadow:0 0 12px " + color + ";'></span>" +
+                    "<span style='width:" + widthPx + "px;height:" + heightPx + "px;background:" + color + ";border-radius:3px;box-shadow:0 0 26px " + color + ", 0 0 42px " + accentNeon + ";'></span>" +
+                    "<span style='width:2.5px;height:7px;background:" + color + ";box-shadow:0 0 12px " + color + ";'></span>" +
+                    (!isUp ? "<div style='font-size:8.5px;font-weight:900;color:#f87171;margin-top:2px;text-shadow:0 0 10px #ef4444;'>" + ptsText + "</div>" : "") +
                   "</div>";
 
             card.innerHTML =
-                "<div style='font-size:7.5px;font-weight:800;color:#00f0ff;letter-spacing:0.6px;'>R-A CYBER HACKER</div>" +
-                "<div style='font-size:11.5px;font-weight:900;color:" + color + ";margin:2px 0 6px;text-shadow:0 0 12px " + color + ";'>" + dirTitle + "</div>" +
-                "<div style='background:rgba(2,8,14,0.88);border:1.2px solid " + color + ";border-radius:9px;padding:6px 4px;margin-bottom:6px;'>" +
+                "<div style='font-size:7.5px;font-weight:900;color:#00f0ff;letter-spacing:0.6px;'>R-A CYBER HACKER</div>" +
+                "<div style='font-size:12px;font-weight:900;color:" + color + ";margin:2px 0 6px;text-shadow:0 0 14px " + color + ";'>" + dirTitle + "</div>" +
+                "<div style='background:rgba(2,8,14,0.9);border:1.4px solid " + accentNeon + ";border-radius:9px;padding:6px 4px;margin-bottom:6px;box-shadow:inset 0 0 14px rgba(0,240,255,0.22);'>" +
                 candleHtml +
                 "<div style='font-size:7.5px;font-weight:900;color:" + color + ";margin-top:4px;'>" + sizeLabel + " CANDLE • " + pairName + "</div>" +
                 "</div>" +
-                "<div style='font-size:7.5px;font-weight:900;color:#ffffff;letter-spacing:0.4px;'>" + execStatus + "</div>";
+                "<div style='font-size:7.5px;font-weight:900;color:#facc15;letter-spacing:0.4px;'>" + execStatus + "</div>";
 
             (document.body || document.documentElement).appendChild(card);
             setTimeout(function(){
                 if (card.parentNode) card.remove();
-            }, 3200);
+            }, 3400);
         }
 
         function runFullChartCyberScan(isAuto5sMode, onDoneCallback) {
@@ -837,7 +922,7 @@ def bot_script():
 
             var pairName = detectMarketPair();
             var marketQuery = pairName.replace(/[^A-Z0-9]/g, "_") || "EURUSD";
-            var scanDurationMs = isAuto5sMode ? 5200 : 5800;
+            var scanDurationMs = isAuto5sMode ? 5600 : 6200;
             var startTime = performance.now();
 
             var host = document.body || document.documentElement;
@@ -846,29 +931,33 @@ def bot_script():
             overlay.style.cssText =
                 "position:fixed;inset:0;z-index:2147483645;pointer-events:none;overflow:hidden;" +
                 "border:3px solid #00f0ff;box-sizing:border-box;" +
-                "background:radial-gradient(circle at center, rgba(0,240,255,0.07) 0%, rgba(232,121,249,0.08) 45%, rgba(34,197,94,0.07) 75%, rgba(2,10,18,0.28) 100%);" +
-                "font-family:'Courier New',monospace;animation:raCyberBorderPulse 1.8s infinite linear;";
+                "background:radial-gradient(circle at center, rgba(0,240,255,0.08) 0%, rgba(232,121,249,0.09) 42%, rgba(34,197,94,0.08) 72%, rgba(2,10,18,0.28) 100%);" +
+                "font-family:'Courier New',monospace;animation:raFullChartGlow 2s infinite linear;";
 
             overlay.innerHTML =
-                "<div style='position:fixed;inset:0;background-image:linear-gradient(rgba(0,240,255,0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(232,121,249,0.08) 1px, transparent 1px);background-size:34px 34px;opacity:0.78;'></div>" +
-                "<div style='position:fixed;left:0;right:0;height:4px;background:linear-gradient(90deg, transparent, #00f0ff 18%, #22c55e 45%, #facc15 70%, #e879f9 90%, transparent);box-shadow:0 0 22px #00f0ff, 0 0 42px #e879f9;animation:raScanSweep 1.3s linear infinite;'></div>" +
+                "<div style='position:fixed;inset:0;background-image:linear-gradient(rgba(0,240,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(232,121,249,0.09) 1px, transparent 1px);background-size:34px 34px;opacity:0.82;'></div>" +
+                "<div style='position:fixed;left:0;right:0;height:4px;background:linear-gradient(90deg, transparent, #00f0ff 15%, #22c55e 42%, #facc15 68%, #e879f9 88%, transparent);box-shadow:0 0 24px #00f0ff, 0 0 46px #e879f9;animation:raFullLaserSweep 1.25s linear infinite;'></div>" +
+                "<div id='ra-cyber-crosshair-v' style='position:fixed;top:0;bottom:0;width:1.5px;background:linear-gradient(180deg, transparent, #00f0ff, #e879f9, transparent);box-shadow:0 0 14px #00f0ff;left:50%;'></div>" +
+                "<div id='ra-cyber-crosshair-h' style='position:fixed;left:0;right:0;height:1.5px;background:linear-gradient(90deg, transparent, #22c55e, #facc15, transparent);box-shadow:0 0 14px #22c55e;top:50%;'></div>" +
                 "<div style='position:fixed;top:46px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;'>" +
-                "  <div style='background:rgba(3,12,20,0.86);border:1.5px solid #22c55e;border-radius:8px;padding:5px 10px;color:#4ade80;font-size:10px;font-weight:900;box-shadow:0 0 18px rgba(34,197,94,0.55);'>⚡ FULL MARKET CYBER SCAN [" + pairName + "] • " + (isAuto5sMode ? "5S AUTO" : "MANUAL") + "</div>" +
-                "  <div id='ra-cyber-scan-pct' style='background:rgba(15,6,28,0.88);border:1.5px solid #e879f9;border-radius:8px;padding:5px 10px;color:#00f0ff;font-size:10.5px;font-weight:900;box-shadow:0 0 18px rgba(0,240,255,0.55);'>SCANNING 1%</div>" +
+                "  <div style='background:rgba(3,12,22,0.88);border:1.6px solid #22c55e;border-radius:8px;padding:5px 10px;color:#4ade80;font-size:10px;font-weight:900;box-shadow:0 0 20px rgba(34,197,94,0.65);'>⚡ FULL CHART CYBER EXPLOIT [" + pairName + "] • " + (isAuto5sMode ? "5S AUTO" : "MANUAL") + "</div>" +
+                "  <div id='ra-cyber-scan-pct' style='background:rgba(16,6,30,0.9);border:1.6px solid #e879f9;border-radius:8px;padding:5px 10px;color:#00f0ff;font-size:10.5px;font-weight:900;box-shadow:0 0 20px rgba(232,121,249,0.65);'>SCANNING 1%</div>" +
                 "</div>" +
-                "<div id='ra-cyber-stream-log' style='position:fixed;top:82px;left:12px;max-width:300px;background:rgba(2,9,15,0.8);border-left:2.5px solid #e879f9;padding:6px 8px;border-radius:0 8px 8px 0;font-size:8.5px;line-height:1.4;color:#00f0ff;box-shadow:0 0 20px rgba(232,121,249,0.32);'></div>";
+                "<div id='ra-cyber-stream-log' style='position:fixed;top:82px;left:12px;max-width:310px;background:rgba(2,9,16,0.82);border-left:2.5px solid #00f0ff;padding:6px 8px;border-radius:0 8px 8px 0;font-size:8.5px;line-height:1.42;color:#00f0ff;box-shadow:0 0 22px rgba(0,240,255,0.35);'></div>";
 
             host.appendChild(overlay);
 
             var pctEl = overlay.querySelector("#ra-cyber-scan-pct");
             var logEl = overlay.querySelector("#ra-cyber-stream-log");
+            var crossV = overlay.querySelector("#ra-cyber-crosshair-v");
+            var crossH = overlay.querySelector("#ra-cyber-crosshair-h");
 
             var cyberLines = [
-                "> HOOK 0x7FF8A120: FULL MARKET TICK STREAM INTERCEPTED",
-                "> MATRIX PULSE: LIQUIDITY & WICK PRESSURE MAPPED",
-                "> QUANT CORE: ORDER BOOK IMBALANCE CALCULATING",
-                "> CYBER ENGINE: VOLATILITY SPIKE & TREND LOCK",
-                "> EXECUTION NODE: PREPARING AUTO ORDER TRIGGER"
+                "> ROOT 0x7FF8A120: FULL MARKET CHART STREAM HOOKED",
+                "> NEON MATRIX: ORDER BOOK & LIQUIDITY DEPTH BREACHED",
+                "> QUANT CORE: MULTI-SOURCE TICK CONSENSUS SYNCED",
+                "> CYBER RADAR: VOLATILITY IMPULSE & WICK LOCKED",
+                "> AUTO TRIGGER: BUY / SELL EXECUTION VECTOR ARMED"
             ];
 
             var signalPromise = fetch(SERVER_URL + "/signal?market=" + encodeURIComponent(marketQuery) + "&mode=" + (isAuto5sMode ? "AUTO5S" : "MANUAL") + "&t=" + Date.now(), { cache: "no-store" })
@@ -887,18 +976,31 @@ def bot_script():
                 var elapsed = now - startTime;
                 var progress = Math.min(1, elapsed / scanDurationMs);
                 var pct = Math.max(1, Math.min(100, Math.round(progress * 100)));
+                var c1 = NEON_COLORS[pct % NEON_COLORS.length];
+                var c2 = NEON_COLORS[(pct + 3) % NEON_COLORS.length];
 
-                var palette = ["#00f0ff", "#4ade80", "#e879f9", "#facc15", "#fb7185"];
+                if (crossV) {
+                    var xPct = 18 + ((Math.sin(elapsed * 0.0022) + 1) * 0.5) * 64;
+                    crossV.style.left = xPct + "%";
+                    crossV.style.background = "linear-gradient(180deg, transparent, " + c1 + ", " + c2 + ", transparent)";
+                }
+                if (crossH) {
+                    var yPct = 22 + ((Math.cos(elapsed * 0.0019) + 1) * 0.5) * 56;
+                    crossH.style.top = yPct + "%";
+                    crossH.style.background = "linear-gradient(90deg, transparent, " + c2 + ", " + c1 + ", transparent)";
+                }
+
                 if (pctEl) {
                     pctEl.textContent = "SCANNING " + pct + "%";
-                    pctEl.style.color = palette[pct % palette.length];
+                    pctEl.style.color = c1;
+                    pctEl.style.borderColor = c2;
                 }
 
                 var lineIdx = Math.min(cyberLines.length - 1, Math.floor(progress * cyberLines.length));
                 if (lineIdx !== lastLineIdx && logEl) {
                     lastLineIdx = lineIdx;
                     var line = document.createElement("div");
-                    line.style.color = palette[lineIdx % palette.length];
+                    line.style.color = NEON_COLORS[lineIdx % NEON_COLORS.length];
                     line.textContent = cyberLines[lineIdx];
                     logEl.appendChild(line);
                     playScanTick();
@@ -1002,19 +1104,19 @@ def bot_script():
             var menu = document.createElement("div");
             menu.id = "ra-mode-menu";
             menu.style.cssText =
-                "position:fixed;width:192px;" +
-                "left:" + Math.max(8, Math.min(window.innerWidth - 200, rect.left + rect.width / 2 - 96)) + "px;" +
-                "top:" + Math.max(60, rect.top - 96) + "px;" +
-                "background:linear-gradient(165deg, rgba(6,16,28,0.98), rgba(16,8,30,0.98));" +
+                "position:fixed;width:196px;" +
+                "left:" + Math.max(8, Math.min(window.innerWidth - 204, rect.left + rect.width / 2 - 98)) + "px;" +
+                "top:" + Math.max(60, rect.top - 100) + "px;" +
+                "background:linear-gradient(165deg, rgba(6,16,28,0.98), rgba(18,8,34,0.98));" +
                 "border:2px solid #00f0ff;border-radius:12px;padding:7px;z-index:2147483647;" +
-                "font-family:'Segoe UI',Roboto,Arial,sans-serif;box-shadow:0 0 24px rgba(0,240,255,0.65);";
+                "font-family:'Segoe UI',Roboto,Arial,sans-serif;box-shadow:0 0 26px rgba(0,240,255,0.68), 0 0 42px rgba(232,121,249,0.35);";
 
             menu.innerHTML =
-                "<button id='ra-pick-manual' type='button' style='width:100%;display:flex;justify-content:space-between;align-items:center;background:rgba(34,197,94,0.18);border:1.4px solid #4ade80;border-radius:8px;padding:7px 9px;color:#fff;font-size:10.5px;font-weight:800;cursor:pointer;margin-bottom:6px;'>" +
+                "<button id='ra-pick-manual' type='button' style='width:100%;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg,rgba(34,197,94,0.22),rgba(0,240,255,0.16));border:1.4px solid #4ade80;border-radius:8px;padding:7px 9px;color:#fff;font-size:10.5px;font-weight:800;cursor:pointer;margin-bottom:6px;'>" +
                 "  <span>Manual Signal</span>" +
                 "  <span style='background:#22c55e;color:#041208;padding:1px 6px;border-radius:6px;font-size:8.5px;font-weight:900;'>1M</span>" +
                 "</button>" +
-                "<button id='ra-pick-5s' type='button' style='width:100%;display:flex;justify-content:space-between;align-items:center;background:rgba(232,121,249,0.2);border:1.4px solid #e879f9;border-radius:8px;padding:7px 9px;color:#fff;font-size:10.5px;font-weight:800;cursor:pointer;'>" +
+                "<button id='ra-pick-5s' type='button' style='width:100%;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg,rgba(232,121,249,0.24),rgba(250,204,21,0.18));border:1.4px solid #e879f9;border-radius:8px;padding:7px 9px;color:#fff;font-size:10.5px;font-weight:800;cursor:pointer;'>" +
                 "  <span>5s Auto Mode</span>" +
                 "  <span style='background:#e879f9;color:#15051a;padding:1px 6px;border-radius:6px;font-size:8.5px;font-weight:900;'>5S</span>" +
                 "</button>";
@@ -1041,13 +1143,14 @@ def bot_script():
                 "position:fixed;bottom:146px;right:12px;width:82px;height:82px;border-radius:50%;" +
                 "background:#02090e;display:flex;align-items:center;justify-content:center;" +
                 "z-index:2147483647;cursor:grab;user-select:none;touch-action:none;overflow:visible;" +
-                "animation:raAuraCycle 3s infinite linear;";
+                "animation:raAuraRainbow 3s infinite linear;";
 
             btn.innerHTML =
-                "<div style='position:absolute;inset:-3px;border-radius:50%;background:conic-gradient(from 0deg, #00f0ff, #22c55e, #e879f9, #facc15, #00f0ff);filter:blur(2px);animation:raSpinCW 2.2s linear infinite;pointer-events:none;'></div>" +
-                "<div style='position:absolute;inset:3px;border-radius:50%;background:#02090e;animation:raSpinCCW 3s linear infinite;pointer-events:none;'></div>" +
-                "<img src='" + BOT_AVATAR + "' alt='R-A Bot' style='position:relative;z-index:2;width:66px;height:66px;border-radius:50%;object-fit:cover;border:1.8px solid #fff;pointer-events:none;' />" +
-                "<button id='ra-bot-on-btn' type='button' title='Click to Turn OFF' style='position:absolute;bottom:1px;left:50%;transform:translateX(-50%);z-index:5;display:none;align-items:center;justify-content:center;padding:1px 6px;border-radius:6px;background:#00e65b;color:#031409;border:1.2px solid #ffffff;font-size:7.5px;font-weight:900;cursor:pointer;box-shadow:0 0 10px #00e65b;'>ON</button>";
+                "<div style='position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(from 0deg, #ff2a5f, #ffae00, #00ff88, #00f0ff, #c026d3, #ff2a5f);filter:blur(2.5px);animation:raSpinCW 2s linear infinite;pointer-events:none;'></div>" +
+                "<div style='position:absolute;inset:2px;border-radius:50%;background:conic-gradient(from 0deg, #22c55e, #00f0ff, #e879f9, #facc15, #fb7185, #22c55e);animation:raSpinCCW 2.6s linear infinite;pointer-events:none;'></div>" +
+                "<div style='position:absolute;inset:5px;border-radius:50%;background:#02090e;pointer-events:none;'></div>" +
+                "<img src='" + BOT_AVATAR + "' alt='R-A Bot' style='position:relative;z-index:3;width:66px;height:66px;border-radius:50%;object-fit:cover;border:1.8px solid #fff;pointer-events:none;' />" +
+                "<button id='ra-bot-on-btn' type='button' title='Click to Turn OFF' style='position:absolute;bottom:1px;left:50%;transform:translateX(-50%);z-index:6;display:none;align-items:center;justify-content:center;padding:1px 6px;border-radius:6px;background:#00e65b;color:#031409;border:1.2px solid #ffffff;font-size:7.5px;font-weight:900;cursor:pointer;box-shadow:0 0 12px #00e65b;'>ON</button>";
 
             host.appendChild(btn);
             updateOnBadge();
@@ -1112,29 +1215,35 @@ def bot_script():
             var box = document.createElement("div");
             box.id = "ra-login-box";
             box.style.cssText =
-                "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:256px;max-width:88vw;" +
-                "background:linear-gradient(170deg, #061018, #0a1826);border:2px solid #22c55e;" +
-                "border-radius:14px;padding:11px;z-index:2147483647;" +
-                "font-family:'Segoe UI',Roboto,Arial,sans-serif;color:#fff;box-shadow:0 0 28px rgba(34,197,94,0.45);";
+                "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:262px;max-width:88vw;" +
+                "background:linear-gradient(170deg, #061018 0%, #091722 55%, #120722 100%);" +
+                "border:2.2px solid #22c55e;border-radius:14px;padding:11px;z-index:2147483647;" +
+                "font-family:'Segoe UI',Roboto,Arial,sans-serif;color:#fff;" +
+                "animation:raLoginBorderFast 1.6s infinite linear;";
 
             box.innerHTML =
-                "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;'>" +
+                "<div style='display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:7px;margin-bottom:8px;'>" +
                 "  <div style='display:flex;align-items:center;gap:7px;'>" +
-                "    <img src='" + BOT_AVATAR + "' style='width:32px;height:32px;border-radius:50%;object-fit:cover;border:1.5px solid #00f0ff;' />" +
+                "    <div style='width:34px;height:34px;border-radius:50%;padding:1.5px;background:linear-gradient(135deg,#22c55e,#00f0ff,#e879f9);box-shadow:0 0 14px rgba(34,197,94,0.85);flex-shrink:0;'>" +
+                "      <img src='" + BOT_AVATAR + "' style='width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;background:#02090e;' />" +
+                "    </div>" +
                 "    <div>" +
-                "      <div style='font-size:11px;font-weight:900;'>R-A Candle Hacker</div>" +
-                "      <div style='font-size:7.5px;font-weight:800;color:#4ade80;'>CYBER CHART ENGINE</div>" +
+                "      <div style='font-size:11px;font-weight:900;color:#ffffff;'>R-A Candle Hacker</div>" +
+                "      <div style='font-size:7.5px;font-weight:800;color:#00f0ff;letter-spacing:0.6px;'>SECURE CYBER LOGIN</div>" +
                 "    </div>" +
                 "  </div>" +
-                "  <span id='ra-login-x' style='cursor:pointer;color:#94a3b8;font-size:12px;font-weight:bold;'>✕</span>" +
+                "  <span id='ra-login-x' style='cursor:pointer;color:#94a3b8;font-size:12px;font-weight:bold;padding:0 3px;'>✕</span>" +
                 "</div>" +
-                "<a href='" + TELEGRAM_URL + "' target='_blank' rel='noopener noreferrer' style='display:flex;align-items:center;gap:7px;text-decoration:none;background:rgba(255,255,255,0.05);border:1.4px solid #facc15;border-radius:9px;padding:6px 8px;margin-bottom:8px;'>" +
-                "  <img src='" + COMMUNITY_AVATAR + "' style='width:24px;height:24px;border-radius:50%;object-fit:cover;' />" +
-                "  <div style='font-size:8.5px;color:#facc15;font-weight:800;'>Join Telegram Community</div>" +
+                "<a href='" + TELEGRAM_URL + "' target='_blank' rel='noopener noreferrer' style='display:flex;align-items:center;gap:7px;text-decoration:none;background:rgba(255,255,255,0.05);border:1.5px solid #facc15;border-radius:9px;padding:6px 8px;margin-bottom:8px;box-shadow:0 0 14px rgba(250,204,21,0.35);'>" +
+                "  <img src='" + COMMUNITY_AVATAR + "' style='width:24px;height:24px;border-radius:50%;object-fit:cover;border:1px solid #4ade80;' />" +
+                "  <div>" +
+                "    <div style='font-size:9.2px;color:#4ade80;font-weight:800;line-height:1.15;'>R-A Trading Community</div>" +
+                "    <div style='font-size:7.4px;color:#facc15;'>Click to Join Telegram</div>" +
+                "  </div>" +
                 "</a>" +
-                "<input id='ra-pass-input' type='password' placeholder='Bot Access Key' style='width:100%;box-sizing:border-box;background:#0b1724;border:1.4px solid rgba(148,163,184,0.35);border-radius:8px;padding:7px;color:#fff;font-size:10.5px;text-align:center;outline:none;margin-bottom:6px;' />" +
+                "<input id='ra-pass-input' type='password' placeholder='Bot Access Key' style='width:100%;box-sizing:border-box;background:#0b1724;border:1.4px solid rgba(0,240,255,0.45);border-radius:8px;padding:7px;color:#fff;font-size:10.5px;text-align:center;outline:none;margin-bottom:6px;' />" +
                 "<div id='ra-pass-msg' style='min-height:13px;text-align:center;font-size:8.5px;font-weight:800;margin-bottom:6px;'></div>" +
-                "<button id='ra-pass-submit' type='button' style='width:100%;border:none;border-radius:8px;padding:8px;font-size:10.5px;font-weight:900;color:#04110a;background:linear-gradient(90deg,#f43f5e,#eab308,#22c55e);cursor:pointer;'>ACTIVATE BOT</button>";
+                "<button id='ra-pass-submit' type='button' style='width:100%;border:none;border-radius:8px;padding:8px;font-size:10.5px;font-weight:900;color:#04110a;background:linear-gradient(90deg,#f43f5e,#eab308,#22c55e);cursor:pointer;box-shadow:0 0 16px rgba(34,197,94,0.55);'>ACTIVATE BOT</button>";
 
             host.appendChild(box);
 
