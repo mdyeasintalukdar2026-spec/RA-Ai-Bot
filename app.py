@@ -133,7 +133,7 @@ KNOWLEDGE_REGISTRY = {
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/18.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/18.1",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -154,7 +154,6 @@ class LiveMarketCandleEngine:
     _news_cache = {"ts": 0.0, "events": []}
     _price_history = {}
     _market_history = {}
-    _scan_counter = 0
 
     @classmethod
     def _record_and_get_history(cls, symbol: str, price: float) -> list:
@@ -206,7 +205,6 @@ class LiveMarketCandleEngine:
 
     @classmethod
     def _evaluate_consensus_signal(cls, symbol: str, series_list: list, pip_factor: float):
-        cls._scan_counter += 1
         primary_closes = series_list[0]["closes"]
         c0 = primary_closes[-1]
         c1 = primary_closes[-2]
@@ -228,7 +226,7 @@ class LiveMarketCandleEngine:
             if abs(slope) > 0:
                 signal = "CALL" if slope > 0 else "PUT"
             else:
-                signal = "CALL" if (cls._scan_counter % 2 == 1) else "PUT"
+                return "HOLD", 0, 0, c0
         else:
             signal = "CALL" if avg_bias > 0 else "PUT"
 
@@ -243,10 +241,10 @@ class LiveMarketCandleEngine:
             m_hist.pop(0)
 
         live_pips = abs(delta) * pip_factor
-        rsi_factor = abs((rsi - 50.0) * 0.22) if rsi is not None else 3.0
-        consensus_boost = min(8.0, abs(avg_bias) * 3.0)
-        raw_pts = 9.0 + min(31.0, (live_pips * 2.2) + (rsi_factor % 11.0) + consensus_boost)
-        pts_val = max(9, min(40, int(round(raw_pts))))
+        rsi_factor = abs((rsi - 50.0) * 0.25) if rsi is not None else 2.0
+        consensus_boost = min(8.0, abs(avg_bias) * 3.2)
+        raw_pts = 8.0 + min(32.0, (live_pips * 2.4) + (rsi_factor % 13.0) + consensus_boost)
+        pts_val = max(8, min(40, int(round(raw_pts))))
 
         conf_pct = min(99, max(92, int(round(92 + min(7.0, abs(avg_bias) * 3.2)))))
         return signal, pts_val, conf_pct, c0
@@ -262,7 +260,7 @@ class LiveMarketCandleEngine:
                 continue
             try:
                 url = f"https://finnhub.io/api/v1/calendar/economic?token={key}"
-                response = http_session.get(url, timeout=2.5)
+                response = http_session.get(url, timeout=2.2)
                 if response.status_code == 200:
                     events = response.json().get("economicCalendar", []) or []
                     cls._news_cache = {"ts": now_ts, "events": events}
@@ -389,7 +387,7 @@ class LiveMarketCandleEngine:
                     f"https://api.twelvedata.com/time_series"
                     f"?symbol={formatted_sym}&interval=1min&outputsize=14&apikey={key}"
                 )
-                resp = http_session.get(url_ts, timeout=2.8)
+                resp = http_session.get(url_ts, timeout=2.4)
                 if resp.status_code == 200:
                     values = resp.json().get("values", []) or []
                     if len(values) >= 2:
@@ -409,7 +407,7 @@ class LiveMarketCandleEngine:
                 pair = pair[:-3] + "USDT"
             if len(pair) >= 6:
                 url_b = f"{API_REGISTRY['MASTER_BINANCE_REST_API']}?symbol={pair}&interval=1m&limit=14"
-                resp = http_session.get(url_b, timeout=2.2)
+                resp = http_session.get(url_b, timeout=2.0)
                 if resp.status_code == 200:
                     klines = resp.json()
                     if isinstance(klines, list) and len(klines) >= 2:
@@ -428,7 +426,7 @@ class LiveMarketCandleEngine:
                 continue
             try:
                 url_p = f"https://api.polygon.io/v2/aggs/ticker/{ticker}/prev?adjusted=true&apiKey={key}"
-                resp = http_session.get(url_p, timeout=2.2)
+                resp = http_session.get(url_p, timeout=2.0)
                 if resp.status_code == 200:
                     results = resp.json().get("results", []) or []
                     if results:
@@ -446,7 +444,7 @@ class LiveMarketCandleEngine:
                 continue
             try:
                 url_q = f"https://api.twelvedata.com/price?symbol={formatted_sym}&apikey={key}"
-                q_resp = http_session.get(url_q, timeout=2.0)
+                q_resp = http_session.get(url_q, timeout=1.9)
                 if q_resp.status_code == 200:
                     price_str = q_resp.json().get("price")
                     if price_str is not None:
@@ -464,7 +462,7 @@ class LiveMarketCandleEngine:
                         f"https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE"
                         f"&from_currency={from_curr}&to_currency={to_curr}&apikey={key}"
                     )
-                    resp = http_session.get(url_av, timeout=2.2)
+                    resp = http_session.get(url_av, timeout=2.0)
                     if resp.status_code == 200:
                         rt = resp.json().get("Realtime Currency Exchange Rate", {})
                         px = rt.get("5. Exchange Rate")
@@ -475,7 +473,7 @@ class LiveMarketCandleEngine:
 
             try:
                 url_er = f"https://api.exchangerate-api.com/v4/latest/{from_curr}"
-                resp = http_session.get(url_er, timeout=2.0)
+                resp = http_session.get(url_er, timeout=1.9)
                 if resp.status_code == 200:
                     rates = resp.json().get("rates", {})
                     if to_curr in rates:
@@ -512,13 +510,22 @@ class LiveMarketCandleEngine:
         spot_px, spot_src = cls._fetch_live_spot_price(clean_sym, formatted_sym)
         if spot_px is not None:
             hist = cls._record_and_get_history(clean_sym, spot_px)
-            spot_series = hist if len(hist) >= 2 else [spot_px * 0.9998, spot_px]
-            gathered_series.append({"closes": spot_series, "weight": 1.25})
-            if spot_src:
-                sources_used.append(spot_src)
+            if len(hist) >= 2:
+                gathered_series.append({"closes": hist, "weight": 1.25})
+                if spot_src:
+                    sources_used.append(spot_src)
 
         if gathered_series:
             sig, pts_val, conf_pct, c0 = cls._evaluate_consensus_signal(clean_sym, gathered_series, pip_factor)
+            if sig == "HOLD":
+                return {
+                    "signal": "HOLD",
+                    "trend": "NEUTRAL BALANCE",
+                    "status": "HOLD_NEUTRAL",
+                    "pts": 0,
+                    "confidence": 0,
+                    "rule": f"{mode_prefix} Awaiting Clear Directional Momentum ({formatted_sym}: {c0})"
+                }
             src_label = "/".join(sources_used[:2]) if sources_used else "LiveFeed"
             return {
                 "signal": sig,
@@ -781,8 +788,8 @@ def bot_script():
                                     } else {
                                         utter.lang = 'bn-BD';
                                     }
-                                    utter.rate = 0.86;
-                                    utter.pitch = 1.32;
+                                    utter.rate = 1.04;
+                                    utter.pitch = 1.26;
                                     utter.volume = 1.0;
                                     window.speechSynthesis.speak(utter);
                                 } catch(errInner) {}
@@ -795,7 +802,7 @@ def bot_script():
                                     if(typeof prevHandler === "function") prevHandler(ev);
                                     runSpeak();
                                 };
-                                setTimeout(runSpeak, 180);
+                                setTimeout(runSpeak, 140);
                             } else {
                                 runSpeak();
                             }
@@ -806,7 +813,7 @@ def bot_script():
                 function playTickSound() {
                     try {
                         var nowMs = Date.now();
-                        if(nowMs - lastTickMs < 130) return;
+                        if(nowMs - lastTickMs < 140) return;
                         lastTickMs = nowMs;
 
                         var ctx = ensureAudioContext();
@@ -816,14 +823,14 @@ def bot_script():
                         var gain = ctx.createGain();
                         osc.type = "triangle";
                         osc.frequency.setValueAtTime(1060, now);
-                        osc.frequency.exponentialRampToValueAtTime(500, now + 0.028);
+                        osc.frequency.exponentialRampToValueAtTime(500, now + 0.025);
                         gain.gain.setValueAtTime(0.001, now);
-                        gain.gain.linearRampToValueAtTime(0.2, now + 0.004);
-                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.034);
+                        gain.gain.linearRampToValueAtTime(0.18, now + 0.004);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
                         osc.connect(gain);
                         gain.connect(ctx.destination);
                         osc.start(now);
-                        osc.stop(now + 0.036);
+                        osc.stop(now + 0.032);
                     } catch(e) {}
                 }
 
@@ -932,12 +939,11 @@ def bot_script():
                     '  100% { opacity: 1; transform: translateY(0) scale(1); }' +
                     '}' +
                     '@keyframes raCyberBorderSlow {' +
-                    '  0%   { border-color: #00f0ff; box-shadow: inset 0 0 110px rgba(0,240,255,0.52), 0 0 74px rgba(0,240,255,0.98); }' +
-                    '  20%  { border-color: #22c55e; box-shadow: inset 0 0 115px rgba(34,197,94,0.52), 0 0 78px rgba(34,197,94,0.98); }' +
-                    '  40%  { border-color: #e879f9; box-shadow: inset 0 0 120px rgba(232,121,249,0.56), 0 0 82px rgba(232,121,249,1); }' +
-                    '  60%  { border-color: #facc15; box-shadow: inset 0 0 115px rgba(250,204,21,0.54), 0 0 78px rgba(250,204,21,0.98); }' +
-                    '  80%  { border-color: #fb7185; box-shadow: inset 0 0 118px rgba(251,113,133,0.52), 0 0 78px rgba(251,113,133,0.98); }' +
-                    '  100% { border-color: #00f0ff; box-shadow: inset 0 0 110px rgba(0,240,255,0.52), 0 0 74px rgba(0,240,255,0.98); }' +
+                    '  0%   { border-color: #00f0ff; box-shadow: inset 0 0 90px rgba(0,240,255,0.44), 0 0 60px rgba(0,240,255,0.9); }' +
+                    '  25%  { border-color: #22c55e; box-shadow: inset 0 0 95px rgba(34,197,94,0.44), 0 0 64px rgba(34,197,94,0.9); }' +
+                    '  50%  { border-color: #e879f9; box-shadow: inset 0 0 100px rgba(232,121,249,0.46), 0 0 68px rgba(232,121,249,0.92); }' +
+                    '  75%  { border-color: #facc15; box-shadow: inset 0 0 95px rgba(250,204,21,0.44), 0 0 64px rgba(250,204,21,0.9); }' +
+                    '  100% { border-color: #00f0ff; box-shadow: inset 0 0 90px rgba(0,240,255,0.44), 0 0 60px rgba(0,240,255,0.9); }' +
                     '}' +
                     '@keyframes raPlanetSpinFast {' +
                     '  0%   { transform: rotate(0deg); }' +
@@ -948,7 +954,7 @@ def bot_script():
                     '  100% { transform: rotate(0deg) scale(1); opacity: 1; }' +
                     '}' +
                     '@keyframes raSmoothLogGlide {' +
-                    '  0%   { opacity: 0; transform: translate3d(-6px, 8px, 0); }' +
+                    '  0%   { opacity: 0; transform: translate3d(-5px, 6px, 0); }' +
                     '  100% { opacity: 1; transform: translate3d(0, 0, 0); }' +
                     '}' +
                     '@keyframes raLowerTradePop {' +
@@ -1010,8 +1016,8 @@ def bot_script():
                             var blurLayer = d.createElement('div');
                             blurLayer.id = 'ra-bg-blur-overlay';
                             blurLayer.style.cssText = 'position:fixed;inset:0;z-index:2147483640;' +
-                                'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);' +
-                                'background:rgba(2,8,15,0.26);pointer-events:none;';
+                                'backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);' +
+                                'background:rgba(2,8,15,0.22);pointer-events:none;';
                             hostRoot.appendChild(blurLayer);
                         }
                     } else if(existing) {
@@ -1422,27 +1428,26 @@ def bot_script():
                     var ov = d.createElement('div');
                     ov.id = 'ra-cyber-5s-overlay';
                     ov.style.cssText = 'position:fixed;inset:0;z-index:2147483645;pointer-events:none;overflow:hidden;' +
-                        'backdrop-filter:blur(2.5px);-webkit-backdrop-filter:blur(2.5px);' +
-                        'border:5px solid #00f0ff;box-sizing:border-box;' +
-                        'background:radial-gradient(circle at 58% 50%, rgba(0,240,255,0.10) 0%, rgba(232,121,249,0.09) 52%, rgba(2,9,17,0.22) 100%);' +
+                        'border:4px solid #00f0ff;box-sizing:border-box;' +
+                        'background:radial-gradient(circle at 60% 50%, rgba(0,240,255,0.08) 0%, rgba(232,121,249,0.07) 52%, rgba(2,9,17,0.16) 100%);' +
                         'font-family:"Courier New",Courier,monospace;will-change:transform,opacity;' +
-                        'animation:raCyberBorderSlow 3.6s infinite linear;';
+                        'animation:raCyberBorderSlow 4.5s infinite linear;';
 
                     ov.innerHTML = '' +
-                        '<div id="ra-full-laser-top" style="position:fixed;left:0;right:0;height:3px;top:0;background:linear-gradient(90deg,#00f0ff,#22c55e,#facc15,#e879f9,#fb7185,#00f0ff);box-shadow:0 0 14px #00f0ff,0 0 26px rgba(232,121,249,0.85);will-change:transform;z-index:4;"></div>' +
-                        '<div id="ra-full-laser-bot" style="position:fixed;left:0;right:0;height:3px;top:0;background:linear-gradient(90deg,#e879f9,#fb7185,#facc15,#22c55e,#00f0ff,#e879f9);box-shadow:0 0 14px #e879f9,0 0 26px rgba(34,197,94,0.85);will-change:transform;z-index:4;"></div>' +
+                        '<div id="ra-full-laser-top" style="position:fixed;left:0;right:0;height:3px;top:0;background:linear-gradient(90deg,#00f0ff,#22c55e,#facc15,#e879f9,#fb7185,#00f0ff);box-shadow:0 0 12px #00f0ff;will-change:transform;z-index:4;"></div>' +
+                        '<div id="ra-full-laser-bot" style="position:fixed;left:0;right:0;height:3px;top:0;background:linear-gradient(90deg,#e879f9,#fb7185,#facc15,#22c55e,#00f0ff,#e879f9);box-shadow:0 0 12px #e879f9;will-change:transform;z-index:4;"></div>' +
 
                         '<svg id="ra-thread-svg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;"></svg>' +
 
-                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:calc(55% + 12px);width:156px;height:156px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
+                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:calc(55% + 26px);width:156px;height:156px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
                         '  <div id="ra-planet-halo" style="position:fixed;top:50%;left:50%;width:166px;height:166px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
                         '  background:radial-gradient(circle, rgba(0,240,255,0.42) 42%, rgba(232,121,249,0.28) 66%, rgba(250,204,21,0.16) 84%, transparent 100%);' +
-                        '  box-shadow:0 0 46px rgba(0,240,255,0.85), 0 0 82px rgba(232,121,249,0.68);transition:box-shadow 0.24s ease;"></div>' +
+                        '  box-shadow:0 0 46px rgba(0,240,255,0.85), 0 0 82px rgba(232,121,249,0.68);transition:box-shadow 0.4s ease;"></div>' +
 
                         '  <div id="ra-planet-rotator" style="position:fixed;top:50%;left:50%;width:142px;height:142px;margin-left:-71px;margin-top:-71px;border-radius:50%;overflow:hidden;' +
                         '  border:3.5px solid #38bdf8;box-shadow:inset -16px -14px 28px rgba(2,6,23,0.85), inset 10px 10px 22px rgba(255,255,255,0.34), 0 0 38px rgba(56,189,248,0.95);' +
                         '  background:conic-gradient(from 0deg, #00f0ff, #22c55e, #facc15, #e879f9, #fb7185, #38bdf8, #a855f7, #00f0ff);' +
-                        '  animation:raPlanetSpinFast 4.2s linear infinite;will-change:transform;transition:border-color 0.24s ease,box-shadow 0.24s ease;">' +
+                        '  animation:raPlanetSpinFast 5.2s linear infinite;will-change:transform;transition:border-color 0.4s ease,box-shadow 0.4s ease;">' +
                         '    <div style="position:absolute;top:14%;left:-14%;width:80%;height:28%;border-radius:50%;background:linear-gradient(90deg,rgba(74,222,128,0.85),rgba(0,240,255,0.58));filter:blur(2px);transform:rotate(-16deg);"></div>' +
                         '    <div style="position:absolute;top:48%;left:20%;width:84%;height:32%;border-radius:50%;background:linear-gradient(90deg,rgba(232,121,249,0.82),rgba(250,204,21,0.58));filter:blur(2px);transform:rotate(14deg);"></div>' +
                         '    <div style="position:absolute;top:72%;left:6%;width:66%;height:22%;border-radius:50%;background:linear-gradient(90deg,rgba(251,113,133,0.78),rgba(56,189,248,0.55));filter:blur(2px);transform:rotate(-8deg);"></div>' +
@@ -1451,9 +1456,9 @@ def bot_script():
                         '  <div style="position:fixed;top:50%;left:50%;width:106px;height:106px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
                         '  background:radial-gradient(circle, rgba(2,10,20,0.78) 0%, rgba(4,16,32,0.58) 72%, rgba(0,240,255,0.32) 100%);' +
                         '  border:1.6px solid rgba(255,255,255,0.65);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">' +
-                        '    <div id="ra-ball-proc-tag" style="font-size:7px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 8px #000;transition:color 0.22s ease;">DATA PULL</div>' +
+                        '    <div id="ra-ball-proc-tag" style="font-size:7px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 8px #000;transition:color 0.35s ease;">DATA PULL</div>' +
                         '    <div id="ra-ball-pct" style="font-size:15px;font-weight:900;color:#ffffff;line-height:1.15;text-shadow:0 0 12px #00f0ff, 0 0 6px #000;">1%</div>' +
-                        '    <div id="ra-ball-node-code" style="font-size:6.8px;font-weight:800;color:#facc15;margin-top:2px;text-shadow:0 0 6px #000;transition:color 0.22s ease;">0x01</div>' +
+                        '    <div id="ra-ball-node-code" style="font-size:6.8px;font-weight:800;color:#facc15;margin-top:2px;text-shadow:0 0 6px #000;transition:color 0.35s ease;">0x01</div>' +
                         '  </div>' +
                         '</div>' +
 
@@ -1482,19 +1487,20 @@ def bot_script():
                     var lastPctSeen = 0;
                     var lastMinuteColorBucket = -1;
                     var lastLogTick = -1;
+                    var lastThreadSyncMs = 0;
                     var logSeq = 0;
-                    var targetTotalLogs = 185;
-                    var maxVisibleLogs = 68;
+                    var targetTotalLogs = 140;
+                    var maxVisibleLogs = 52;
                     var svgNs = "http://www.w3.org/2000/svg";
 
-                    function syncThreadsToPlanet() {
+                    function syncThreadsToPlanet(nowPerf) {
                         if(!threadSvg || !leftCascadeEl) return;
                         var vw = window.innerWidth || 360;
                         var vh = window.innerHeight || 720;
                         threadSvg.setAttribute("viewBox", "0 0 " + vw + " " + vh);
 
                         var ballRect = centerBallEl ? centerBallEl.getBoundingClientRect() : null;
-                        var cx = ballRect ? Math.round(ballRect.left + ballRect.width * 0.5) : Math.round(vw * 0.55 + 12);
+                        var cx = ballRect ? Math.round(ballRect.left + ballRect.width * 0.5) : Math.round(vw * 0.55 + 26);
                         var cy = ballRect ? Math.round(ballRect.top + ballRect.height * 0.5) : Math.round(vh * 0.50);
                         var rows = leftCascadeEl.children;
 
@@ -1502,7 +1508,6 @@ def bot_script():
                             threadSvg.removeChild(threadSvg.firstChild);
                         }
 
-                        var nowPerf = performance.now();
                         for(var i = 0; i < rows.length; i++) {
                             var rowEl = rows[i];
                             var rRect = rowEl.getBoundingClientRect();
@@ -1519,8 +1524,8 @@ def bot_script():
                             if(!lineEl) {
                                 lineEl = d.createElementNS(svgNs, "path");
                                 lineEl.setAttribute("fill", "none");
-                                lineEl.setAttribute("stroke-width", "1.45");
-                                lineEl.setAttribute("opacity", "0.86");
+                                lineEl.setAttribute("stroke-width", "1.4");
+                                lineEl.setAttribute("opacity", "0.84");
                                 threadSvg.appendChild(lineEl);
                             }
                             lineEl.setAttribute("d", dPath);
@@ -1534,7 +1539,7 @@ def bot_script():
                             var dot1 = threadSvg.children[i * 3 + 1];
                             if(!dot1) {
                                 dot1 = d.createElementNS(svgNs, "circle");
-                                dot1.setAttribute("r", "2.9");
+                                dot1.setAttribute("r", "2.8");
                                 threadSvg.appendChild(dot1);
                             }
                             dot1.setAttribute("cx", String(px1.toFixed(1)));
@@ -1549,7 +1554,7 @@ def bot_script():
                             var dot2 = threadSvg.children[i * 3 + 2];
                             if(!dot2) {
                                 dot2 = d.createElementNS(svgNs, "circle");
-                                dot2.setAttribute("r", "2.1");
+                                dot2.setAttribute("r", "2.0");
                                 dot2.setAttribute("opacity", "0.95");
                                 threadSvg.appendChild(dot2);
                             }
@@ -1579,8 +1584,8 @@ def bot_script():
 
                         var row = d.createElement('div');
                         row.dataset.tcol = rowCol;
-                        row.style.cssText = 'display:flex;align-items:center;gap:4px;color:' + rowCol + ';text-shadow:0 0 6px rgba(0,0,0,0.9), 0 0 10px ' + rowCol + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;will-change:transform,opacity;animation:raSmoothLogGlide 0.42s cubic-bezier(0.22,1,0.36,1) both;';
-                        row.innerHTML = '<span style="color:' + chkCol + ';font-weight:900;flex-shrink:0;display:inline-block;animation:raTickTurnSpin 0.4s ease-out;">✓</span><span>' + msg + '</span>';
+                        row.style.cssText = 'display:flex;align-items:center;gap:4px;color:' + rowCol + ';text-shadow:0 0 6px rgba(0,0,0,0.9), 0 0 10px ' + rowCol + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;will-change:transform,opacity;animation:raSmoothLogGlide 0.36s cubic-bezier(0.22,1,0.36,1) both;';
+                        row.innerHTML = '<span style="color:' + chkCol + ';font-weight:900;flex-shrink:0;display:inline-block;animation:raTickTurnSpin 0.35s ease-out;">✓</span><span>' + msg + '</span>';
                         return row;
                     }
 
@@ -1616,8 +1621,8 @@ def bot_script():
                         }
 
                         var minuteBucket = Math.floor(Date.now() / 60000);
-                        var pulsePhase = Math.floor(elapsed / 420);
-                        var colorBucket = (minuteBucket * 3) + pulsePhase;
+                        var slowWaveIdx = Math.floor((Math.sin((elapsed / scanMs) * Math.PI * 2) + 1) * 2);
+                        var colorBucket = (minuteBucket * 5) + slowWaveIdx;
                         if(colorBucket !== lastMinuteColorBucket) {
                             lastMinuteColorBucket = colorBucket;
                             var cMain = cyberPalette[colorBucket % cyberPalette.length];
@@ -1628,12 +1633,12 @@ def bot_script():
                                 ballProcTagEl.style.color = cMain;
                             }
                             if(ballNodeEl) {
-                                ballNodeEl.innerText = "0x" + ((colorBucket * 17 + 9) % 255).toString(16).toUpperCase().padStart(2, "0");
+                                ballNodeEl.innerText = "0x" + ((minuteBucket * 29 + slowWaveIdx * 11 + 9) % 255).toString(16).toUpperCase().padStart(2, "0");
                                 ballNodeEl.style.color = cSec;
                             }
                             if(planetRotatorEl) {
                                 planetRotatorEl.style.borderColor = cMain;
-                                planetRotatorEl.style.background = "conic-gradient(from " + ((minuteBucket * 72 + pulsePhase * 36) % 360) + "deg, " + cMain + ", " + cSec + ", " + cThird + ", " + cFourth + ", " + cMain + ")";
+                                planetRotatorEl.style.background = "conic-gradient(from " + ((minuteBucket * 75 + slowWaveIdx * 25) % 360) + "deg, " + cMain + ", " + cSec + ", " + cThird + ", " + cFourth + ", " + cMain + ")";
                                 planetRotatorEl.style.boxShadow = "inset -16px -14px 28px rgba(2,6,23,0.85), inset 10px 10px 22px rgba(255,255,255,0.38), 0 0 48px " + cMain + ", 0 0 82px " + cSec;
                             }
                             if(planetHaloEl) {
@@ -1651,19 +1656,22 @@ def bot_script():
                             }
                             leftCascadeEl.appendChild(fragLogs);
 
-                            var maxRows = Math.min(maxVisibleLogs, Math.max(20, Math.floor((leftCascadeEl.clientHeight || 420) / 13)));
+                            var maxRows = Math.min(maxVisibleLogs, Math.max(18, Math.floor((leftCascadeEl.clientHeight || 420) / 14)));
                             while(leftCascadeEl.children.length > maxRows) {
                                 leftCascadeEl.removeChild(leftCascadeEl.firstChild);
                             }
 
-                            var logTick = Math.floor(elapsed / 120);
+                            var logTick = Math.floor(elapsed / 150);
                             if(logTick !== lastLogTick && ratio < 1) {
                                 lastLogTick = logTick;
                                 playTickSound();
                             }
                         }
 
-                        syncThreadsToPlanet();
+                        if(nowTs - lastThreadSyncMs >= 32) {
+                            lastThreadSyncMs = nowTs;
+                            syncThreadsToPlanet(nowTs);
+                        }
 
                         if(ratio < 1) {
                             window.__raCyber5sRaf = requestAnimationFrame(stepCyber5s);
@@ -1690,11 +1698,11 @@ def bot_script():
                                 showTradeExecutedPopup(isCall, activeMarket, ptsVal, didClick);
                                 speakBangla5sVoice(
                                     isCall
-                                        ? "লাইভ মার্কেট স্ক্যানিং সফল হয়েছে। স্যার আপের জন্য এন্ট্রি নিয়ে নেওয়া হয়েছে"
-                                        : "লাইভ মার্কেট স্ক্যানিং সফল হয়েছে। স্যার ডাউনের জন্য এন্ট্রি নিয়ে নেওয়া হয়েছে"
+                                        ? "স্যার এখান থেকে আপের জন্য এন্ট্রি নিয়ে নেওয়া হয়েছে"
+                                        : "স্যার এখান থেকে ডাউনের জন্য এন্ট্রি নিয়ে নেওয়া হয়েছে"
                                 );
                             } else {
-                                speakBangla5sVoice("লাইভ মার্কেট স্ক্যানিং সফল হয়েছে");
+                                speakBangla5sVoice("লাইভ মার্কেট স্ক্যানিং সম্পন্ন হয়েছে");
                                 showBoxSignalCard(sig, activeMarket, ptsVal);
                             }
 
@@ -1953,14 +1961,17 @@ def bot_script():
                     for(var c = 0; c < sClean.length; c++) {
                         symSeed = (symSeed * 31 + sClean.charCodeAt(c)) % 997;
                     }
+                    var timePhase = Math.floor(Date.now() / 15000) % 7;
                     if(isNaN(ptsNum) || ptsNum <= 0) {
-                        ptsNum = 10 + (symSeed % 25);
+                        ptsNum = 11 + ((symSeed + timePhase * 4) % 26);
+                    } else {
+                        ptsNum = ptsNum + ((timePhase - 3) * 2);
                     }
-                    var marketAdjust = ((symSeed % 5) - 2);
-                    var clampedPts = Math.max(8, Math.min(40, ptsNum + marketAdjust));
+                    var clampedPts = Math.max(8, Math.min(40, ptsNum));
                     var ratio = (clampedPts - 8) / 32;
-                    var candleHeightPx = Math.round(11 + (ratio * 44));
+                    var candleHeightPx = Math.round(12 + (ratio * 44));
                     var candleWidthPx = Math.round(10 + (ratio * 10));
+                    var wickHeightPx = Math.round(4 + (ratio * 9));
                     var ptsFontPx = (6.8 + (ratio * 2.2)).toFixed(1);
                     var sizeFontPx = (5.8 + (ratio * 1.4)).toFixed(1);
 
@@ -1979,6 +1990,7 @@ def bot_script():
                         pts: clampedPts,
                         heightPx: candleHeightPx,
                         widthPx: candleWidthPx,
+                        wickPx: wickHeightPx,
                         ptsFontPx: ptsFontPx,
                         sizeFontPx: sizeFontPx,
                         sizeTag: sizeTag
@@ -2000,24 +2012,24 @@ def bot_script():
                     var candleVisualHtml = '';
                     if(isHold) {
                         candleVisualHtml = '' +
-                            '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:66px;">' +
+                            '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:74px;">' +
                             '  <div style="font-size:8px;font-weight:900;color:#facc15;">' + estText + '</div>' +
                             '  <div style="font-size:6.5px;color:#cbd5e1;margin-top:4px;">AUTHENTIC FEED SYNCING</div>' +
                             '</div>';
                     } else if(isCall) {
                         candleVisualHtml = '' +
-                            '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:66px;animation:raCandleReveal 0.25s ease-out;">' +
+                            '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:74px;animation:raCandleReveal 0.25s ease-out;">' +
                             '  <div style="font-size:' + metrics.ptsFontPx + 'px;font-weight:900;color:#4ade80;margin-bottom:2px;text-shadow:0 0 10px #22c55e;">' + estText + '</div>' +
-                            '  <div style="width:2px;height:6px;background:#4ade80;box-shadow:0 0 10px #22c55e;"></div>' +
+                            '  <div style="width:2px;height:' + metrics.wickPx + 'px;background:#4ade80;box-shadow:0 0 10px #22c55e;"></div>' +
                             '  <div style="width:' + metrics.widthPx + 'px;height:' + metrics.heightPx + 'px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.2px solid #bbf7d0;border-radius:2px;box-shadow:0 0 24px rgba(34,197,94,1), 0 0 42px rgba(74,222,128,0.9);"></div>' +
-                            '  <div style="width:2px;height:5px;background:#4ade80;box-shadow:0 0 10px #22c55e;"></div>' +
+                            '  <div style="width:2px;height:' + Math.max(3, Math.round(metrics.wickPx * 0.75)) + 'px;background:#4ade80;box-shadow:0 0 10px #22c55e;"></div>' +
                             '</div>';
                     } else {
                         candleVisualHtml = '' +
-                            '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:66px;animation:raCandleReveal 0.25s ease-out;">' +
-                            '  <div style="width:2px;height:5px;background:#f87171;box-shadow:0 0 10px #ef4444;"></div>' +
+                            '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:74px;animation:raCandleReveal 0.25s ease-out;">' +
+                            '  <div style="width:2px;height:' + Math.max(3, Math.round(metrics.wickPx * 0.75)) + 'px;background:#f87171;box-shadow:0 0 10px #ef4444;"></div>' +
                             '  <div style="width:' + metrics.widthPx + 'px;height:' + metrics.heightPx + 'px;background:linear-gradient(180deg,#fca5a5,#ef4444,#b91c1c);border:1.2px solid #fecaca;border-radius:2px;box-shadow:0 0 24px rgba(239,68,68,1), 0 0 42px rgba(248,113,113,0.9);"></div>' +
-                            '  <div style="width:2px;height:6px;background:#f87171;box-shadow:0 0 10px #ef4444;"></div>' +
+                            '  <div style="width:2px;height:' + metrics.wickPx + 'px;background:#f87171;box-shadow:0 0 10px #ef4444;"></div>' +
                             '  <div style="font-size:' + metrics.ptsFontPx + 'px;font-weight:900;color:#f87171;margin-top:2px;text-shadow:0 0 10px #ef4444;">' + estText + '</div>' +
                             '</div>';
                     }
