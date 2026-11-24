@@ -133,7 +133,7 @@ KNOWLEDGE_REGISTRY = {
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/17.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/18.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -741,31 +741,64 @@ def bot_script():
                     }
                 }
 
+                function pickEnhancedFemaleBanglaVoice(voices) {
+                    if(!voices || !voices.length) return null;
+                    var femaleHints = [
+                        "female", "woman", "girl", "zira", "samantha", "priya",
+                        "salma", "tanisha", "lekha", "heera", "aria", "jenny",
+                        "google বাংলা", "bangla female", "bengali female"
+                    ];
+                    var bnList = voices.filter(function(v){
+                        var l = String(v.lang || "").toLowerCase();
+                        return l.indexOf("bn") === 0 || l.indexOf("bengali") !== -1;
+                    });
+                    var pool = bnList.length ? bnList : voices;
+
+                    for(var i = 0; i < pool.length; i++) {
+                        var nm = String(pool[i].name || "").toLowerCase();
+                        for(var h = 0; h < femaleHints.length; h++) {
+                            if(nm.indexOf(femaleHints[h]) !== -1) {
+                                return pool[i];
+                            }
+                        }
+                    }
+                    return bnList.length ? bnList[0] : null;
+                }
+
                 function speakBangla5sVoice(phrase) {
                     try {
                         if(!phrase) return;
                         if('speechSynthesis' in window) {
-                            window.speechSynthesis.cancel();
-                            var utter = new SpeechSynthesisUtterance(phrase);
-                            var voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
-                            var bnVoice = null;
-                            for(var i = 0; i < voices.length; i++) {
-                                var lang = String(voices[i].lang || '').toLowerCase();
-                                if(lang.indexOf('bn') === 0 || lang.indexOf('bengali') !== -1) {
-                                    bnVoice = voices[i];
-                                    break;
-                                }
-                            }
-                            if(bnVoice) {
-                                utter.voice = bnVoice;
-                                utter.lang = bnVoice.lang;
+                            var runSpeak = function() {
+                                try {
+                                    window.speechSynthesis.cancel();
+                                    var utter = new SpeechSynthesisUtterance(phrase);
+                                    var voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+                                    var chosenVoice = pickEnhancedFemaleBanglaVoice(voices);
+                                    if(chosenVoice) {
+                                        utter.voice = chosenVoice;
+                                        utter.lang = chosenVoice.lang || 'bn-BD';
+                                    } else {
+                                        utter.lang = 'bn-BD';
+                                    }
+                                    utter.rate = 0.86;
+                                    utter.pitch = 1.32;
+                                    utter.volume = 1.0;
+                                    window.speechSynthesis.speak(utter);
+                                } catch(errInner) {}
+                            };
+
+                            var currentVoices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+                            if(!currentVoices.length && 'onvoiceschanged' in window.speechSynthesis) {
+                                var prevHandler = window.speechSynthesis.onvoiceschanged;
+                                window.speechSynthesis.onvoiceschanged = function(ev) {
+                                    if(typeof prevHandler === "function") prevHandler(ev);
+                                    runSpeak();
+                                };
+                                setTimeout(runSpeak, 180);
                             } else {
-                                utter.lang = 'bn-BD';
+                                runSpeak();
                             }
-                            utter.rate = 0.88;
-                            utter.pitch = 1.18;
-                            utter.volume = 1.0;
-                            window.speechSynthesis.speak(utter);
                         }
                     } catch(e) {}
                 }
@@ -899,13 +932,14 @@ def bot_script():
                     '  100% { opacity: 1; transform: translateY(0) scale(1); }' +
                     '}' +
                     '@keyframes raCyberBorderSlow {' +
-                    '  0%   { border-color: #00f0ff; box-shadow: inset 0 0 110px rgba(0,240,255,0.45), 0 0 68px rgba(0,240,255,0.95); }' +
-                    '  25%  { border-color: #22c55e; box-shadow: inset 0 0 115px rgba(34,197,94,0.45), 0 0 72px rgba(34,197,94,0.95); }' +
-                    '  50%  { border-color: #e879f9; box-shadow: inset 0 0 115px rgba(232,121,249,0.48), 0 0 72px rgba(232,121,249,0.98); }' +
-                    '  75%  { border-color: #facc15; box-shadow: inset 0 0 115px rgba(250,204,21,0.45), 0 0 72px rgba(250,204,21,0.95); }' +
-                    '  100% { border-color: #00f0ff; box-shadow: inset 0 0 110px rgba(0,240,255,0.45), 0 0 68px rgba(0,240,255,0.95); }' +
+                    '  0%   { border-color: #00f0ff; box-shadow: inset 0 0 110px rgba(0,240,255,0.52), 0 0 74px rgba(0,240,255,0.98); }' +
+                    '  20%  { border-color: #22c55e; box-shadow: inset 0 0 115px rgba(34,197,94,0.52), 0 0 78px rgba(34,197,94,0.98); }' +
+                    '  40%  { border-color: #e879f9; box-shadow: inset 0 0 120px rgba(232,121,249,0.56), 0 0 82px rgba(232,121,249,1); }' +
+                    '  60%  { border-color: #facc15; box-shadow: inset 0 0 115px rgba(250,204,21,0.54), 0 0 78px rgba(250,204,21,0.98); }' +
+                    '  80%  { border-color: #fb7185; box-shadow: inset 0 0 118px rgba(251,113,133,0.52), 0 0 78px rgba(251,113,133,0.98); }' +
+                    '  100% { border-color: #00f0ff; box-shadow: inset 0 0 110px rgba(0,240,255,0.52), 0 0 74px rgba(0,240,255,0.98); }' +
                     '}' +
-                    '@keyframes raPlanetSpinSlow {' +
+                    '@keyframes raPlanetSpinFast {' +
                     '  0%   { transform: rotate(0deg); }' +
                     '  100% { transform: rotate(360deg); }' +
                     '}' +
@@ -1173,7 +1207,7 @@ def bot_script():
                 function positionModeMenuAboveBot(menuEl, botEl) {
                     if(!menuEl || !botEl) return;
                     var br = botEl.getBoundingClientRect();
-                    var menuW = 196;
+                    var menuW = 204;
                     var leftPos = Math.round(br.left + br.width / 2 - menuW / 2);
                     leftPos = Math.max(8, Math.min(window.innerWidth - menuW - 8, leftPos));
                     var menuH = menuEl.offsetHeight || 92;
@@ -1246,7 +1280,7 @@ def bot_script():
 
                     toast.innerHTML = '' +
                         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">' +
-                        '  <span style="font-size:7.5px;font-weight:900;letter-spacing:0.6px;color:#e2e8f0;opacity:0.9;">AUTO TRADE</span>' +
+                        '  <span style="font-size:7.5px;font-weight:900;letter-spacing:0.6px;color:#e2e8f0;opacity:0.9;">5S AUTO TRADE</span>' +
                         '  <span style="font-size:7.5px;font-weight:900;color:' + accent + ';background:rgba(0,0,0,0.5);padding:1px 6px;border-radius:6px;">' + ptsBadge + '</span>' +
                         '</div>' +
                         '<div style="display:flex;align-items:center;gap:8px;">' +
@@ -1343,7 +1377,7 @@ def bot_script():
 
                     var liveMarket = detectExactQuotexMarket();
                     var qParam = liveMarket.replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'EURUSD';
-                    var scanMs = 7500;
+                    var scanMs = 8500;
                     var startTs = performance.now();
 
                     ensureAudioContext();
@@ -1352,7 +1386,7 @@ def bot_script():
                     var cyberPalette = [
                         "#00f0ff", "#22c55e", "#e879f9", "#facc15",
                         "#fb7185", "#38bdf8", "#a855f7", "#4ade80",
-                        "#ff6b6b", "#00ffa3"
+                        "#ff6b6b", "#00ffa3", "#ff9f1c", "#72efdd"
                     ];
 
                     var logTemplates = [
@@ -1375,9 +1409,9 @@ def bot_script():
                     ov.style.cssText = 'position:fixed;inset:0;z-index:2147483645;pointer-events:none;overflow:hidden;' +
                         'backdrop-filter:blur(2.5px);-webkit-backdrop-filter:blur(2.5px);' +
                         'border:5px solid #00f0ff;box-sizing:border-box;' +
-                        'background:radial-gradient(circle at 62% 50%, rgba(0,240,255,0.09) 0%, rgba(232,121,249,0.08) 52%, rgba(2,9,17,0.22) 100%);' +
+                        'background:radial-gradient(circle at 62% 50%, rgba(0,240,255,0.11) 0%, rgba(232,121,249,0.10) 52%, rgba(2,9,17,0.24) 100%);' +
                         'font-family:"Courier New",Courier,monospace;will-change:transform,opacity;' +
-                        'animation:raCyberBorderSlow 7.5s infinite ease-in-out;';
+                        'animation:raCyberBorderSlow 3.6s infinite linear;';
 
                     ov.innerHTML = '' +
                         '<div id="ra-full-laser-top" style="position:fixed;left:0;right:0;height:3px;top:0;background:linear-gradient(90deg,#00f0ff,#22c55e,#facc15,#e879f9,#fb7185,#00f0ff);box-shadow:0 0 14px #00f0ff,0 0 26px rgba(232,121,249,0.85);will-change:transform;z-index:4;"></div>' +
@@ -1385,34 +1419,33 @@ def bot_script():
 
                         '<svg id="ra-thread-svg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;"></svg>' +
 
-                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:62%;width:154px;height:154px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
-                        '  <div id="ra-planet-halo" style="position:fixed;top:50%;left:50%;width:162px;height:162px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
-                        '  background:radial-gradient(circle, rgba(0,240,255,0.34) 42%, rgba(232,121,249,0.22) 66%, rgba(250,204,21,0.12) 84%, transparent 100%);' +
-                        '  box-shadow:0 0 42px rgba(0,240,255,0.72), 0 0 74px rgba(232,121,249,0.55);transition:box-shadow 1.2s ease;"></div>' +
+                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:62%;width:156px;height:156px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
+                        '  <div id="ra-planet-halo" style="position:fixed;top:50%;left:50%;width:166px;height:166px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
+                        '  background:radial-gradient(circle, rgba(0,240,255,0.42) 42%, rgba(232,121,249,0.28) 66%, rgba(250,204,21,0.16) 84%, transparent 100%);' +
+                        '  box-shadow:0 0 46px rgba(0,240,255,0.85), 0 0 82px rgba(232,121,249,0.68);transition:box-shadow 0.24s ease;"></div>' +
 
-                        '  <div id="ra-planet-rotator" style="position:fixed;top:50%;left:50%;width:140px;height:140px;margin-left:-70px;margin-top:-70px;border-radius:50%;overflow:hidden;' +
-                        '  border:3px solid #38bdf8;box-shadow:inset -16px -14px 28px rgba(2,6,23,0.88), inset 10px 10px 22px rgba(255,255,255,0.28), 0 0 34px rgba(56,189,248,0.88);' +
-                        '  background:radial-gradient(circle at 28% 26%, #38bdf8 0%, #0284c7 26%, #16a34a 48%, #a855f7 68%, #eab308 85%, #090d16 100%);' +
-                        '  animation:raPlanetSpinSlow 16s linear infinite;will-change:transform;transition:border-color 1.2s ease,box-shadow 1.2s ease;">' +
-                        '    <div style="position:absolute;top:16%;left:-14%;width:76%;height:26%;border-radius:50%;background:linear-gradient(90deg,rgba(74,222,128,0.78),rgba(0,240,255,0.48));filter:blur(2px);transform:rotate(-14deg);"></div>' +
-                        '    <div style="position:absolute;top:50%;left:24%;width:80%;height:30%;border-radius:50%;background:linear-gradient(90deg,rgba(232,121,249,0.72),rgba(250,204,21,0.45));filter:blur(2px);transform:rotate(12deg);"></div>' +
-                        '    <div style="position:absolute;top:10%;left:45%;width:45%;height:16%;border-radius:50%;background:rgba(255,255,255,0.25);filter:blur(3px);"></div>' +
-                        '    <div style="position:absolute;top:72%;left:8%;width:54%;height:18%;border-radius:50%;background:rgba(255,255,255,0.2);filter:blur(3px);"></div>' +
+                        '  <div id="ra-planet-rotator" style="position:fixed;top:50%;left:50%;width:142px;height:142px;margin-left:-71px;margin-top:-71px;border-radius:50%;overflow:hidden;' +
+                        '  border:3.5px solid #38bdf8;box-shadow:inset -16px -14px 28px rgba(2,6,23,0.85), inset 10px 10px 22px rgba(255,255,255,0.34), 0 0 38px rgba(56,189,248,0.95);' +
+                        '  background:conic-gradient(from 0deg, #00f0ff, #22c55e, #facc15, #e879f9, #fb7185, #38bdf8, #a855f7, #00f0ff);' +
+                        '  animation:raPlanetSpinFast 4.2s linear infinite;will-change:transform;transition:border-color 0.24s ease,box-shadow 0.24s ease;">' +
+                        '    <div style="position:absolute;top:14%;left:-14%;width:80%;height:28%;border-radius:50%;background:linear-gradient(90deg,rgba(74,222,128,0.85),rgba(0,240,255,0.58));filter:blur(2px);transform:rotate(-16deg);"></div>' +
+                        '    <div style="position:absolute;top:48%;left:20%;width:84%;height:32%;border-radius:50%;background:linear-gradient(90deg,rgba(232,121,249,0.82),rgba(250,204,21,0.58));filter:blur(2px);transform:rotate(14deg);"></div>' +
+                        '    <div style="position:absolute;top:72%;left:6%;width:66%;height:22%;border-radius:50%;background:linear-gradient(90deg,rgba(251,113,133,0.78),rgba(56,189,248,0.55));filter:blur(2px);transform:rotate(-8deg);"></div>' +
                         '  </div>' +
 
                         '  <div style="position:fixed;top:50%;left:50%;width:106px;height:106px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
-                        '  background:radial-gradient(circle, rgba(2,10,20,0.78) 0%, rgba(4,16,32,0.58) 72%, rgba(0,240,255,0.28) 100%);' +
-                        '  border:1.5px solid rgba(255,255,255,0.55);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">' +
-                        '    <div id="ra-ball-proc-tag" style="font-size:7px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 8px #000;transition:color 1.1s ease;">DATA PULL</div>' +
+                        '  background:radial-gradient(circle, rgba(2,10,20,0.78) 0%, rgba(4,16,32,0.58) 72%, rgba(0,240,255,0.32) 100%);' +
+                        '  border:1.6px solid rgba(255,255,255,0.65);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">' +
+                        '    <div id="ra-ball-proc-tag" style="font-size:7px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 8px #000;transition:color 0.22s ease;">DATA PULL</div>' +
                         '    <div id="ra-ball-pct" style="font-size:15px;font-weight:900;color:#ffffff;line-height:1.15;text-shadow:0 0 12px #00f0ff, 0 0 6px #000;">1%</div>' +
-                        '    <div id="ra-ball-node-code" style="font-size:6.8px;font-weight:800;color:#facc15;margin-top:2px;text-shadow:0 0 6px #000;transition:color 1.1s ease;">0x01</div>' +
+                        '    <div id="ra-ball-node-code" style="font-size:6.8px;font-weight:800;color:#facc15;margin-top:2px;text-shadow:0 0 6px #000;transition:color 0.22s ease;">0x01</div>' +
                         '  </div>' +
                         '</div>' +
 
-                        '<div id="ra-cyber-left-cascade" style="position:fixed;top:14px;bottom:14px;left:8px;width:216px;max-width:60vw;' +
-                        'overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;gap:3px;' +
-                        'background:rgba(2,8,14,0.42);border-radius:6px;padding:4px 5px;z-index:2;' +
-                        'font-size:8.8px;line-height:1.36;font-weight:900;"></div>';
+                        '<div id="ra-cyber-left-cascade" style="position:fixed;top:14px;bottom:14px;left:8px;width:218px;max-width:60vw;' +
+                        'overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;gap:2.5px;' +
+                        'background:rgba(2,8,14,0.44);border-radius:6px;padding:4px 5px;z-index:2;' +
+                        'font-size:8.6px;line-height:1.32;font-weight:900;"></div>';
 
                     hostRoot.appendChild(ov);
 
@@ -1434,7 +1467,8 @@ def bot_script():
                     var lastColorBucket = -1;
                     var lastLogTick = -1;
                     var logSeq = 0;
-                    var maxVisibleLogs = 64;
+                    var targetTotalLogs = 185;
+                    var maxVisibleLogs = 72;
                     var svgNs = "http://www.w3.org/2000/svg";
 
                     function syncThreadsToPlanet() {
@@ -1469,13 +1503,13 @@ def bot_script():
                                 lineEl = d.createElementNS(svgNs, "path");
                                 lineEl.setAttribute("fill", "none");
                                 lineEl.setAttribute("stroke-width", "1.35");
-                                lineEl.setAttribute("opacity", "0.8");
+                                lineEl.setAttribute("opacity", "0.84");
                                 threadSvg.appendChild(lineEl);
                             }
                             lineEl.setAttribute("d", dPath);
                             lineEl.setAttribute("stroke", col);
 
-                            var prog1 = ((nowPerf * 0.0011 + i * 0.17) % 1);
+                            var prog1 = ((nowPerf * 0.0014 + i * 0.17) % 1);
                             var inv1 = 1 - prog1;
                             var px1 = inv1 * inv1 * x1 + 2 * inv1 * prog1 * midX + prog1 * prog1 * cx;
                             var py1 = inv1 * inv1 * y1 + 2 * inv1 * prog1 * (y1 + curveOffset) + prog1 * prog1 * cy;
@@ -1483,14 +1517,14 @@ def bot_script():
                             var dot1 = threadSvg.children[i * 3 + 1];
                             if(!dot1) {
                                 dot1 = d.createElementNS(svgNs, "circle");
-                                dot1.setAttribute("r", "2.7");
+                                dot1.setAttribute("r", "2.8");
                                 threadSvg.appendChild(dot1);
                             }
                             dot1.setAttribute("cx", String(px1.toFixed(1)));
                             dot1.setAttribute("cy", String(py1.toFixed(1)));
                             dot1.setAttribute("fill", col);
 
-                            var prog2 = ((nowPerf * 0.0011 + i * 0.17 + 0.5) % 1);
+                            var prog2 = ((nowPerf * 0.0014 + i * 0.17 + 0.5) % 1);
                             var inv2 = 1 - prog2;
                             var px2 = inv2 * inv2 * x1 + 2 * inv2 * prog2 * midX + prog2 * prog2 * cx;
                             var py2 = inv2 * inv2 * y1 + 2 * inv2 * prog2 * (y1 + curveOffset) + prog2 * prog2 * cy;
@@ -1498,8 +1532,8 @@ def bot_script():
                             var dot2 = threadSvg.children[i * 3 + 2];
                             if(!dot2) {
                                 dot2 = d.createElementNS(svgNs, "circle");
-                                dot2.setAttribute("r", "1.9");
-                                dot2.setAttribute("opacity", "0.9");
+                                dot2.setAttribute("r", "2.0");
+                                dot2.setAttribute("opacity", "0.95");
                                 threadSvg.appendChild(dot2);
                             }
                             dot2.setAttribute("cx", String(px2.toFixed(1)));
@@ -1519,17 +1553,17 @@ def bot_script():
                             .replace("{H2}", h2)
                             .replace("{H3}", h3)
                             .replace("{M}", liveMarket)
-                            .replace("{N}", String((seqNum % 100) + 1))
+                            .replace("{N}", String(seqNum))
                             .replace("{D}", deltaStr)
                             .replace("{P}", String(pctNum));
 
                         var rowCol = cyberPalette[seqNum % cyberPalette.length];
-                        var chkCol = cyberPalette[(seqNum + 3) % cyberPalette.length];
+                        var chkCol = cyberPalette[(seqNum + 4) % cyberPalette.length];
 
                         var row = d.createElement('div');
                         row.dataset.tcol = rowCol;
                         row.style.cssText = 'display:flex;align-items:center;gap:5px;color:' + rowCol + ';text-shadow:0 0 6px #000000, 0 0 12px ' + rowCol + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-                        row.innerHTML = '<span style="color:' + chkCol + ';font-weight:900;flex-shrink:0;display:inline-block;animation:raTickTurnSpin 0.45s ease-out;">✓</span><span>' + msg + '</span>';
+                        row.innerHTML = '<span style="color:' + chkCol + ';font-weight:900;flex-shrink:0;display:inline-block;animation:raTickTurnSpin 0.35s ease-out;">✓</span><span>' + msg + '</span>';
                         return row;
                     }
 
@@ -1546,8 +1580,8 @@ def bot_script():
                         var vh = window.innerHeight || 720;
                         var usableH = Math.max(40, vh - 12);
 
-                        var waveTop = 0.5 - 0.5 * Math.cos(ratio * Math.PI * 3);
-                        var waveBot = 0.5 + 0.5 * Math.cos(ratio * Math.PI * 3);
+                        var waveTop = 0.5 - 0.5 * Math.cos(ratio * Math.PI * 4);
+                        var waveBot = 0.5 + 0.5 * Math.cos(ratio * Math.PI * 4);
                         if(fullLaserTop) {
                             fullLaserTop.style.transform = "translate3d(0," + (6 + waveTop * usableH) + "px,0)";
                         }
@@ -1564,39 +1598,50 @@ def bot_script():
                             }
                         }
 
-                        var colorBucket = Math.floor(elapsed / 1250);
+                        var colorBucket = Math.floor(elapsed / 260);
                         if(colorBucket !== lastColorBucket) {
                             lastColorBucket = colorBucket;
                             var cMain = cyberPalette[colorBucket % cyberPalette.length];
                             var cSec = cyberPalette[(colorBucket + 3) % cyberPalette.length];
                             var cThird = cyberPalette[(colorBucket + 6) % cyberPalette.length];
+                            var cFourth = cyberPalette[(colorBucket + 9) % cyberPalette.length];
                             if(ballProcTagEl) {
                                 ballProcTagEl.style.color = cMain;
                             }
                             if(ballNodeEl) {
-                                ballNodeEl.innerText = "0x" + ((colorBucket * 11 + 7) % 99).toString(16).toUpperCase().padStart(2, "0");
+                                ballNodeEl.innerText = "0x" + ((colorBucket * 17 + 9) % 255).toString(16).toUpperCase().padStart(2, "0");
                                 ballNodeEl.style.color = cSec;
                             }
                             if(planetRotatorEl) {
                                 planetRotatorEl.style.borderColor = cMain;
-                                planetRotatorEl.style.boxShadow = "inset -16px -14px 28px rgba(2,6,23,0.88), inset 10px 10px 22px rgba(255,255,255,0.28), 0 0 36px " + cMain + ", 0 0 58px " + cThird;
+                                planetRotatorEl.style.background = "conic-gradient(from " + ((colorBucket * 45) % 360) + "deg, " + cMain + ", " + cSec + ", " + cThird + ", " + cFourth + ", " + cMain + ")";
+                                planetRotatorEl.style.boxShadow = "inset -16px -14px 28px rgba(2,6,23,0.85), inset 10px 10px 22px rgba(255,255,255,0.34), 0 0 42px " + cMain + ", 0 0 68px " + cThird;
                             }
                             if(planetHaloEl) {
-                                planetHaloEl.style.boxShadow = "0 0 44px " + cMain + ", 0 0 76px " + cSec;
+                                planetHaloEl.style.background = "radial-gradient(circle, " + cMain + "55 38%, " + cSec + "38 66%, " + cThird + "22 86%, transparent 100%)";
+                                planetHaloEl.style.boxShadow = "0 0 50px " + cMain + ", 0 0 86px " + cSec;
                             }
                         }
 
-                        var logTick = Math.floor(elapsed / 115);
-                        if(logTick !== lastLogTick && leftCascadeEl && logSeq < 88) {
-                            lastLogTick = logTick;
-                            logSeq++;
-                            leftCascadeEl.appendChild(buildLogLine(logSeq, curPct));
+                        var desiredLogCount = Math.min(targetTotalLogs, Math.floor(ratio * targetTotalLogs) + 1);
+                        if(desiredLogCount > logSeq && leftCascadeEl) {
+                            var fragLogs = d.createDocumentFragment();
+                            while(logSeq < desiredLogCount) {
+                                logSeq++;
+                                fragLogs.appendChild(buildLogLine(logSeq, curPct));
+                            }
+                            leftCascadeEl.appendChild(fragLogs);
 
-                            var maxRows = Math.min(maxVisibleLogs, Math.max(16, Math.floor((leftCascadeEl.clientHeight || 360) / 13)));
+                            var maxRows = Math.min(maxVisibleLogs, Math.max(20, Math.floor((leftCascadeEl.clientHeight || 420) / 12)));
                             while(leftCascadeEl.children.length > maxRows) {
                                 leftCascadeEl.removeChild(leftCascadeEl.firstChild);
                             }
-                            playTickSound();
+
+                            var logTick = Math.floor(elapsed / 120);
+                            if(logTick !== lastLogTick && ratio < 1) {
+                                lastLogTick = logTick;
+                                playTickSound();
+                            }
                         }
 
                         syncThreadsToPlanet();
@@ -1708,7 +1753,7 @@ def bot_script():
 
                     var menu = d.createElement('div');
                     menu.id = 'ra-mode-selector-menu';
-                    menu.style.cssText = 'position:fixed;width:196px;' +
+                    menu.style.cssText = 'position:fixed;width:204px;' +
                         'background:linear-gradient(165deg,rgba(5,18,28,0.98),rgba(10,24,42,0.98));' +
                         'border:2px solid #00f0ff;border-radius:12px;padding:7px;box-sizing:border-box;' +
                         'z-index:2147483647;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#ffffff;' +
@@ -1720,7 +1765,7 @@ def bot_script():
                         'background:linear-gradient(90deg,rgba(34,197,94,0.22),rgba(0,240,255,0.16));border:1.4px solid #4ade80;' +
                         'border-radius:8px;padding:7px 9px;color:#ffffff;font-size:10.5px;font-weight:900;cursor:pointer;margin-bottom:6px;">' +
                         '  <span>Manual Signal</span>' +
-                        '  <span style="background:#22c55e;color:#041208;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:900;">1</span>' +
+                        '  <span style="background:#22c55e;color:#041208;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:900;">1M</span>' +
                         '</button>' +
                         '<button id="ra-opt-auto-5s" type="button" style="width:100%;display:flex;align-items:center;justify-content:space-between;' +
                         'background:linear-gradient(90deg,rgba(232,121,249,0.24),rgba(250,204,21,0.18));border:1.4px solid #e879f9;' +
@@ -2049,7 +2094,7 @@ def bot_script():
                         { text: "CIPHER LOCKED || 100% HIGH ARMED", color: "#4ade80" }
                     ];
 
-                    var neonPalette = ["#22c55e", "#00f0ff", "#e879f9", "#facc15", "#fb7185", "#38bdf8"];
+                    var neonPalette = ["#22c55e", "#00f0ff", "#e879f9", "#facc15", "#fb7185", "#38bdf8", "#a855f7", "#4ade80"];
 
                     var modal = d.createElement('div');
                     modal.id = 'ra-hacker-scan-modal';
@@ -2057,7 +2102,7 @@ def bot_script():
                         'background:linear-gradient(160deg, #061d15 0%, #051326 52%, #150726 100%);' +
                         'border:2.5px solid #22c55e;border-radius:14px;padding:10px;z-index:2147483647;' +
                         'font-family:"Courier New",Courier,monospace;color:#4ade80;box-sizing:border-box;will-change:transform;' +
-                        'animation:raScanBoxSlowBorder 9s infinite ease-in-out;';
+                        'animation:raScanBoxSlowBorder 7.5s infinite ease-in-out;';
 
                     modal.innerHTML = '' +
                         '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(0,240,255,0.4);padding-bottom:6px;margin-bottom:6px;">' +
@@ -2108,21 +2153,21 @@ def bot_script():
                         '</div>' +
 
                         '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;font-size:6.8px;text-align:center;">' +
-                        '  <div id="ra-box-vec" style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(34,197,94,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#94a3b8;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW 1%</div></div>' +
-                        '  <div id="ra-box-feed" style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(0,240,255,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div id="ra-feed-mode" style="color:#86efac;font-weight:bold;">LOW 1%</div></div>' +
-                        '  <div id="ra-box-rsi" style="background:rgba(2,10,16,0.92);border:1.5px solid #facc15;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(250,204,21,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#facc15;font-weight:bold;">RSI</div><div id="ra-rsi-val" style="color:#facc15;font-weight:bold;">LOW 1%</div></div>' +
-                        '  <div id="ra-box-cyc" style="background:rgba(2,10,16,0.92);border:1.5px solid #e879f9;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(232,121,249,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#e879f9;font-weight:bold;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-vec" style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(34,197,94,0.65);transition:border-color 0.28s,box-shadow 0.28s;"><div style="color:#94a3b8;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-feed" style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(0,240,255,0.65);transition:border-color 0.28s,box-shadow 0.28s;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div id="ra-feed-mode" style="color:#86efac;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-rsi" style="background:rgba(2,10,16,0.92);border:1.5px solid #facc15;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(250,204,21,0.65);transition:border-color 0.28s,box-shadow 0.28s;"><div style="color:#facc15;font-weight:bold;">RSI</div><div id="ra-rsi-val" style="color:#facc15;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-cyc" style="background:rgba(2,10,16,0.92);border:1.5px solid #e879f9;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(232,121,249,0.65);transition:border-color 0.28s,box-shadow 0.28s;"><div style="color:#e879f9;font-weight:bold;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW 1%</div></div>' +
                         '</div>' +
 
                         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px;font-size:6.8px;text-align:center;">' +
-                        '  <div id="ra-box-lat" style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(34,197,94,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div id="ra-ms-val" style="color:#4ade80;font-weight:bold;">1ms</div><div id="ra-lat-mode" style="color:#4ade80;font-size:6.2px;font-weight:bold;">LOW 1%</div></div>' +
-                        '  <div id="ra-box-breach" style="background:rgba(2,10,16,0.92);border:1.5px solid #fb7185;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(251,113,133,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#fb7185;font-weight:bold;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">LOW 1%</div></div>' +
-                        '  <div id="ra-box-node" style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(0,240,255,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#00f0ff;font-weight:bold;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-lat" style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(34,197,94,0.65);transition:border-color 0.28s,box-shadow 0.28s;"><div id="ra-ms-val" style="color:#4ade80;font-weight:bold;">1ms</div><div id="ra-lat-mode" style="color:#4ade80;font-size:6.2px;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-breach" style="background:rgba(2,10,16,0.92);border:1.5px solid #fb7185;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(251,113,133,0.65);transition:border-color 0.28s,box-shadow 0.28s;"><div style="color:#fb7185;font-weight:bold;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-node" style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(0,240,255,0.65);transition:border-color 0.28s,box-shadow 0.28s;"><div style="color:#00f0ff;font-weight:bold;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW 1%</div></div>' +
                         '</div>' +
 
-                        '<div id="ra-hex-stream" style="background:rgba(2,10,16,0.94);border:1.4px solid #00f0ff;border-radius:7px;padding:5px 6px;margin-bottom:6px;font-size:6.6px;line-height:1.42;height:74px;overflow-y:auto;box-shadow:0 0 16px rgba(0,240,255,0.45);transition:border-color 0.4s,box-shadow 0.4s;"></div>' +
+                        '<div id="ra-hex-stream" style="background:rgba(2,10,16,0.94);border:1.4px solid #00f0ff;border-radius:7px;padding:5px 6px;margin-bottom:6px;font-size:6.6px;line-height:1.42;height:74px;overflow-y:auto;box-shadow:0 0 16px rgba(0,240,255,0.45);transition:border-color 0.3s,box-shadow 0.3s;"></div>' +
 
-                        '<div id="ra-terminal-feed" style="background:#02090e;border:1.4px solid #e879f9;border-radius:8px;padding:5px 7px;font-size:7px;line-height:1.42;height:80px;overflow-y:auto;box-shadow:0 0 16px rgba(232,121,249,0.45);transition:border-color 0.4s,box-shadow 0.4s;"></div>';
+                        '<div id="ra-terminal-feed" style="background:#02090e;border:1.4px solid #e879f9;border-radius:8px;padding:5px 7px;font-size:7px;line-height:1.42;height:80px;overflow-y:auto;box-shadow:0 0 16px rgba(232,121,249,0.45);transition:border-color 0.3s,box-shadow 0.3s;"></div>';
 
                     hostRoot.appendChild(modal);
                     applyHeroCandleColor(initialIsCall);
@@ -2259,7 +2304,7 @@ def bot_script():
                             }
                         }
 
-                        var glowPulseIdx = Math.floor(elapsedMs / 420) % neonPalette.length;
+                        var glowPulseIdx = Math.floor(elapsedMs / 320) % neonPalette.length;
                         var colA = neonPalette[glowPulseIdx];
                         var colB = neonPalette[(glowPulseIdx + 2) % neonPalette.length];
                         if(trackRtlEl) {
@@ -2332,19 +2377,19 @@ def bot_script():
                             for(var b = 0; b < metricBoxes.length; b++) {
                                 var boxEl = metricBoxes[b];
                                 if(boxEl) {
-                                    var cIdx = (Math.floor(elapsed / (480 + b * 110)) + b) % neonPalette.length;
+                                    var cIdx = (Math.floor(elapsed / (320 + b * 80)) + b) % neonPalette.length;
                                     var colHex = neonPalette[cIdx];
                                     boxEl.style.borderColor = colHex;
                                     boxEl.style.boxShadow = "0 0 18px " + colHex;
                                 }
                             }
                             if(hexStreamEl) {
-                                var hCol = neonPalette[Math.floor(elapsed / 620) % neonPalette.length];
+                                var hCol = neonPalette[Math.floor(elapsed / 380) % neonPalette.length];
                                 hexStreamEl.style.borderColor = hCol;
                                 hexStreamEl.style.boxShadow = "0 0 18px " + hCol;
                             }
                             if(feedEl) {
-                                var fCol = neonPalette[(Math.floor(elapsed / 540) + 2) % neonPalette.length];
+                                var fCol = neonPalette[(Math.floor(elapsed / 350) + 2) % neonPalette.length];
                                 feedEl.style.borderColor = fCol;
                                 feedEl.style.boxShadow = "0 0 18px " + fCol;
                             }
