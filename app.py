@@ -133,7 +133,7 @@ KNOWLEDGE_REGISTRY = {
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/15.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/16.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -715,7 +715,6 @@ def bot_script():
                     } catch(e) {}
                 }
 
-                // Always start in standby (no mode active on initial bot appearance)
                 writeSavedActive(false);
                 writeSavedMode(null);
 
@@ -871,28 +870,23 @@ def bot_script():
                     '  100% { opacity: 1; transform: translateY(0) scale(1); }' +
                     '}' +
                     '@keyframes raCyberBorderSlow {' +
-                    '  0%   { border-color: #00f0ff; box-shadow: inset 0 0 110px rgba(0,240,255,0.42), 0 0 64px rgba(0,240,255,0.92); }' +
-                    '  25%  { border-color: #22c55e; box-shadow: inset 0 0 115px rgba(34,197,94,0.42), 0 0 68px rgba(34,197,94,0.92); }' +
-                    '  50%  { border-color: #e879f9; box-shadow: inset 0 0 115px rgba(232,121,249,0.44), 0 0 68px rgba(232,121,249,0.95); }' +
-                    '  75%  { border-color: #facc15; box-shadow: inset 0 0 115px rgba(250,204,21,0.42), 0 0 68px rgba(250,204,21,0.92); }' +
-                    '  100% { border-color: #00f0ff; box-shadow: inset 0 0 110px rgba(0,240,255,0.42), 0 0 64px rgba(0,240,255,0.92); }' +
+                    '  0%   { border-color: #00f0ff; box-shadow: inset 0 0 110px rgba(0,240,255,0.45), 0 0 68px rgba(0,240,255,0.95); }' +
+                    '  25%  { border-color: #22c55e; box-shadow: inset 0 0 115px rgba(34,197,94,0.45), 0 0 72px rgba(34,197,94,0.95); }' +
+                    '  50%  { border-color: #e879f9; box-shadow: inset 0 0 115px rgba(232,121,249,0.48), 0 0 72px rgba(232,121,249,0.98); }' +
+                    '  75%  { border-color: #facc15; box-shadow: inset 0 0 115px rgba(250,204,21,0.45), 0 0 72px rgba(250,204,21,0.95); }' +
+                    '  100% { border-color: #00f0ff; box-shadow: inset 0 0 110px rgba(0,240,255,0.45), 0 0 68px rgba(0,240,255,0.95); }' +
                     '}' +
                     '@keyframes raPlanetSpinSlow {' +
                     '  0%   { transform: rotate(0deg); }' +
                     '  100% { transform: rotate(360deg); }' +
                     '}' +
-                    '@keyframes raPlanetAtmosphere {' +
-                    '  0%   { background-position: 0% 50%; }' +
-                    '  50%  { background-position: 100% 50%; }' +
-                    '  100% { background-position: 0% 50%; }' +
-                    '}' +
                     '@keyframes raTickTurnSpin {' +
                     '  0%   { transform: rotate(-160deg) scale(0.55); opacity: 0.35; }' +
                     '  100% { transform: rotate(0deg) scale(1); opacity: 1; }' +
                     '}' +
-                    '@keyframes raTradeBadgePop {' +
-                    '  0%   { opacity: 0; transform: translate3d(0, 18px, 0) scale(0.86); }' +
-                    '  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }' +
+                    '@keyframes raCenterTradePop {' +
+                    '  0%   { opacity: 0; transform: translate3d(-50%, -50%, 0) scale(0.78); }' +
+                    '  100% { opacity: 1; transform: translate3d(-50%, -50%, 0) scale(1); }' +
                     '}';
                 (d.head || hostRoot).appendChild(styleEl);
 
@@ -1200,45 +1194,46 @@ def bot_script():
                     var oldToast = d.getElementById('ra-auto-trade-toast');
                     if(oldToast) oldToast.remove();
 
-                    var dirText = isCall ? "BUY / UP" : "SELL / DOWN";
+                    var dirText = isCall ? "UP / BUY" : "DOWN / SELL";
                     var accent = isCall ? "#22c55e" : "#f43f5e";
                     var softBg = isCall
-                        ? "linear-gradient(135deg, rgba(5,32,20,0.96), rgba(8,52,32,0.95))"
-                        : "linear-gradient(135deg, rgba(38,7,18,0.96), rgba(62,10,26,0.95))";
+                        ? "linear-gradient(155deg, rgba(5,34,21,0.98), rgba(9,56,35,0.97))"
+                        : "linear-gradient(155deg, rgba(42,7,18,0.98), rgba(66,11,28,0.97))";
                     var ptsNum = parseInt(ptsVal, 10);
-                    var ptsBadge = (!isNaN(ptsNum) && ptsNum > 0) ? ((isCall ? "+" : "-") + ptsNum + " PTS") : "LIVE";
+                    var ptsBadge = (!isNaN(ptsNum) && ptsNum > 0) ? ((isCall ? "+" : "-") + ptsNum + " PTS") : "SINGLE TRADE";
 
                     var toast = d.createElement('div');
                     toast.id = 'ra-auto-trade-toast';
-                    toast.style.cssText = 'position:fixed;bottom:238px;right:12px;width:154px;z-index:2147483647;' +
-                        'background:' + softBg + ';border:2px solid ' + accent + ';border-radius:12px;' +
-                        'padding:8px 10px;box-sizing:border-box;pointer-events:none;color:#ffffff;' +
+                    toast.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate3d(-50%,-50%,0);' +
+                        'width:176px;z-index:2147483647;' +
+                        'background:' + softBg + ';border:2.2px solid ' + accent + ';border-radius:14px;' +
+                        'padding:10px 12px;box-sizing:border-box;pointer-events:none;color:#ffffff;' +
                         'font-family:"Segoe UI",Roboto,Arial,sans-serif;' +
-                        'box-shadow:0 0 24px ' + accent + ', 0 10px 26px rgba(0,0,0,0.65);' +
-                        'animation:raTradeBadgePop 0.22s ease-out;';
+                        'box-shadow:0 0 32px ' + accent + ', 0 12px 32px rgba(0,0,0,0.78);' +
+                        'animation:raCenterTradePop 0.24s ease-out;';
 
                     toast.innerHTML = '' +
-                        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">' +
-                        '  <span style="font-size:7px;font-weight:900;letter-spacing:0.6px;color:#e2e8f0;opacity:0.85;">AUTO TRADE</span>' +
-                        '  <span style="font-size:7.5px;font-weight:900;color:' + accent + ';background:rgba(0,0,0,0.45);padding:1px 5px;border-radius:5px;">' + ptsBadge + '</span>' +
+                        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">' +
+                        '  <span style="font-size:7.5px;font-weight:900;letter-spacing:0.6px;color:#e2e8f0;opacity:0.9;">AUTO TRADE</span>' +
+                        '  <span style="font-size:7.5px;font-weight:900;color:' + accent + ';background:rgba(0,0,0,0.5);padding:1px 6px;border-radius:6px;">' + ptsBadge + '</span>' +
                         '</div>' +
-                        '<div style="display:flex;align-items:center;gap:6px;">' +
-                        '  <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:7px;background:' + accent + ';color:#041009;font-size:12px;font-weight:900;">' + (isCall ? "▲" : "▼") + '</span>' +
+                        '<div style="display:flex;align-items:center;gap:8px;">' +
+                        '  <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:9px;background:' + accent + ';color:#041009;font-size:14px;font-weight:900;box-shadow:0 0 14px ' + accent + ';">' + (isCall ? "▲" : "▼") + '</span>' +
                         '  <div style="min-width:0;">' +
-                        '    <div style="font-size:11px;font-weight:900;color:' + accent + ';line-height:1.1;">' + dirText + '</div>' +
-                        '    <div style="font-size:7.5px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + marketName + ' • ' + (didClickBtn ? "CLICKED" : "SIGNAL") + '</div>' +
+                        '    <div style="font-size:13px;font-weight:900;color:' + accent + ';line-height:1.15;text-shadow:0 0 10px ' + accent + ';">' + dirText + '</div>' +
+                        '    <div style="font-size:8px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px;">' + marketName + ' • ' + (didClickBtn ? "AUTO CLICKED" : "SIGNAL ARMED") + '</div>' +
                         '  </div>' +
                         '</div>';
 
                     hostRoot.appendChild(toast);
                     setTimeout(function(){
                         if(toast.parentNode) toast.remove();
-                    }, 3400);
+                    }, 3600);
                 }
 
                 function executePlatformTradeClick(isCall) {
                     var nowMs = Date.now();
-                    if(nowMs - lastAutoTradeTs < 2400) {
+                    if(nowMs - lastAutoTradeTs < 3200) {
                         return false;
                     }
                     lastAutoTradeTs = nowMs;
@@ -1255,8 +1250,8 @@ def bot_script():
                             continue;
                         }
                         var rect = el.getBoundingClientRect();
-                        if(rect.width < 28 || rect.height < 22) continue;
-                        if(rect.top < window.innerHeight * 0.42) continue;
+                        if(rect.width < 26 || rect.height < 20) continue;
+                        if(rect.top < window.innerHeight * 0.36) continue;
 
                         var txt = ((el.innerText || el.textContent || '') + ' ' + (el.className || '') + ' ' + (el.getAttribute('aria-label') || '')).toUpperCase();
                         var hasUp = /\b(UP|BUY|CALL|HIGHER|LONG)\b/.test(txt);
@@ -1265,7 +1260,7 @@ def bot_script():
                         if(isCall && hasUp && !hasDown) {
                             scored.push({ el: el, rect: rect, score: 100 + rect.bottom });
                         } else if(!isCall && hasDown && !hasUp) {
-                            var rightBonus = rect.left > window.innerWidth * 0.45 ? 40 : 0;
+                            var rightBonus = rect.left > window.innerWidth * 0.42 ? 40 : 0;
                             scored.push({ el: el, rect: rect, score: 100 + rect.bottom + rightBonus });
                         }
                     }
@@ -1274,10 +1269,11 @@ def bot_script():
                         scored.sort(function(a, b){ return b.score - a.score; });
                         var target = scored[0].el;
                         try {
-                            target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
+                            target.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
                             target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
                             target.click();
                             target.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                            target.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
                             return true;
                         } catch(e) {}
                     }
@@ -1286,7 +1282,7 @@ def bot_script():
                         if(!el || !el.getBoundingClientRect) return false;
                         if(el.closest('#ra-auto-5s-panel, #ra-hacker-scan-modal, #ra-hacker-signal-popup, #ra-mode-selector-menu, #ra-hacker-login-modal, #ra-hacker-btn, #ra-cyber-5s-overlay, #ra-bot-power-pill, #ra-auto-trade-toast')) return false;
                         var r = el.getBoundingClientRect();
-                        return r.width >= 48 && r.height >= 28 && r.bottom >= window.innerHeight - 130;
+                        return r.width >= 44 && r.height >= 26 && r.bottom >= window.innerHeight - 140;
                     });
 
                     if(fallbackBtns.length >= 2) {
@@ -1315,12 +1311,13 @@ def bot_script():
 
                     var liveMarket = detectExactQuotexMarket();
                     var qParam = liveMarket.replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'EURUSD';
-                    var scanMs = 5600;
+                    var scanMs = 7500;
                     var startTs = performance.now();
 
                     var cyberPalette = [
                         "#00f0ff", "#22c55e", "#e879f9", "#facc15",
-                        "#fb7185", "#38bdf8", "#a855f7", "#4ade80"
+                        "#fb7185", "#38bdf8", "#a855f7", "#4ade80",
+                        "#ff6b6b", "#00ffa3"
                     ];
 
                     var logTemplates = [
@@ -1342,51 +1339,49 @@ def bot_script():
                     ov.id = 'ra-cyber-5s-overlay';
                     ov.style.cssText = 'position:fixed;inset:0;z-index:2147483645;pointer-events:none;overflow:hidden;' +
                         'border:5px solid #00f0ff;box-sizing:border-box;' +
-                        'background:radial-gradient(circle at center, rgba(0,240,255,0.06) 0%, rgba(232,121,249,0.06) 55%, rgba(2,9,17,0.16) 100%);' +
+                        'background:radial-gradient(circle at 58% 50%, rgba(0,240,255,0.08) 0%, rgba(232,121,249,0.07) 52%, rgba(2,9,17,0.18) 100%);' +
                         'font-family:"Courier New",Courier,monospace;will-change:transform,opacity;' +
-                        'animation:raCyberBorderSlow 5.5s infinite ease-in-out;';
+                        'animation:raCyberBorderSlow 7.5s infinite ease-in-out;';
 
                     ov.innerHTML = '' +
-                        '<div id="ra-thin-beam-1" style="position:fixed;left:0;right:0;height:2.5px;top:18%;background:linear-gradient(90deg,transparent,#00f0ff 24%,#22c55e 52%,#e879f9 78%,transparent);box-shadow:0 0 10px #00f0ff;will-change:transform;"></div>' +
-                        '<div id="ra-thin-beam-2" style="position:fixed;left:0;right:0;height:2.5px;top:52%;background:linear-gradient(90deg,transparent,#e879f9 26%,#facc15 52%,#00f0ff 76%,transparent);box-shadow:0 0 10px #e879f9;will-change:transform;"></div>' +
-                        '<div id="ra-thin-beam-3" style="position:fixed;left:0;right:0;height:2.5px;top:82%;background:linear-gradient(90deg,transparent,#22c55e 22%,#00f0ff 54%,#fb7185 80%,transparent);box-shadow:0 0 10px #22c55e;will-change:transform;"></div>' +
+                        '<div id="ra-full-laser-top" style="position:fixed;left:0;right:0;height:3px;top:0;background:linear-gradient(90deg,#00f0ff,#22c55e,#facc15,#e879f9,#fb7185,#00f0ff);box-shadow:0 0 14px #00f0ff,0 0 26px rgba(232,121,249,0.85);will-change:transform;z-index:4;"></div>' +
+                        '<div id="ra-full-laser-bot" style="position:fixed;left:0;right:0;height:3px;top:0;background:linear-gradient(90deg,#e879f9,#fb7185,#facc15,#22c55e,#00f0ff,#e879f9);box-shadow:0 0 14px #e879f9,0 0 26px rgba(34,197,94,0.85);will-change:transform;z-index:4;"></div>' +
 
                         '<svg id="ra-thread-svg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;"></svg>' +
 
-                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:54%;width:146px;height:146px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
-                        '  <div id="ra-planet-halo" style="position:fixed;top:50%;left:50%;width:154px;height:154px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
-                        '  background:radial-gradient(circle, rgba(0,240,255,0.28) 45%, rgba(34,197,94,0.16) 68%, rgba(232,121,249,0.08) 84%, transparent 100%);' +
-                        '  box-shadow:0 0 36px rgba(0,240,255,0.6), 0 0 64px rgba(34,197,94,0.45);"></div>' +
+                        '<div id="ra-cyber-center-ball" style="position:fixed;top:50%;left:58%;width:154px;height:154px;transform:translate3d(-50%,-50%,0);pointer-events:none;z-index:3;">' +
+                        '  <div id="ra-planet-halo" style="position:fixed;top:50%;left:50%;width:162px;height:162px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
+                        '  background:radial-gradient(circle, rgba(0,240,255,0.34) 42%, rgba(232,121,249,0.22) 66%, rgba(250,204,21,0.12) 84%, transparent 100%);' +
+                        '  box-shadow:0 0 42px rgba(0,240,255,0.72), 0 0 74px rgba(232,121,249,0.55);transition:box-shadow 1.2s ease;"></div>' +
 
-                        '  <div id="ra-planet-rotator" style="position:fixed;top:50%;left:50%;width:136px;height:136px;margin-left:-68px;margin-top:-68px;border-radius:50%;overflow:hidden;' +
-                        '  border:2.5px solid #38bdf8;box-shadow:inset -16px -14px 28px rgba(2,6,23,0.88), inset 10px 10px 22px rgba(255,255,255,0.25), 0 0 28px rgba(56,189,248,0.8);' +
-                        '  background:radial-gradient(circle at 30% 28%, #38bdf8 0%, #0284c7 28%, #166534 52%, #0f766e 72%, #1e1b4b 92%, #090d16 100%);' +
-                        '  animation:raPlanetSpinSlow 14s linear infinite;will-change:transform;">' +
-                        '    <div style="position:absolute;top:18%;left:-12%;width:72%;height:26%;border-radius:50%;background:linear-gradient(90deg,rgba(74,222,128,0.72),rgba(22,163,74,0.45));filter:blur(2px);transform:rotate(-14deg);"></div>' +
-                        '    <div style="position:absolute;top:52%;left:26%;width:78%;height:30%;border-radius:50%;background:linear-gradient(90deg,rgba(34,197,94,0.68),rgba(250,204,21,0.35));filter:blur(2px);transform:rotate(12deg);"></div>' +
-                        '    <div style="position:absolute;top:10%;left:45%;width:45%;height:16%;border-radius:50%;background:rgba(255,255,255,0.22);filter:blur(3px);"></div>' +
-                        '    <div style="position:absolute;top:72%;left:8%;width:54%;height:18%;border-radius:50%;background:rgba(255,255,255,0.18);filter:blur(3px);"></div>' +
+                        '  <div id="ra-planet-rotator" style="position:fixed;top:50%;left:50%;width:140px;height:140px;margin-left:-70px;margin-top:-70px;border-radius:50%;overflow:hidden;' +
+                        '  border:3px solid #38bdf8;box-shadow:inset -16px -14px 28px rgba(2,6,23,0.88), inset 10px 10px 22px rgba(255,255,255,0.28), 0 0 34px rgba(56,189,248,0.88);' +
+                        '  background:radial-gradient(circle at 28% 26%, #38bdf8 0%, #0284c7 26%, #16a34a 48%, #a855f7 68%, #eab308 85%, #090d16 100%);' +
+                        '  animation:raPlanetSpinSlow 16s linear infinite;will-change:transform;transition:border-color 1.2s ease,box-shadow 1.2s ease;">' +
+                        '    <div style="position:absolute;top:16%;left:-14%;width:76%;height:26%;border-radius:50%;background:linear-gradient(90deg,rgba(74,222,128,0.78),rgba(0,240,255,0.48));filter:blur(2px);transform:rotate(-14deg);"></div>' +
+                        '    <div style="position:absolute;top:50%;left:24%;width:80%;height:30%;border-radius:50%;background:linear-gradient(90deg,rgba(232,121,249,0.72),rgba(250,204,21,0.45));filter:blur(2px);transform:rotate(12deg);"></div>' +
+                        '    <div style="position:absolute;top:10%;left:45%;width:45%;height:16%;border-radius:50%;background:rgba(255,255,255,0.25);filter:blur(3px);"></div>' +
+                        '    <div style="position:absolute;top:72%;left:8%;width:54%;height:18%;border-radius:50%;background:rgba(255,255,255,0.2);filter:blur(3px);"></div>' +
                         '  </div>' +
 
-                        '  <div style="position:fixed;top:50%;left:50%;width:104px;height:104px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
-                        '  background:radial-gradient(circle, rgba(2,10,20,0.68) 0%, rgba(4,16,32,0.48) 72%, rgba(0,240,255,0.22) 100%);' +
-                        '  border:1.5px solid rgba(255,255,255,0.45);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">' +
-                        '    <div id="ra-ball-proc-tag" style="font-size:7px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 8px #000;">DATA PROC</div>' +
+                        '  <div style="position:fixed;top:50%;left:50%;width:106px;height:106px;border-radius:50%;transform:translate3d(-50%,-50%,0);' +
+                        '  background:radial-gradient(circle, rgba(2,10,20,0.72) 0%, rgba(4,16,32,0.52) 72%, rgba(0,240,255,0.25) 100%);' +
+                        '  border:1.5px solid rgba(255,255,255,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;">' +
+                        '    <div id="ra-ball-proc-tag" style="font-size:7px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 8px #000;transition:color 1.1s ease;">DATA PULL</div>' +
                         '    <div id="ra-ball-pct" style="font-size:15px;font-weight:900;color:#ffffff;line-height:1.15;text-shadow:0 0 12px #00f0ff, 0 0 6px #000;">1%</div>' +
-                        '    <div id="ra-ball-node-code" style="font-size:6.8px;font-weight:800;color:#facc15;margin-top:2px;text-shadow:0 0 6px #000;">0x01</div>' +
+                        '    <div id="ra-ball-node-code" style="font-size:6.8px;font-weight:800;color:#facc15;margin-top:2px;text-shadow:0 0 6px #000;transition:color 1.1s ease;">0x01</div>' +
                         '  </div>' +
                         '</div>' +
 
-                        '<div id="ra-cyber-left-cascade" style="position:fixed;top:14px;bottom:14px;left:8px;width:218px;max-width:65vw;' +
+                        '<div id="ra-cyber-left-cascade" style="position:fixed;top:14px;bottom:14px;left:8px;width:214px;max-width:62vw;' +
                         'overflow:hidden;display:flex;flex-direction:column;justify-content:flex-start;gap:3px;' +
                         'background:transparent;border:none;padding:4px 2px;z-index:2;' +
                         'font-size:8.6px;line-height:1.34;font-weight:800;"></div>';
 
                     hostRoot.appendChild(ov);
 
-                    var beam1 = ov.querySelector('#ra-thin-beam-1');
-                    var beam2 = ov.querySelector('#ra-thin-beam-2');
-                    var beam3 = ov.querySelector('#ra-thin-beam-3');
+                    var fullLaserTop = ov.querySelector('#ra-full-laser-top');
+                    var fullLaserBot = ov.querySelector('#ra-full-laser-bot');
                     var threadSvg = ov.querySelector('#ra-thread-svg');
                     var ballPctEl = ov.querySelector('#ra-ball-pct');
                     var ballProcTagEl = ov.querySelector('#ra-ball-proc-tag');
@@ -1400,6 +1395,7 @@ def bot_script():
                         .catch(function(){ return { signal: 'HOLD', pts: 0 }; });
 
                     var lastPctSeen = 0;
+                    var lastColorBucket = -1;
                     var lastLogTick = -1;
                     var logSeq = 0;
                     var maxVisibleLogs = 64;
@@ -1411,50 +1407,68 @@ def bot_script():
                         var vh = window.innerHeight || 720;
                         threadSvg.setAttribute("viewBox", "0 0 " + vw + " " + vh);
 
-                        var cx = Math.round(vw * 0.54);
+                        var cx = Math.round(vw * 0.58);
                         var cy = Math.round(vh * 0.50);
                         var rows = leftCascadeEl.children;
 
-                        while(threadSvg.children.length > rows.length * 2) {
+                        while(threadSvg.children.length > rows.length * 3) {
                             threadSvg.removeChild(threadSvg.firstChild);
                         }
 
+                        var nowPerf = performance.now();
                         for(var i = 0; i < rows.length; i++) {
                             var rowEl = rows[i];
                             var rRect = rowEl.getBoundingClientRect();
-                            var x1 = Math.min(rRect.right - 2, cx - 54);
+                            var x1 = Math.min(rRect.right - 1, cx - 56);
                             var y1 = Math.round(rRect.top + rRect.height * 0.5);
                             if(y1 < 8 || y1 > vh - 8) continue;
 
                             var col = rowEl.dataset.tcol || "#00f0ff";
                             var midX = Math.round((x1 + cx) * 0.5);
-                            var curveOffset = ((i % 2 === 0) ? -1 : 1) * 10;
+                            var curveOffset = ((i % 2 === 0) ? -1 : 1) * 14;
                             var dPath = "M " + x1 + " " + y1 + " Q " + midX + " " + (y1 + curveOffset) + " " + cx + " " + cy;
 
-                            var lineEl = threadSvg.children[i * 2];
+                            var lineEl = threadSvg.children[i * 3];
                             if(!lineEl) {
                                 lineEl = d.createElementNS(svgNs, "path");
                                 lineEl.setAttribute("fill", "none");
-                                lineEl.setAttribute("stroke-width", "1.15");
-                                lineEl.setAttribute("opacity", "0.68");
+                                lineEl.setAttribute("stroke-width", "1.25");
+                                lineEl.setAttribute("opacity", "0.72");
                                 threadSvg.appendChild(lineEl);
                             }
                             lineEl.setAttribute("d", dPath);
                             lineEl.setAttribute("stroke", col);
 
-                            var dotEl = threadSvg.children[i * 2 + 1];
-                            if(!dotEl) {
-                                dotEl = d.createElementNS(svgNs, "circle");
-                                dotEl.setAttribute("r", "2.3");
-                                threadSvg.appendChild(dotEl);
+                            var prog1 = ((nowPerf * 0.00115 + i * 0.17) % 1);
+                            var inv1 = 1 - prog1;
+                            var px1 = inv1 * inv1 * x1 + 2 * inv1 * prog1 * midX + prog1 * prog1 * cx;
+                            var py1 = inv1 * inv1 * y1 + 2 * inv1 * prog1 * (y1 + curveOffset) + prog1 * prog1 * cy;
+
+                            var dot1 = threadSvg.children[i * 3 + 1];
+                            if(!dot1) {
+                                dot1 = d.createElementNS(svgNs, "circle");
+                                dot1.setAttribute("r", "2.6");
+                                threadSvg.appendChild(dot1);
                             }
-                            var prog = ((performance.now() * 0.0014 + i * 0.13) % 1);
-                            var inv = 1 - prog;
-                            var px = inv * inv * x1 + 2 * inv * prog * midX + prog * prog * cx;
-                            var py = inv * inv * y1 + 2 * inv * prog * (y1 + curveOffset) + prog * prog * cy;
-                            dotEl.setAttribute("cx", String(px.toFixed(1)));
-                            dotEl.setAttribute("cy", String(py.toFixed(1)));
-                            dotEl.setAttribute("fill", col);
+                            dot1.setAttribute("cx", String(px1.toFixed(1)));
+                            dot1.setAttribute("cy", String(py1.toFixed(1)));
+                            dot1.setAttribute("fill", col);
+
+                            var prog2 = ((nowPerf * 0.00115 + i * 0.17 + 0.5) % 1);
+                            var inv2 = 1 - prog2;
+                            var px2 = inv2 * inv2 * x1 + 2 * inv2 * prog2 * midX + prog2 * prog2 * cx;
+                            var py2 = inv2 * inv2 * y1 + 2 * inv2 * prog2 * (y1 + curveOffset) + prog2 * prog2 * cy;
+
+                            var dot2 = threadSvg.children[i * 3 + 2];
+                            if(!dot2) {
+                                dot2 = d.createElementNS(svgNs, "circle");
+                                dot2.setAttribute("r", "1.8");
+                                dot2.setAttribute("opacity", "0.85");
+                                threadSvg.appendChild(dot2);
+                            }
+                            dot2.setAttribute("cx", String(px2.toFixed(1)));
+                            dot2.setAttribute("cy", String(py2.toFixed(1)));
+                            dot2.setAttribute("fill", "#ffffff");
                         }
                     }
 
@@ -1474,7 +1488,7 @@ def bot_script():
                             .replace("{P}", String(pctNum));
 
                         var rowCol = cyberPalette[seqNum % cyberPalette.length];
-                        var chkCol = cyberPalette[(seqNum + 2) % cyberPalette.length];
+                        var chkCol = cyberPalette[(seqNum + 3) % cyberPalette.length];
 
                         var row = d.createElement('div');
                         row.dataset.tcol = rowCol;
@@ -1494,38 +1508,51 @@ def bot_script():
                         var elapsed = nowTs - startTs;
                         var ratio = Math.min(1, elapsed / scanMs);
                         var vh = window.innerHeight || 720;
+                        var usableH = Math.max(40, vh - 12);
 
-                        if(beam1) beam1.style.transform = "translate3d(0," + ((Math.sin(elapsed * 0.0034) * 0.42 + 0.42) * vh * 0.84) + "px,0)";
-                        if(beam2) beam2.style.transform = "translate3d(0," + ((Math.cos(elapsed * 0.0040) * 0.42 + 0.42) * vh * 0.84) + "px,0)";
-                        if(beam3) beam3.style.transform = "translate3d(0," + ((Math.sin(elapsed * 0.0047 + 1.2) * 0.42 + 0.42) * vh * 0.84) + "px,0)";
+                        // Top beam sweeps full screen top -> bottom -> top; bottom beam sweeps bottom -> top -> bottom
+                        var waveTop = 0.5 - 0.5 * Math.cos(ratio * Math.PI * 3);
+                        var waveBot = 0.5 + 0.5 * Math.cos(ratio * Math.PI * 3);
+                        if(fullLaserTop) {
+                            fullLaserTop.style.transform = "translate3d(0," + (6 + waveTop * usableH) + "px,0)";
+                        }
+                        if(fullLaserBot) {
+                            fullLaserBot.style.transform = "translate3d(0," + (6 + waveBot * usableH) + "px,0)";
+                        }
 
                         var curPct = Math.max(1, Math.min(100, Math.round(ratio * 100)));
                         if(curPct !== lastPctSeen) {
                             lastPctSeen = curPct;
-                            var cMain = cyberPalette[curPct % cyberPalette.length];
-                            var cSec = cyberPalette[(curPct + 3) % cyberPalette.length];
                             if(ballPctEl) {
                                 ballPctEl.innerText = curPct + "%";
                                 ballPctEl.style.color = "#ffffff";
                             }
+                        }
+
+                        // Slow, smooth color progression on the center planet
+                        var colorBucket = Math.floor(elapsed / 1250);
+                        if(colorBucket !== lastColorBucket) {
+                            lastColorBucket = colorBucket;
+                            var cMain = cyberPalette[colorBucket % cyberPalette.length];
+                            var cSec = cyberPalette[(colorBucket + 3) % cyberPalette.length];
+                            var cThird = cyberPalette[(colorBucket + 6) % cyberPalette.length];
                             if(ballProcTagEl) {
-                                ballProcTagEl.innerText = "DATA PROC";
                                 ballProcTagEl.style.color = cMain;
                             }
                             if(ballNodeEl) {
-                                ballNodeEl.innerText = "0x" + ((curPct * 3) % 99).toString(16).toUpperCase().padStart(2, "0");
+                                ballNodeEl.innerText = "0x" + ((colorBucket * 11 + 7) % 99).toString(16).toUpperCase().padStart(2, "0");
                                 ballNodeEl.style.color = cSec;
                             }
                             if(planetRotatorEl) {
                                 planetRotatorEl.style.borderColor = cMain;
-                                planetRotatorEl.style.boxShadow = "inset -16px -14px 28px rgba(2,6,23,0.88), inset 10px 10px 22px rgba(255,255,255,0.25), 0 0 30px " + cMain;
+                                planetRotatorEl.style.boxShadow = "inset -16px -14px 28px rgba(2,6,23,0.88), inset 10px 10px 22px rgba(255,255,255,0.28), 0 0 36px " + cMain + ", 0 0 58px " + cThird;
                             }
                             if(planetHaloEl) {
-                                planetHaloEl.style.boxShadow = "0 0 38px " + cMain + ", 0 0 64px " + cSec;
+                                planetHaloEl.style.boxShadow = "0 0 44px " + cMain + ", 0 0 76px " + cSec;
                             }
                         }
 
-                        var logTick = Math.floor(elapsed / 85);
+                        var logTick = Math.floor(elapsed / 115);
                         if(logTick !== lastLogTick && leftCascadeEl && logSeq < 88) {
                             lastLogTick = logTick;
                             logSeq++;
@@ -1587,7 +1614,7 @@ def bot_script():
                         if(!auto5sRunning || !isModeOn) return;
                         runCyberHacking5sCycle(function(completed){
                             if(!auto5sRunning || !isModeOn) return;
-                            var waitMs = completed ? 3600 : 1200;
+                            var waitMs = completed ? 6500 : 1400;
                             window.__raAuto5sLoopTimer = setTimeout(scheduleNext, waitMs);
                         });
                     }
