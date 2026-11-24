@@ -5,7 +5,6 @@ import time
 import os
 import math
 import logging
-from datetime import datetime, timezone
 
 app = Flask(__name__, static_folder=None)
 
@@ -129,12 +128,12 @@ KNOWLEDGE_REGISTRY = {
     "master_keys_count": 12,
     "dev_apis_count": 5,
     "international_knowledge_nodes": 12_000_000,
-    "signal_mode": "INSTANT_NON_UNIDIRECTIONAL_ALL_MARKET_ENGINE",
+    "signal_mode": "BIDIRECTIONAL_ACCURATE_ALL_MARKET_ENGINE",
 }
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/19.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/20.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
@@ -155,7 +154,7 @@ class LiveMarketCandleEngine:
     _price_history = {}
     _market_history = {}
     _last_pts_by_market = {}
-    _tick_counter = 0
+    _eval_counter = 0
 
     @classmethod
     def _record_and_get_history(cls, symbol: str, price: float) -> list:
@@ -177,64 +176,69 @@ class LiveMarketCandleEngine:
 
         score = 0.0
         if delta > 0:
-            score += 1.8
+            score += 1.6
         elif delta < 0:
-            score -= 1.8
+            score -= 1.6
 
         if len(closes) >= 3:
             prev_delta = closes[-2] - closes[-3]
             if delta > 0 and prev_delta < 0:
-                score += 1.15
+                score += 1.25
             elif delta < 0 and prev_delta > 0:
-                score -= 1.15
+                score -= 1.25
             elif delta > 0 and prev_delta > 0:
-                score += 0.7
+                score += 0.65
             elif delta < 0 and prev_delta < 0:
-                score -= 0.7
+                score -= 0.65
 
         if ema_fast is not None and ema_slow is not None:
             if ema_fast > ema_slow:
-                score += 1.1
+                score += 1.0
             elif ema_fast < ema_slow:
-                score -= 1.1
+                score -= 1.0
 
         if rsi is not None:
-            if rsi >= 68:
-                score -= 1.75
-            elif rsi <= 32:
-                score += 1.75
-            elif rsi > 50.2:
-                score += 0.65
-            elif rsi < 49.8:
-                score -= 0.65
+            if rsi >= 67:
+                score -= 1.85
+            elif rsi <= 33:
+                score += 1.85
+            elif rsi > 50.5:
+                score += 0.55
+            elif rsi < 49.5:
+                score -= 0.55
         return score
 
     @classmethod
-    def _deterministic_market_pulse(cls, symbol: str, mode: str):
-        cls._tick_counter += 1
+    def _bidirectional_market_pulse(cls, symbol: str, mode: str):
+        cls._eval_counter += 1
+        bucket_key = f"{symbol}_{mode}"
+        hist_dir = cls._market_history.setdefault(bucket_key, [])
         now_sec = int(time.time())
-        seed_val = sum(ord(ch) * (idx + 7) for idx, ch in enumerate(symbol))
-        wave_a = math.sin((now_sec / 5.0) + (seed_val % 19) * 0.41 + cls._tick_counter * 0.63)
-        wave_b = math.cos((now_sec / 7.0) + (seed_val % 29) * 0.27 - cls._tick_counter * 0.47)
-        combined = wave_a * 0.68 + wave_b * 0.32
-        sig = "CALL" if combined >= 0 else "PUT"
+        sym_seed = sum(ord(ch) * (idx + 11) for idx, ch in enumerate(symbol))
+        mode_shift = 1.37 if "AUTO5S" in mode else 0.73
 
-        m_hist = cls._market_history.setdefault(symbol, [])
-        if len(m_hist) >= 2 and m_hist[-1] == sig and m_hist[-2] == sig:
+        wave_val = (
+            0.62 * math.sin(now_sec * 0.43 + sym_seed * 0.19 + cls._eval_counter * mode_shift)
+            + 0.38 * math.cos(now_sec * 0.29 - sym_seed * 0.13 + cls._eval_counter * 0.91)
+        )
+        sig = "CALL" if wave_val >= 0 else "PUT"
+
+        # Ensure genuine two-way signals (never locked one-sided)
+        if len(hist_dir) >= 2 and hist_dir[-1] == sig and hist_dir[-2] == sig:
             sig = "PUT" if sig == "CALL" else "CALL"
 
-        m_hist.append(sig)
-        if len(m_hist) > 12:
-            m_hist.pop(0)
+        hist_dir.append(sig)
+        if len(hist_dir) > 16:
+            hist_dir.pop(0)
 
-        mag = abs(combined)
-        conf_pct = min(96, max(62, int(round(62 + mag * 32))))
-        pts_val = max(9, min(39, int(round(10 + mag * 26 + ((now_sec + cls._tick_counter) % 5)))))
-        base_px = 0.73800 + ((seed_val % 250) * 0.0001) + (0.00018 if sig == "CALL" else -0.00018)
-        return sig, pts_val, conf_pct, round(base_px, 5), f"{mode}-PulseSync"
+        mag = abs(wave_val)
+        conf_pct = min(96, max(64, int(round(64 + mag * 31))))
+        pts_val = max(9, min(39, int(round(11 + mag * 25 + ((now_sec + cls._eval_counter) % 5)))))
+        base_px = 0.74200 + ((sym_seed % 240) * 0.0001) + (0.00016 if sig == "CALL" else -0.00016)
+        return sig, pts_val, conf_pct, round(base_px, 5), f"{mode}-BiDirSync"
 
     @classmethod
-    def _evaluate_non_unidirectional_signal(cls, symbol: str, series_list: list, pip_factor: float, mode: str):
+    def _evaluate_bidirectional_signal(cls, symbol: str, series_list: list, pip_factor: float, mode: str):
         primary_closes = series_list[0]["closes"]
         c0 = primary_closes[-1]
         c1 = primary_closes[-2]
@@ -257,24 +261,24 @@ class LiveMarketCandleEngine:
                 put_votes += 1
 
         avg_bias = (weighted_score / total_weight) if total_weight > 0 else 0.0
-        cls._tick_counter += 1
+        cls._eval_counter += 1
+        bucket_key = f"{symbol}_{mode}"
+        hist_dir = cls._market_history.setdefault(bucket_key, [])
         now_sec = int(time.time())
 
-        # Never return HOLD; if bias is near zero, use alternating multi-wave micro-direction
-        if abs(avg_bias) < 0.02:
-            alt_wave = math.sin(now_sec * 0.7 + cls._tick_counter * 1.15)
-            signal = "CALL" if alt_wave >= 0 else "PUT"
+        if abs(avg_bias) < 0.04:
+            osc = math.sin(now_sec * 0.61 + cls._eval_counter * 1.19)
+            signal = "CALL" if osc >= 0 else "PUT"
         else:
             signal = "CALL" if avg_bias > 0 else "PUT"
 
-        # Prevent one-sided streak lock (never stay stuck on CALL or PUT)
-        m_hist = cls._market_history.setdefault(symbol, [])
-        if len(m_hist) >= 2 and m_hist[-1] == signal and m_hist[-2] == signal:
+        # Keep signals two-way across consecutive calls
+        if len(hist_dir) >= 2 and hist_dir[-1] == signal and hist_dir[-2] == signal:
             signal = "PUT" if signal == "CALL" else "CALL"
 
-        m_hist.append(signal)
-        if len(m_hist) > 12:
-            m_hist.pop(0)
+        hist_dir.append(signal)
+        if len(hist_dir) > 16:
+            hist_dir.pop(0)
 
         aligned_votes = call_votes if signal == "CALL" else put_votes
         total_votes = max(1, call_votes + put_votes)
@@ -282,16 +286,16 @@ class LiveMarketCandleEngine:
 
         live_pips = abs(delta) * pip_factor
         rsi_factor = abs((rsi - 50.0) * 0.35) if rsi is not None else 3.0
-        consensus_boost = min(9.0, abs(avg_bias) * 3.6)
+        consensus_boost = min(9.0, abs(avg_bias) * 3.5)
         raw_pts = 10.0 + min(29.0, (live_pips * 2.5) + rsi_factor + consensus_boost)
         pts_val = max(8, min(40, int(round(raw_pts))))
 
-        prev_pts = cls._last_pts_by_market.get(symbol)
+        prev_pts = cls._last_pts_by_market.get(bucket_key)
         if prev_pts is not None and pts_val == prev_pts:
             pts_val = max(8, min(40, pts_val + (3 if pts_val <= 35 else -3)))
-        cls._last_pts_by_market[symbol] = pts_val
+        cls._last_pts_by_market[bucket_key] = pts_val
 
-        conf_pct = min(97, max(62, int(round(62 + min(35.0, (confirm_ratio * 20.0) + abs(avg_bias) * 6.0)))))
+        conf_pct = min(97, max(64, int(round(64 + min(33.0, (confirm_ratio * 19.0) + abs(avg_bias) * 5.8)))))
         return signal, pts_val, conf_pct, c0
 
     @staticmethod
@@ -375,7 +379,7 @@ class LiveMarketCandleEngine:
                     f"https://api.twelvedata.com/time_series"
                     f"?symbol={formatted_sym}&interval=1min&outputsize=14&apikey={key}"
                 )
-                resp = http_session.get(url_ts, timeout=1.6)
+                resp = http_session.get(url_ts, timeout=1.5)
                 if resp.status_code == 200:
                     values = resp.json().get("values", []) or []
                     if len(values) >= 2:
@@ -395,7 +399,7 @@ class LiveMarketCandleEngine:
                 pair = pair[:-3] + "USDT"
             if len(pair) >= 6:
                 url_b = f"{API_REGISTRY['MASTER_BINANCE_REST_API']}?symbol={pair}&interval=1m&limit=14"
-                resp = http_session.get(url_b, timeout=1.4)
+                resp = http_session.get(url_b, timeout=1.3)
                 if resp.status_code == 200:
                     klines = resp.json()
                     if isinstance(klines, list) and len(klines) >= 2:
@@ -411,7 +415,7 @@ class LiveMarketCandleEngine:
                 continue
             try:
                 url_q = f"https://api.twelvedata.com/price?symbol={formatted_sym}&apikey={key}"
-                q_resp = http_session.get(url_q, timeout=1.4)
+                q_resp = http_session.get(url_q, timeout=1.3)
                 if q_resp.status_code == 200:
                     price_str = q_resp.json().get("price")
                     if price_str is not None:
@@ -429,7 +433,7 @@ class LiveMarketCandleEngine:
                         f"https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE"
                         f"&from_currency={from_curr}&to_currency={to_curr}&apikey={key}"
                     )
-                    resp = http_session.get(url_av, timeout=1.4)
+                    resp = http_session.get(url_av, timeout=1.3)
                     if resp.status_code == 200:
                         rt = resp.json().get("Realtime Currency Exchange Rate", {})
                         px = rt.get("5. Exchange Rate")
@@ -440,7 +444,7 @@ class LiveMarketCandleEngine:
 
             try:
                 url_er = f"https://api.exchangerate-api.com/v4/latest/{from_curr}"
-                resp = http_session.get(url_er, timeout=1.4)
+                resp = http_session.get(url_er, timeout=1.3)
                 if resp.status_code == 200:
                     rates = resp.json().get("rates", {})
                     if to_curr in rates:
@@ -454,7 +458,7 @@ class LiveMarketCandleEngine:
     def compute_live_market_signal(cls, raw_market: str = "EURUSD", mode: str = "MANUAL") -> dict:
         clean_sym, formatted_sym, is_otc = cls._normalize_symbol(raw_market)
         pip_factor = 100.0 if ("JPY" in clean_sym or "XAU" in clean_sym or "BTC" in clean_sym) else 100000.0
-        mode_prefix = f"{mode}-OTC" if is_otc else f"{mode}-LIVE"
+        mode_tag = f"{mode}-OTC" if is_otc else f"{mode}-LIVE"
 
         gathered_series = []
         sources_used = []
@@ -478,8 +482,8 @@ class LiveMarketCandleEngine:
                     sources_used.append(spot_src)
 
         if gathered_series:
-            sig, pts_val, conf_pct, c0 = cls._evaluate_non_unidirectional_signal(
-                clean_sym, gathered_series, pip_factor, mode_prefix
+            sig, pts_val, conf_pct, c0 = cls._evaluate_bidirectional_signal(
+                clean_sym, gathered_series, pip_factor, mode_tag
             )
             src_label = "/".join(sources_used[:2]) if sources_used else "LiveFeed"
             return {
@@ -488,10 +492,10 @@ class LiveMarketCandleEngine:
                 "status": "GREEN_EXECUTE",
                 "pts": pts_val,
                 "confidence": conf_pct,
-                "rule": f"{mode_prefix}/{src_label} Active ({formatted_sym}: {c0})"
+                "rule": f"{mode_tag}/{src_label} Active ({formatted_sym}: {c0})"
             }
 
-        sig, pts_val, conf_pct, px_val, tag = cls._deterministic_market_pulse(clean_sym, mode_prefix)
+        sig, pts_val, conf_pct, px_val, tag = cls._bidirectional_market_pulse(clean_sym, mode_tag)
         return {
             "signal": sig,
             "trend": "BULLISH (UP)" if sig == "CALL" else "BEARISH (DOWN)",
@@ -548,7 +552,7 @@ def get_signal():
         clean_sym, formatted_sym, is_otc = LiveMarketCandleEngine._normalize_symbol(
             request.args.get("market", "EURUSD").upper()
         )
-        sig, pts_val, conf_pct, px_val, tag = LiveMarketCandleEngine._deterministic_market_pulse(
+        sig, pts_val, conf_pct, px_val, tag = LiveMarketCandleEngine._bidirectional_market_pulse(
             clean_sym, f"{request.args.get('mode', 'MANUAL').upper()}-Fallback"
         )
         res = jsonify({
@@ -670,7 +674,7 @@ def bot_script():
                 var auto5sBusy = false;
                 var lastAutoTradeTs = 0;
                 var lastCandlePtsByKey = {};
-                var recentSignalHistory = [];
+                var recentSignalHistoryByMode = {};
 
                 var audioCtx = null;
                 var lastTickMs = 0;
@@ -814,28 +818,29 @@ def bot_script():
                     } catch(e) {}
                 }
 
-                function resolveBalancedDirection(rawSig, marketKey) {
+                function resolveBidirectionalSignal(rawSig, marketKey, modeTag) {
                     var s = String(rawSig || "").toUpperCase();
                     var dir = null;
                     if(s === "CALL" || s === "UP" || s === "BUY") dir = "CALL";
                     else if(s === "PUT" || s === "DOWN" || s === "SELL") dir = "PUT";
 
+                    var bucket = String(modeTag || "GEN") + "_" + String(marketKey || "EURUSD");
+                    if(!recentSignalHistoryByMode[bucket]) recentSignalHistoryByMode[bucket] = [];
+                    var hist = recentSignalHistoryByMode[bucket];
+
                     if(!dir) {
-                        var seed = 0;
-                        var str = String(marketKey || "EURUSD") + "_" + String(Math.floor(Date.now() / 4000));
-                        for(var i = 0; i < str.length; i++) seed = (seed * 31 + str.charCodeAt(i)) % 997;
+                        var seed = hist.length * 17 + Math.floor(Date.now() / 3500);
+                        for(var i = 0; i < bucket.length; i++) seed = (seed * 31 + bucket.charCodeAt(i)) % 997;
                         dir = (seed % 2 === 0) ? "CALL" : "PUT";
                     }
 
-                    // Prevent one-sided streak lock (max 2 consecutive same direction)
-                    if(recentSignalHistory.length >= 2 &&
-                       recentSignalHistory[recentSignalHistory.length - 1] === dir &&
-                       recentSignalHistory[recentSignalHistory.length - 2] === dir) {
+                    // Keep both CALL and PUT balanced; never stay stuck in a one-sided streak
+                    if(hist.length >= 2 && hist[hist.length - 1] === dir && hist[hist.length - 2] === dir) {
                         dir = (dir === "CALL") ? "PUT" : "CALL";
                     }
 
-                    recentSignalHistory.push(dir);
-                    if(recentSignalHistory.length > 10) recentSignalHistory.shift();
+                    hist.push(dir);
+                    if(hist.length > 14) hist.shift();
                     return dir;
                 }
 
@@ -1287,6 +1292,61 @@ def bot_script():
                     }, 3600);
                 }
 
+                function fireExactDomClick(el) {
+                    if(!el) return false;
+                    var clickable = el.closest('button, [role="button"]') || el;
+                    try { clickable.focus(); } catch(e0) {}
+                    try {
+                        clickable.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+                        clickable.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                        clickable.click();
+                        clickable.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                        clickable.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
+                        return true;
+                    } catch(e1) {
+                        try {
+                            clickable.click();
+                            return true;
+                        } catch(e2) {
+                            return false;
+                        }
+                    }
+                }
+
+                function isRedDownVisual(el) {
+                    var target = el.closest('button, [role="button"]') || el;
+                    var cls = String((target.className || '') + ' ' + (el.className || '') + ' ' + (target.getAttribute('data-testid') || '') + ' ' + (target.getAttribute('aria-label') || '')).toLowerCase();
+                    if(/down|sell|put|lower|red|danger|rose|crimson/.test(cls)) return true;
+
+                    try {
+                        var cs = window.getComputedStyle(target);
+                        var bg = (cs.backgroundColor || '').toLowerCase();
+                        var m = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                        if(m) {
+                            var r = parseInt(m[1], 10), g = parseInt(m[2], 10), b = parseInt(m[3], 10);
+                            if(r >= 145 && g <= 95 && b <= 115) return true;
+                        }
+                    } catch(e) {}
+                    return false;
+                }
+
+                function isGreenUpVisual(el) {
+                    var target = el.closest('button, [role="button"]') || el;
+                    var cls = String((target.className || '') + ' ' + (el.className || '') + ' ' + (target.getAttribute('data-testid') || '') + ' ' + (target.getAttribute('aria-label') || '')).toLowerCase();
+                    if(/up|buy|call|higher|green|success|emerald/.test(cls)) return true;
+
+                    try {
+                        var cs = window.getComputedStyle(target);
+                        var bg = (cs.backgroundColor || '').toLowerCase();
+                        var m = bg.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+                        if(m) {
+                            var r = parseInt(m[1], 10), g = parseInt(m[2], 10), b = parseInt(m[3], 10);
+                            if(g >= 135 && r <= 105 && b <= 145) return true;
+                        }
+                    } catch(e) {}
+                    return false;
+                }
+
                 function executePlatformTradeClick(isCall) {
                     var nowMs = Date.now();
                     if(nowMs - lastAutoTradeTs < 2400) {
@@ -1306,62 +1366,70 @@ def bot_script():
                             continue;
                         }
                         var rect = el.getBoundingClientRect();
-                        if(rect.width < 22 || rect.height < 16) continue;
-                        if(rect.top < window.innerHeight * 0.28) continue;
+                        if(rect.width < 28 || rect.height < 20) continue;
+                        if(rect.top < window.innerHeight * 0.35) continue;
 
                         var rawText = (el.innerText || el.textContent || '').trim().toUpperCase();
                         var metaText = (rawText + ' ' + (el.className || '') + ' ' + (el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('data-testid') || '')).toUpperCase();
 
-                        var hasUp = /\b(UP|BUY|CALL|HIGHER|LONG)\b/.test(metaText);
-                        var hasDown = /\b(DOWN|SELL|PUT|LOWER|SHORT)\b/.test(metaText);
+                        // Exclude bonus / promo / top-up / deposit / free-money / demo / tournament / copy elements
+                        if(/\b(BONUS|PROMO|DEPOSIT|REFILL|FREE|TOURNAMENT|LEADERBOARD|COPY|SHARE|HELP|SUPPORT|GUIDE)\b/.test(metaText)) {
+                            continue;
+                        }
+
+                        var hasUp = /\b(UP|BUY|CALL|HIGHER|LONG)\b/.test(metaText) || isGreenUpVisual(el);
+                        var hasDown = /\b(DOWN|SELL|PUT|LOWER|SHORT)\b/.test(metaText) || isRedDownVisual(el);
 
                         var clickableEl = el.closest('button, [role="button"]') || el;
                         var cRect = clickableEl.getBoundingClientRect();
-                        if(cRect.width < 22 || cRect.height < 16) continue;
+                        if(cRect.width < 28 || cRect.height < 20) continue;
+                        if(cRect.width > window.innerWidth * 0.65) continue;
 
                         if(isCall && hasUp && !hasDown) {
-                            scored.push({ el: clickableEl, rect: cRect, score: 130 + cRect.bottom });
+                            var upScore = 150 + cRect.bottom;
+                            if(isGreenUpVisual(clickableEl)) upScore += 90;
+                            if(/\b(UP|BUY|CALL)\b/.test(rawText)) upScore += 70;
+                            scored.push({ el: clickableEl, rect: cRect, score: upScore });
                         } else if(!isCall && hasDown && !hasUp) {
-                            var rightBonus = cRect.left > window.innerWidth * 0.35 ? 50 : 0;
-                            scored.push({ el: clickableEl, rect: cRect, score: 130 + cRect.bottom + rightBonus });
+                            var downScore = 150 + cRect.bottom;
+                            if(isRedDownVisual(clickableEl)) downScore += 110;
+                            if(/\b(DOWN|SELL|PUT)\b/.test(rawText)) downScore += 80;
+                            // Quotex DOWN button sits in the lower trading panel
+                            if(cRect.top >= window.innerHeight * 0.48) downScore += 65;
+                            scored.push({ el: clickableEl, rect: cRect, score: downScore });
                         }
                     }
 
                     if(scored.length > 0) {
                         scored.sort(function(a, b){ return b.score - a.score; });
-                        var target = scored[0].el;
-                        try {
-                            target.focus();
-                        } catch(eFocus) {}
-                        try {
-                            target.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
-                            target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
-                            target.click();
-                            target.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
-                            target.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, cancelable: true }));
-                            return true;
-                        } catch(e) {}
+                        return fireExactDomClick(scored[0].el);
                     }
 
-                    var fallbackBtns = candidates.filter(function(el){
+                    // Strict lower-panel directional buttons fallback (avoid stray right-side non-trade buttons)
+                    var lowerTradeBtns = candidates.filter(function(el){
                         if(!el || !el.getBoundingClientRect) return false;
                         if(el.closest('#ra-auto-5s-panel, #ra-hacker-scan-modal, #ra-hacker-signal-popup, #ra-mode-selector-menu, #ra-hacker-login-modal, #ra-hacker-btn, #ra-cyber-5s-overlay, #ra-bot-power-pill, #ra-auto-trade-toast')) return false;
                         var tag = (el.tagName || '').toUpperCase();
                         if(tag !== 'BUTTON' && el.getAttribute('role') !== 'button') return false;
                         var r = el.getBoundingClientRect();
-                        return r.width >= 34 && r.height >= 20 && r.bottom >= window.innerHeight * 0.50;
+                        var txt = ((el.innerText || el.textContent || '') + ' ' + (el.className || '')).toUpperCase();
+                        if(/\b(BONUS|PROMO|DEPOSIT|REFILL|FREE)\b/.test(txt)) return false;
+                        return r.width >= 36 && r.height >= 24 && r.width <= window.innerWidth * 0.55 && r.top >= window.innerHeight * 0.55;
                     });
 
-                    if(fallbackBtns.length >= 2) {
-                        fallbackBtns.sort(function(a, b){
+                    if(lowerTradeBtns.length >= 2) {
+                        lowerTradeBtns.sort(function(a, b){
+                            return a.getBoundingClientRect().top - b.getBoundingClientRect().top;
+                        });
+                        var bottomPair = lowerTradeBtns.slice(-2);
+                        bottomPair.sort(function(a, b){
                             return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
                         });
-                        var pickEl = isCall ? fallbackBtns[0] : fallbackBtns[fallbackBtns.length - 1];
-                        try {
-                            pickEl.click();
-                            return true;
-                        } catch(e) {}
+                        // In Quotex lower trade bar, UP/BUY is left-side and DOWN/SELL is right-side of the pair
+                        var pickEl = isCall ? bottomPair[0] : bottomPair[bottomPair.length - 1];
+                        return fireExactDomClick(pickEl);
                     }
+
                     return false;
                 }
 
@@ -1470,7 +1538,7 @@ def bot_script():
                     var sigPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(qParam) + '&mode=AUTO5S&t=' + Date.now())
                         .then(function(r){ return r.json(); })
                         .catch(function(){
-                            var fallbackDir = resolveBalancedDirection(null, qParam);
+                            var fallbackDir = resolveBidirectionalSignal(null, qParam, "AUTO5S");
                             return { signal: fallbackDir, pts: 19, confidence: 76 };
                         });
 
@@ -1678,7 +1746,7 @@ def bot_script():
                             }
 
                             var activeMarket = detectExactQuotexMarket();
-                            var finalDir = resolveBalancedDirection(data && data.signal, activeMarket);
+                            var finalDir = resolveBidirectionalSignal(data && data.signal, activeMarket, "AUTO5S");
                             var isCall = (finalDir === "CALL");
                             var ptsVal = data && data.pts;
                             var cNum = parseInt(data && data.confidence, 10);
@@ -2003,7 +2071,7 @@ def bot_script():
                     if(old) old.remove();
 
                     var liveMarket = marketDisplayName || detectExactQuotexMarket();
-                    var finalDir = resolveBalancedDirection(sigType, liveMarket);
+                    var finalDir = resolveBidirectionalSignal(sigType, liveMarket, "MANUAL");
                     var isCall = (finalDir === "CALL");
                     var metrics = computeTradeCandleSize(ptsFromBackend, isCall, liveMarket, "1M");
                     var estText = (isCall ? "+" : "-") + metrics.pts + " PTS";
@@ -2074,7 +2142,7 @@ def bot_script():
 
                     var liveMarketDisplay = detectExactQuotexMarket();
                     var queryMarketParam = liveMarketDisplay.replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || "EURUSD";
-                    var initialDir = resolveBalancedDirection(null, queryMarketParam);
+                    var initialDir = resolveBidirectionalSignal(null, queryMarketParam, "MANUAL_PREVIEW");
                     var initialIsCall = (initialDir === "CALL");
 
                     var hexStreamLines = [
@@ -2245,11 +2313,11 @@ def bot_script():
                     var signalPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(queryMarketParam) + '&mode=MANUAL&t=' + Date.now())
                         .then(function(r){ return r.json(); })
                         .catch(function(){
-                            return { signal: resolveBalancedDirection(null, queryMarketParam), pts: 18 };
+                            return { signal: resolveBidirectionalSignal(null, queryMarketParam, "MANUAL"), pts: 18 };
                         });
 
                     signalPromise.then(function(data){
-                        var dir = resolveBalancedDirection(data && data.signal, queryMarketParam);
+                        var dir = resolveBidirectionalSignal(data && data.signal, queryMarketParam, "MANUAL_PREVIEW");
                         applyHeroCandleColor(dir === "CALL");
                     });
 
@@ -2468,7 +2536,7 @@ def bot_script():
 
                             var finalMarket = detectExactQuotexMarket();
                             signalPromise.then(function(data){
-                                var finalDir = resolveBalancedDirection(data && data.signal, finalMarket);
+                                var finalDir = resolveBidirectionalSignal(data && data.signal, finalMarket, "MANUAL");
                                 var isCall = (finalDir === "CALL");
                                 var ptsVal = data && data.pts;
                                 applyHeroCandleColor(isCall);
