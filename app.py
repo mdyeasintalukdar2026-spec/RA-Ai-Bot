@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, make_response, request
 import requests
-import hashlib
 import base64
 import time
 import os
@@ -14,8 +13,6 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
 )
 logger = logging.getLogger("RA_CANDLE_HACKER_Engine")
-
-BUILD_BOOT_TS = int(time.time())
 
 
 def _d(encoded_val: str) -> str:
@@ -122,27 +119,34 @@ POLYGON_KEYS_POOL = [
     API_REGISTRY["MASTER_MASSIVE_ALT_KEY_44"],
 ]
 
+TIMEZONE_OFFSET = float(os.environ.get("QX_TZ", "6"))
+
+KNOWLEDGE_REGISTRY = {
+    "core_logic_rules_count": 560,
+    "pro_max_modules_count": 50,
+    "backup_apis_count": 60,
+    "master_keys_count": 12,
+    "dev_apis_count": 5,
+    "international_knowledge_nodes": 12_000_000,
+    "signal_mode": "MULTI_SOURCE_AUTHENTIC_CONSENSUS_5S_SNIPER",
+}
+
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/19.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/15.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
     http_session.headers["X-Quantex-Key"] = API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]
 
 
-def add_cors_headers(response, is_js: bool = False, js_payload: str = ""):
+def add_cors_headers(response, is_js: bool = False):
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
     if is_js:
-        digest = hashlib.sha256(js_payload.encode("utf-8")).hexdigest()[:16]
         response.headers["Content-Type"] = "application/javascript; charset=utf-8"
-        response.headers["ETag"] = f'"{digest}-{BUILD_BOOT_TS}"'
-        response.headers["X-Bot-Build-Hash"] = digest
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     return response
 
 
@@ -160,33 +164,6 @@ class LiveMarketCandleEngine:
         if len(hist) > 24:
             hist.pop(0)
         return hist
-
-    @staticmethod
-    def _calc_rsi(closes: list, period: int = 6):
-        if len(closes) < period + 1:
-            return None
-        gains = []
-        losses = []
-        for i in range(1, len(closes)):
-            diff = closes[i] - closes[i - 1]
-            gains.append(max(0.0, diff))
-            losses.append(max(0.0, -diff))
-        avg_gain = sum(gains[-period:]) / period
-        avg_loss = sum(losses[-period:]) / period
-        if avg_loss == 0:
-            return 100.0 if avg_gain > 0 else 50.0
-        rs = avg_gain / avg_loss
-        return 100.0 - (100.0 / (1.0 + rs))
-
-    @staticmethod
-    def _calc_ema(closes: list, period: int = 5):
-        if not closes:
-            return None
-        k = 2.0 / (period + 1)
-        ema_val = closes[0]
-        for price in closes[1:]:
-            ema_val = (price * k) + (ema_val * (1.0 - k))
-        return ema_val
 
     @classmethod
     def _score_series_bias(cls, closes: list) -> float:
@@ -270,6 +247,7 @@ class LiveMarketCandleEngine:
         consensus_boost = min(8.0, abs(avg_bias) * 3.0)
         raw_pts = 9.0 + min(31.0, (live_pips * 2.2) + (rsi_factor % 11.0) + consensus_boost)
         pts_val = max(9, min(40, int(round(raw_pts))))
+
         conf_pct = min(99, max(92, int(round(92 + min(7.0, abs(avg_bias) * 3.2)))))
         return signal, pts_val, conf_pct, c0
 
@@ -300,8 +278,10 @@ class LiveMarketCandleEngine:
             events = cls._get_economic_events()
             if not events:
                 return True
+
             now_utc = datetime.now(timezone.utc)
             target_curr = currency.upper()
+
             for event in events:
                 ev_curr = str(event.get("currency", "")).upper()
                 impact = str(event.get("impact", "")).lower()
@@ -309,20 +289,53 @@ class LiveMarketCandleEngine:
                     continue
                 if impact not in ("high", "3"):
                     continue
+
                 event_time_str = str(event.get("time", "")).strip()
                 if not event_time_str:
                     continue
+
                 try:
-                    event_dt = datetime.fromisoformat(event_time_str.replace("Z", "+00:00"))
+                    normalized_str = event_time_str.replace("Z", "+00:00")
+                    event_dt = datetime.fromisoformat(normalized_str)
                     if event_dt.tzinfo is None:
                         event_dt = event_dt.replace(tzinfo=timezone.utc)
                     if abs((event_dt - now_utc).total_seconds()) <= 300:
                         return False
                 except ValueError:
                     continue
+
             return True
         except Exception:
             return True
+
+    @staticmethod
+    def _calc_rsi(closes: list, period: int = 6):
+        if len(closes) < period + 1:
+            return None
+        gains = []
+        losses = []
+        for i in range(1, len(closes)):
+            diff = closes[i] - closes[i - 1]
+            gains.append(max(0.0, diff))
+            losses.append(max(0.0, -diff))
+
+        avg_gain = sum(gains[-period:]) / period
+        avg_loss = sum(losses[-period:]) / period
+
+        if avg_loss == 0:
+            return 100.0 if avg_gain > 0 else 50.0
+        rs = avg_gain / avg_loss
+        return 100.0 - (100.0 / (1.0 + rs))
+
+    @staticmethod
+    def _calc_ema(closes: list, period: int = 5):
+        if not closes:
+            return None
+        k = 2.0 / (period + 1)
+        ema_val = closes[0]
+        for price in closes[1:]:
+            ema_val = (price * k) + (ema_val * (1.0 - k))
+        return ema_val
 
     @staticmethod
     def _normalize_symbol(raw_market: str) -> tuple:
@@ -526,794 +539,9 @@ class LiveMarketCandleEngine:
         }
 
 
-def _build_bot_js() -> str:
-    return """
-    (function(){
-        "use strict";
-
-        var SERVER_URL = "https://ra-ai-bot-1.onrender.com";
-        var BOT_AVATAR = "https://i.postimg.cc/Fz3xjQGZ/file-000000001cc082119080b22d35ecbaaa.png";
-        var COMMUNITY_AVATAR = "https://i.postimg.cc/k5NBY37k/file-0000000016a482119619e0cb99151c28.png";
-        var TELEGRAM_URL = "https://t.me/+x1QYA_1-sSs0NTk1";
-        var ACCESS_KEY = "Gop Gop2027";
-
-        var STORAGE_UNLOCK = "__raUnlockedSession_v6";
-        var STORAGE_MODE = "__raLockedMode_v6";
-        var STORAGE_ON = "__raModeIsOn_v6";
-
-        var lockedMode = null;
-        var isModeOn = false;
-        var autoLoopRunning = false;
-        var isScanningNow = false;
-        var lastTradeClickTs = 0;
-
-        var autoLoopTimer = null;
-        var scanFrameRaf = null;
-        var audioCtx = null;
-        var lastTickTime = 0;
-
-        var NEON_PALETTE = ["#00f0ff", "#22c55e", "#e879f9", "#facc15", "#fb7185", "#38bdf8", "#a855f7", "#4ade80"];
-
-        function loadState() {
-            try {
-                var m = window[STORAGE_MODE] || localStorage.getItem(STORAGE_MODE);
-                if (m === "MANUAL" || m === "5S_AUTO") lockedMode = m;
-                var onVal = window[STORAGE_ON];
-                if (typeof onVal !== "boolean") {
-                    var ls = localStorage.getItem(STORAGE_ON);
-                    onVal = (ls === "1" || ls === "true");
-                }
-                isModeOn = !!onVal;
-            } catch (_) {}
-        }
-
-        function saveMode(mode) {
-            lockedMode = mode;
-            try {
-                if (mode) {
-                    window[STORAGE_MODE] = mode;
-                    localStorage.setItem(STORAGE_MODE, mode);
-                } else {
-                    delete window[STORAGE_MODE];
-                    localStorage.removeItem(STORAGE_MODE);
-                }
-            } catch (_) {}
-        }
-
-        function saveModeOn(active) {
-            isModeOn = !!active;
-            try {
-                window[STORAGE_ON] = isModeOn;
-                localStorage.setItem(STORAGE_ON, isModeOn ? "1" : "0");
-            } catch (_) {}
-            updateOnBadge();
-        }
-
-        function getAudio() {
-            try {
-                var Ctx = window.AudioContext || window.webkitAudioContext;
-                if (!Ctx) return null;
-                if (!audioCtx) audioCtx = new Ctx();
-                if (audioCtx.state === "suspended") audioCtx.resume().catch(function(){});
-                return audioCtx;
-            } catch (_) {
-                return null;
-            }
-        }
-
-        function playScanTick() {
-            var nowMs = Date.now();
-            if (nowMs - lastTickTime < 105) return;
-            lastTickTime = nowMs;
-            var ctx = getAudio();
-            if (!ctx) return;
-            try {
-                var t = ctx.currentTime;
-                var osc = ctx.createOscillator();
-                var gain = ctx.createGain();
-                osc.type = "sawtooth";
-                osc.frequency.setValueAtTime(1080, t);
-                osc.frequency.exponentialRampToValueAtTime(410, t + 0.042);
-                gain.gain.setValueAtTime(0.001, t);
-                gain.gain.linearRampToValueAtTime(0.22, t + 0.006);
-                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.048);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start(t);
-                osc.stop(t + 0.052);
-            } catch (_) {}
-        }
-
-        function playTradeAlert(isUp) {
-            var ctx = getAudio();
-            if (!ctx) return;
-            try {
-                var t = ctx.currentTime;
-                var osc1 = ctx.createOscillator();
-                var osc2 = ctx.createOscillator();
-                var gain = ctx.createGain();
-                osc1.type = "sine";
-                osc2.type = "triangle";
-                if (isUp) {
-                    osc1.frequency.setValueAtTime(520, t);
-                    osc1.frequency.exponentialRampToValueAtTime(1140, t + 0.18);
-                    osc2.frequency.setValueAtTime(780, t);
-                    osc2.frequency.exponentialRampToValueAtTime(1420, t + 0.2);
-                } else {
-                    osc1.frequency.setValueAtTime(660, t);
-                    osc1.frequency.exponentialRampToValueAtTime(240, t + 0.2);
-                    osc2.frequency.setValueAtTime(440, t);
-                    osc2.frequency.exponentialRampToValueAtTime(175, t + 0.22);
-                }
-                gain.gain.setValueAtTime(0.001, t);
-                gain.gain.linearRampToValueAtTime(0.4, t + 0.015);
-                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-                osc1.connect(gain);
-                osc2.connect(gain);
-                gain.connect(ctx.destination);
-                osc1.start(t);
-                osc2.start(t);
-                osc1.stop(t + 0.26);
-                osc2.stop(t + 0.26);
-            } catch (_) {}
-        }
-
-        function injectStyles() {
-            if (document.getElementById("ra-cyber-ultra-styles")) return;
-            var style = document.createElement("style");
-            style.id = "ra-cyber-ultra-styles";
-            style.textContent =
-                "@keyframes raSpinCW { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }" +
-                "@keyframes raSpinCCW { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }" +
-                "@keyframes raAuraUltra { " +
-                "  0% { box-shadow: 0 0 24px #00f0ff, 0 0 54px rgba(0,240,255,0.92), 0 0 82px rgba(232,121,249,0.65); } " +
-                "  25% { box-shadow: 0 0 26px #22c55e, 0 0 58px rgba(34,197,94,0.94), 0 0 84px rgba(250,204,21,0.65); } " +
-                "  50% { box-shadow: 0 0 26px #e879f9, 0 0 58px rgba(232,121,249,0.94), 0 0 84px rgba(0,240,255,0.65); } " +
-                "  75% { box-shadow: 0 0 26px #facc15, 0 0 58px rgba(250,204,21,0.94), 0 0 84px rgba(251,113,133,0.65); } " +
-                "  100% { box-shadow: 0 0 24px #00f0ff, 0 0 54px rgba(0,240,255,0.92), 0 0 82px rgba(232,121,249,0.65); } " +
-                "}" +
-                "@keyframes raLoginBorderFast { " +
-                "  0% { border-color: #22c55e; box-shadow: 0 0 24px rgba(34,197,94,0.95), 0 0 48px rgba(0,240,255,0.55); } " +
-                "  25% { border-color: #00f0ff; box-shadow: 0 0 28px rgba(0,240,255,0.98), 0 0 54px rgba(232,121,249,0.58); } " +
-                "  50% { border-color: #e879f9; box-shadow: 0 0 28px rgba(232,121,249,0.98), 0 0 54px rgba(250,204,21,0.58); } " +
-                "  75% { border-color: #facc15; box-shadow: 0 0 28px rgba(250,204,21,0.98), 0 0 54px rgba(34,197,94,0.58); } " +
-                "  100% { border-color: #22c55e; box-shadow: 0 0 24px rgba(34,197,94,0.95), 0 0 48px rgba(0,240,255,0.55); } " +
-                "}" +
-                "@keyframes raFullChartPulse { " +
-                "  0% { border-color: #00f0ff; box-shadow: inset 0 0 90px rgba(0,240,255,0.28), 0 0 46px rgba(0,240,255,0.72); } " +
-                "  25% { border-color: #22c55e; box-shadow: inset 0 0 95px rgba(34,197,94,0.28), 0 0 50px rgba(34,197,94,0.72); } " +
-                "  50% { border-color: #e879f9; box-shadow: inset 0 0 95px rgba(232,121,249,0.32), 0 0 50px rgba(232,121,249,0.76); } " +
-                "  75% { border-color: #facc15; box-shadow: inset 0 0 95px rgba(250,204,21,0.28), 0 0 50px rgba(250,204,21,0.72); } " +
-                "  100% { border-color: #00f0ff; box-shadow: inset 0 0 90px rgba(0,240,255,0.28), 0 0 46px rgba(0,240,255,0.72); } " +
-                "}" +
-                "@keyframes raSignalPop { " +
-                "  0% { opacity: 0; transform: translate(-50%, -40%) scale(0.72); } " +
-                "  70% { opacity: 1; transform: translate(-50%, -51%) scale(1.05); } " +
-                "  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } " +
-                "}" +
-                "@keyframes raCandleReveal { " +
-                "  0% { transform: scaleY(0.15); opacity: 0.4; } " +
-                "  100% { transform: scaleY(1); opacity: 1; } " +
-                "}";
-            (document.head || document.documentElement).appendChild(style);
-        }
-
-        function detectMarketPair() {
-            try {
-                var nodes = document.querySelectorAll("span, div, button, p");
-                for (var i = 0; i < nodes.length; i++) {
-                    var el = nodes[i];
-                    if (el.children.length === 0) {
-                        var txt = (el.innerText || "").trim().replace(/\\s+/g, " ");
-                        if (/^[A-Z0-9]{2,8}\\s*\\/\\s*[A-Z0-9]{2,8}(\\s*\\(?(OTC|REAL)\\)?)?$/i.test(txt) && txt.length <= 24) {
-                            var r = el.getBoundingClientRect();
-                            if (r.width > 20 && r.height > 8 && r.top > 30 && r.top < window.innerHeight - 30) {
-                                return txt.replace(/\\s*\\/\\s*/, "/").toUpperCase();
-                            }
-                        }
-                    }
-                }
-            } catch (_) {}
-            return "EUR/USD";
-        }
-
-        function clickBrokerTradeButton(isUp) {
-            var now = Date.now();
-            if (now - lastTradeClickTs < 2200) return false;
-            lastTradeClickTs = now;
-
-            var elements = Array.prototype.slice.call(document.querySelectorAll("button, [role='button'], a, div"));
-            var matches = [];
-
-            for (var i = 0; i < elements.length; i++) {
-                var el = elements[i];
-                if (!el || !el.getBoundingClientRect) continue;
-                if (el.closest("#ra-hacker-btn, #ra-mode-menu, #ra-login-box, #ra-fullchart-cyber-overlay, #ra-manual-scan-box, #ra-signal-card")) continue;
-
-                var rect = el.getBoundingClientRect();
-                if (rect.width < 28 || rect.height < 22) continue;
-                if (rect.top < window.innerHeight * 0.36) continue;
-
-                var label = ((el.innerText || el.textContent || "") + " " + (el.className || "") + " " + (el.getAttribute("aria-label") || "")).toUpperCase();
-                var upHit = /\\b(UP|BUY|CALL|HIGHER|LONG)\\b/.test(label);
-                var downHit = /\\b(DOWN|SELL|PUT|LOWER|SHORT)\\b/.test(label);
-
-                if (isUp && upHit && !downHit) {
-                    matches.push({ el: el, score: rect.bottom + (rect.left > window.innerWidth * 0.5 ? 25 : 0) });
-                } else if (!isUp && downHit && !upHit) {
-                    matches.push({ el: el, score: rect.bottom + (rect.left > window.innerWidth * 0.5 ? 45 : 0) });
-                }
-            }
-
-            if (matches.length > 0) {
-                matches.sort(function(a, b){ return b.score - a.score; });
-                var target = matches[0].el;
-                try {
-                    target.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, cancelable: true }));
-                    target.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
-                    target.click();
-                    target.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true }));
-                    return true;
-                } catch (_) {}
-            }
-
-            var bottomButtons = elements.filter(function(el){
-                if (!el || !el.getBoundingClientRect) return false;
-                if (el.closest("#ra-hacker-btn, #ra-mode-menu, #ra-login-box, #ra-fullchart-cyber-overlay, #ra-manual-scan-box, #ra-signal-card")) return false;
-                var r = el.getBoundingClientRect();
-                return r.width >= 48 && r.height >= 28 && r.bottom >= window.innerHeight - 135;
-            });
-
-            if (bottomButtons.length >= 2) {
-                bottomButtons.sort(function(a, b){ return a.getBoundingClientRect().left - b.getBoundingClientRect().left; });
-                var chosen = isUp ? bottomButtons[0] : bottomButtons[bottomButtons.length - 1];
-                try {
-                    chosen.click();
-                    return true;
-                } catch (_) {}
-            }
-            return false;
-        }
-
-        function clearAllScanOverlays() {
-            if (scanFrameRaf) {
-                cancelAnimationFrame(scanFrameRaf);
-                scanFrameRaf = null;
-            }
-            var ov = document.getElementById("ra-fullchart-cyber-overlay");
-            if (ov) ov.remove();
-            var mb = document.getElementById("ra-manual-scan-box");
-            if (mb) mb.remove();
-        }
-
-        function showSignalAnimationCard(signal, pairName, ptsRaw, didTrade) {
-            var prev = document.getElementById("ra-signal-card");
-            if (prev) prev.remove();
-
-            var isHold = signal === "HOLD";
-            var isUp = signal === "CALL" || signal === "UP" || signal === "BUY";
-            var ptsNum = Math.max(8, Math.min(40, parseInt(ptsRaw, 10) || 20));
-            var ratio = (ptsNum - 8) / 32;
-            var heightPx = Math.round(14 + ratio * 48);
-            var widthPx = Math.round(12 + ratio * 12);
-            var sizeLabel = ptsNum <= 14 ? "SMALL" : (ptsNum <= 27 ? "MEDIUM" : "LARGE");
-
-            var color = isHold ? "#facc15" : (isUp ? "#22c55e" : "#ef4444");
-            var accentNeon = isHold ? "#00f0ff" : (isUp ? "#00f0ff" : "#e879f9");
-            var bgGrad = isHold
-                ? "linear-gradient(160deg, rgba(32,24,4,0.97), rgba(10,16,26,0.98))"
-                : (isUp
-                    ? "linear-gradient(160deg, rgba(5,38,22,0.97), rgba(6,22,36,0.98))"
-                    : "linear-gradient(160deg, rgba(44,8,16,0.97), rgba(22,7,32,0.98))");
-
-            var card = document.createElement("div");
-            card.id = "ra-signal-card";
-            card.style.cssText =
-                "position:fixed;top:48%;left:50%;transform:translate(-50%,-50%);width:176px;" +
-                "background:" + bgGrad + ";border:2.4px solid " + color + ";border-radius:14px;" +
-                "padding:10px 11px 9px;z-index:2147483647;pointer-events:none;" +
-                "font-family:'Courier New',monospace;color:#ffffff;text-align:center;" +
-                "box-shadow:0 0 36px " + color + ", 0 0 74px " + accentNeon + ";" +
-                "animation:raSignalPop 0.25s ease-out;";
-
-            var dirTitle = isHold ? "● HOLD / SYNC" : (isUp ? "▲ UP (BUY)" : "▼ DOWN (SELL)");
-            var ptsText = isHold ? "WAIT" : ((isUp ? "+" : "-") + ptsNum + " PTS");
-            var execStatus = didTrade ? (isUp ? "AUTO BUY EXECUTED ✓" : "AUTO SELL EXECUTED ✓") : (isHold ? "FILTER ACTIVE" : "SIGNAL LOCKED");
-
-            var candleHtml = isHold
-                ? "<div style='height:70px;display:flex;align-items:center;justify-content:center;color:#facc15;font-size:10px;font-weight:900;'>SYNCING FEED...</div>"
-                : "<div style='height:76px;display:flex;flex-direction:column;align-items:center;justify-content:" + (isUp ? "flex-end" : "flex-start") + ";animation:raCandleReveal 0.25s ease-out;'>" +
-                    (isUp ? "<div style='font-size:8.5px;font-weight:900;color:#4ade80;margin-bottom:2px;text-shadow:0 0 10px #22c55e;'>" + ptsText + "</div>" : "") +
-                    "<span style='width:2.5px;height:7px;background:" + color + ";box-shadow:0 0 12px " + color + ";'></span>" +
-                    "<span style='width:" + widthPx + "px;height:" + heightPx + "px;background:" + color + ";border-radius:3px;box-shadow:0 0 26px " + color + ", 0 0 42px " + accentNeon + ";'></span>" +
-                    "<span style='width:2.5px;height:7px;background:" + color + ";box-shadow:0 0 12px " + color + ";'></span>" +
-                    (!isUp ? "<div style='font-size:8.5px;font-weight:900;color:#f87171;margin-top:2px;text-shadow:0 0 10px #ef4444;'>" + ptsText + "</div>" : "") +
-                  "</div>";
-
-            card.innerHTML =
-                "<div style='font-size:7.5px;font-weight:900;color:#00f0ff;letter-spacing:0.6px;'>R-A CYBER HACKER</div>" +
-                "<div style='font-size:12px;font-weight:900;color:" + color + ";margin:2px 0 6px;text-shadow:0 0 14px " + color + ";'>" + dirTitle + "</div>" +
-                "<div style='background:rgba(2,8,14,0.9);border:1.4px solid " + accentNeon + ";border-radius:9px;padding:6px 4px;margin-bottom:6px;box-shadow:inset 0 0 14px rgba(0,240,255,0.22);'>" +
-                candleHtml +
-                "<div style='font-size:7.5px;font-weight:900;color:" + color + ";margin-top:4px;'>" + sizeLabel + " CANDLE • " + pairName + "</div>" +
-                "</div>" +
-                "<div style='font-size:7.5px;font-weight:900;color:#facc15;letter-spacing:0.4px;'>" + execStatus + "</div>";
-
-            (document.body || document.documentElement).appendChild(card);
-            setTimeout(function(){
-                if (card.parentNode) card.remove();
-            }, 3400);
-        }
-
-        function runManualClassicScan(onDoneCallback) {
-            if (isScanningNow) return;
-            isScanningNow = true;
-            clearAllScanOverlays();
-
-            var pairName = detectMarketPair();
-            var marketQuery = pairName.replace(/[^A-Z0-9]/g, "_") || "EURUSD";
-            var scanDurationMs = 3600;
-            var startTime = performance.now();
-
-            var host = document.body || document.documentElement;
-            var box = document.createElement("div");
-            box.id = "ra-manual-scan-box";
-            box.style.cssText =
-                "position:fixed;top:48%;left:50%;transform:translate(-50%,-50%);width:184px;" +
-                "background:linear-gradient(165deg, rgba(6,16,28,0.97), rgba(16,8,34,0.98));" +
-                "border:2px solid #00f0ff;border-radius:14px;padding:10px;z-index:2147483647;" +
-                "pointer-events:none;font-family:'Courier New',monospace;color:#fff;text-align:center;" +
-                "box-shadow:0 0 28px rgba(0,240,255,0.65), 0 0 54px rgba(232,121,249,0.35);";
-
-            box.innerHTML =
-                "<div style='font-size:8px;font-weight:900;color:#4ade80;letter-spacing:0.6px;'>MANUAL SCAN • " + pairName + "</div>" +
-                "<div id='ra-manual-pct' style='font-size:12px;font-weight:900;color:#00f0ff;margin:4px 0 6px;'>SCANNING 1%</div>" +
-                "<div style='width:100%;height:6px;background:rgba(255,255,255,0.12);border-radius:6px;overflow:hidden;'>" +
-                "  <div id='ra-manual-bar' style='width:2%;height:100%;background:linear-gradient(90deg,#00f0ff,#22c55e,#e879f9);'></div>" +
-                "</div>";
-
-            host.appendChild(box);
-            var pctEl = box.querySelector("#ra-manual-pct");
-            var barEl = box.querySelector("#ra-manual-bar");
-
-            var signalPromise = fetch(SERVER_URL + "/signal?market=" + encodeURIComponent(marketQuery) + "&mode=MANUAL&t=" + Date.now(), { cache: "no-store" })
-                .then(function(r){ return r.json(); })
-                .catch(function(){ return { signal: "HOLD", pts: 0 }; });
-
-            function stepManual(now) {
-                if (!box.isConnected) {
-                    isScanningNow = false;
-                    if (typeof onDoneCallback === "function") onDoneCallback();
-                    return;
-                }
-                var progress = Math.min(1, (now - startTime) / scanDurationMs);
-                var pct = Math.max(1, Math.min(100, Math.round(progress * 100)));
-                if (pctEl) pctEl.textContent = "SCANNING " + pct + "%";
-                if (barEl) barEl.style.width = pct + "%";
-                playScanTick();
-
-                if (progress < 1) {
-                    scanFrameRaf = requestAnimationFrame(stepManual);
-                    return;
-                }
-
-                signalPromise.then(function(data){
-                    clearAllScanOverlays();
-                    isScanningNow = false;
-                    var sig = String((data && data.signal) || "HOLD").toUpperCase();
-                    var isUp = sig === "CALL" || sig === "UP" || sig === "BUY";
-                    var isDown = sig === "PUT" || sig === "DOWN" || sig === "SELL";
-                    if (isUp || isDown) playTradeAlert(isUp);
-                    showSignalAnimationCard(sig, detectMarketPair(), data && data.pts, false);
-                    if (typeof onDoneCallback === "function") onDoneCallback();
-                });
-            }
-
-            scanFrameRaf = requestAnimationFrame(stepManual);
-        }
-
-        function runFullChartCyberScan(onDoneCallback) {
-            if (isScanningNow) return;
-            isScanningNow = true;
-            clearAllScanOverlays();
-
-            var pairName = detectMarketPair();
-            var marketQuery = pairName.replace(/[^A-Z0-9]/g, "_") || "EURUSD";
-            var scanDurationMs = 5800;
-            var startTime = performance.now();
-
-            var host = document.body || document.documentElement;
-            var overlay = document.createElement("div");
-            overlay.id = "ra-fullchart-cyber-overlay";
-            overlay.style.cssText =
-                "position:fixed;inset:0;z-index:2147483645;pointer-events:none;overflow:hidden;" +
-                "border:3px solid #00f0ff;box-sizing:border-box;" +
-                "background:radial-gradient(circle at center, rgba(0,240,255,0.08) 0%, rgba(232,121,249,0.09) 42%, rgba(34,197,94,0.08) 72%, rgba(2,10,18,0.28) 100%);" +
-                "font-family:'Courier New',monospace;animation:raFullChartPulse 1.8s infinite linear;will-change:transform,opacity;";
-
-            var beamsHtml =
-                "<div id='ra-beam-1' style='position:fixed;left:0;right:0;height:7px;top:12%;background:linear-gradient(90deg,transparent,#00f0ff 22%,#22c55e 55%,#e879f9 85%,transparent);box-shadow:0 0 26px #00f0ff,0 0 48px #22c55e;will-change:transform;'></div>" +
-                "<div id='ra-beam-2' style='position:fixed;left:0;right:0;height:6px;top:48%;background:linear-gradient(90deg,transparent,#e879f9 20%,#facc15 50%,#00f0ff 82%,transparent);box-shadow:0 0 26px #e879f9,0 0 46px #facc15;will-change:transform;'></div>" +
-                "<div id='ra-beam-3' style='position:fixed;left:0;right:0;height:7px;top:82%;background:linear-gradient(90deg,transparent,#22c55e 18%,#00f0ff 52%,#fb7185 86%,transparent);box-shadow:0 0 26px #22c55e,0 0 46px #00f0ff;will-change:transform;'></div>";
-
-            overlay.innerHTML =
-                "<div style='position:fixed;inset:0;background-image:linear-gradient(rgba(0,240,255,0.11) 1px, transparent 1px), linear-gradient(90deg, rgba(232,121,249,0.1) 1px, transparent 1px);background-size:32px 32px;opacity:0.84;'></div>" +
-                beamsHtml +
-                "<div style='position:fixed;top:46px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;'>" +
-                "  <div id='ra-cyber-feed-line' style='background:rgba(3,12,22,0.88);border:1.6px solid #22c55e;border-radius:8px;padding:5px 10px;color:#4ade80;font-size:9.5px;font-weight:900;max-width:66%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 0 20px rgba(34,197,94,0.65);'>⚡ CYBER EXPLOIT [" + pairName + "] • HOOK 0x7FF8A120</div>" +
-                "  <div id='ra-cyber-scan-pct' style='background:rgba(16,6,30,0.92);border:1.8px solid #e879f9;border-radius:8px;padding:5px 11px;color:#00f0ff;font-size:11px;font-weight:900;box-shadow:0 0 22px rgba(232,121,249,0.72);'>SCANNING 1%</div>" +
-                "</div>" +
-                "<div id='ra-cyber-stream-log' style='position:fixed;top:82px;right:12px;width:196px;max-height:112px;overflow:hidden;background:rgba(2,9,16,0.82);border-right:2.5px solid #e879f9;padding:6px 8px;border-radius:8px 0 0 8px;font-size:8.2px;line-height:1.38;color:#00f0ff;box-shadow:0 0 20px rgba(0,240,255,0.32);'></div>";
-
-            host.appendChild(overlay);
-
-            var pctEl = overlay.querySelector("#ra-cyber-scan-pct");
-            var feedEl = overlay.querySelector("#ra-cyber-feed-line");
-            var logEl = overlay.querySelector("#ra-cyber-stream-log");
-            var beam1 = overlay.querySelector("#ra-beam-1");
-            var beam2 = overlay.querySelector("#ra-beam-2");
-            var beam3 = overlay.querySelector("#ra-beam-3");
-
-            var cyberStreamPool = [
-                ">> ROOT 0x7FF8A120: CHART TICK STREAM BREACHED",
-                ">> MATRIX GRID: LIQUIDITY & WICK DEPTH MAPPED",
-                ">> QUANT CORE: MULTI-API CONSENSUS LOCKED",
-                ">> LASER ARRAY: VOLATILITY SPIKE DETECTED",
-                ">> ORDER BOOK: BUY/SELL PRESSURE CALCULATED",
-                ">> CYBER NODE: MICRO-CANDLE MOMENTUM SYNC",
-                ">> EXPLOIT BUS: EXECUTION VECTOR READY"
-            ];
-
-            var signalPromise = fetch(SERVER_URL + "/signal?market=" + encodeURIComponent(marketQuery) + "&mode=AUTO5S&t=" + Date.now(), { cache: "no-store" })
-                .then(function(r){ return r.json(); })
-                .catch(function(){ return { signal: "HOLD", pts: 0 }; });
-
-            var lastPct = 0;
-            var lastStreamTick = -1;
-            var streamCursor = 0;
-
-            function stepScan(now) {
-                if (!overlay.isConnected) {
-                    isScanningNow = false;
-                    if (typeof onDoneCallback === "function") onDoneCallback();
-                    return;
-                }
-
-                var elapsed = now - startTime;
-                var progress = Math.min(1, elapsed / scanDurationMs);
-                var vh = window.innerHeight || 720;
-
-                if (beam1) beam1.style.transform = "translate3d(0," + ((Math.sin(elapsed * 0.0042) * 0.42 + 0.42) * vh * 0.85) + "px,0)";
-                if (beam2) beam2.style.transform = "translate3d(0," + ((Math.cos(elapsed * 0.0051) * 0.44 + 0.44) * vh * 0.85) + "px,0)";
-                if (beam3) beam3.style.transform = "translate3d(0," + ((Math.sin(elapsed * 0.0063 + 1.4) * 0.42 + 0.42) * vh * 0.85) + "px,0)";
-
-                var pct = Math.max(1, Math.min(100, Math.round(progress * 100)));
-                if (pct !== lastPct) {
-                    lastPct = pct;
-                    var c1 = NEON_PALETTE[pct % NEON_PALETTE.length];
-                    var c2 = NEON_PALETTE[(pct + 3) % NEON_PALETTE.length];
-                    if (pctEl) {
-                        pctEl.textContent = "SCANNING " + pct + "%";
-                        pctEl.style.color = c1;
-                        pctEl.style.borderColor = c2;
-                    }
-                }
-
-                var streamStep = Math.floor(elapsed / 260);
-                if (streamStep !== lastStreamTick && logEl) {
-                    lastStreamTick = streamStep;
-                    var msgText = cyberStreamPool[streamCursor % cyberStreamPool.length];
-                    var lineColor = NEON_PALETTE[streamCursor % NEON_PALETTE.length];
-                    streamCursor++;
-
-                    if (feedEl) {
-                        feedEl.textContent = msgText.replace(/^>>\\s*/, "⚡ ");
-                        feedEl.style.color = lineColor;
-                        feedEl.style.borderColor = lineColor;
-                    }
-
-                    var row = document.createElement("div");
-                    row.style.color = lineColor;
-                    row.textContent = msgText;
-                    logEl.insertBefore(row, logEl.firstChild);
-                    while (logEl.children.length > 6) {
-                        logEl.removeChild(logEl.lastChild);
-                    }
-                    playScanTick();
-                }
-
-                if (progress < 1) {
-                    scanFrameRaf = requestAnimationFrame(stepScan);
-                    return;
-                }
-
-                signalPromise.then(function(data){
-                    clearAllScanOverlays();
-                    isScanningNow = false;
-
-                    var sig = String((data && data.signal) || "HOLD").toUpperCase();
-                    var isUp = sig === "CALL" || sig === "UP" || sig === "BUY";
-                    var isDown = sig === "PUT" || sig === "DOWN" || sig === "SELL";
-
-                    var didClick = false;
-                    if (isUp || isDown) {
-                        playTradeAlert(isUp);
-                        if (isModeOn) {
-                            didClick = clickBrokerTradeButton(isUp);
-                        }
-                    }
-
-                    showSignalAnimationCard(sig, detectMarketPair(), data && data.pts, didClick);
-
-                    if (typeof onDoneCallback === "function") {
-                        onDoneCallback();
-                    }
-                });
-            }
-
-            scanFrameRaf = requestAnimationFrame(stepScan);
-        }
-
-        function stopAuto5sLoop() {
-            autoLoopRunning = false;
-            if (autoLoopTimer) {
-                clearTimeout(autoLoopTimer);
-                autoLoopTimer = null;
-            }
-            clearAllScanOverlays();
-            isScanningNow = false;
-        }
-
-        function startAuto5sLoop() {
-            stopAuto5sLoop();
-            autoLoopRunning = true;
-            saveModeOn(true);
-
-            function cycle() {
-                if (!autoLoopRunning || !isModeOn) return;
-                runFullChartCyberScan(function(){
-                    if (!autoLoopRunning || !isModeOn) return;
-                    autoLoopTimer = setTimeout(cycle, 4500);
-                });
-            }
-            cycle();
-        }
-
-        function activateLockedMode(mode) {
-            saveMode(mode);
-            saveModeOn(true);
-            var menu = document.getElementById("ra-mode-menu");
-            if (menu) menu.remove();
-
-            if (mode === "5S_AUTO") {
-                startAuto5sLoop();
-            } else {
-                stopAuto5sLoop();
-                saveModeOn(true);
-                runManualClassicScan();
-            }
-        }
-
-        function turnBotOff() {
-            stopAuto5sLoop();
-            saveModeOn(false);
-            var menu = document.getElementById("ra-mode-menu");
-            if (menu) menu.remove();
-            var card = document.getElementById("ra-signal-card");
-            if (card) card.remove();
-        }
-
-        function updateOnBadge() {
-            var badge = document.getElementById("ra-bot-on-btn");
-            if (!badge) return;
-            badge.style.display = (isModeOn && lockedMode) ? "inline-flex" : "none";
-        }
-
-        function toggleModeMenu(botBtn) {
-            var existing = document.getElementById("ra-mode-menu");
-            if (existing) {
-                existing.remove();
-                return;
-            }
-
-            var rect = botBtn.getBoundingClientRect();
-            var menu = document.createElement("div");
-            menu.id = "ra-mode-menu";
-            menu.style.cssText =
-                "position:fixed;width:196px;" +
-                "left:" + Math.max(8, Math.min(window.innerWidth - 204, rect.left + rect.width / 2 - 98)) + "px;" +
-                "top:" + Math.max(60, rect.top - 100) + "px;" +
-                "background:linear-gradient(165deg, rgba(6,16,28,0.98), rgba(18,8,34,0.98));" +
-                "border:2px solid #00f0ff;border-radius:12px;padding:7px;z-index:2147483647;" +
-                "font-family:'Segoe UI',Roboto,Arial,sans-serif;box-shadow:0 0 26px rgba(0,240,255,0.68), 0 0 42px rgba(232,121,249,0.35);";
-
-            menu.innerHTML =
-                "<button id='ra-pick-manual' type='button' style='width:100%;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg,rgba(34,197,94,0.22),rgba(0,240,255,0.16));border:1.4px solid #4ade80;border-radius:8px;padding:7px 9px;color:#fff;font-size:10.5px;font-weight:800;cursor:pointer;margin-bottom:6px;'>" +
-                "  <span>Manual Signal</span>" +
-                "  <span style='background:#22c55e;color:#041208;padding:1px 6px;border-radius:6px;font-size:8.5px;font-weight:900;'>1M</span>" +
-                "</button>" +
-                "<button id='ra-pick-5s' type='button' style='width:100%;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg,rgba(232,121,249,0.24),rgba(250,204,21,0.18));border:1.4px solid #e879f9;border-radius:8px;padding:7px 9px;color:#fff;font-size:10.5px;font-weight:800;cursor:pointer;'>" +
-                "  <span>5s Auto Mode</span>" +
-                "  <span style='background:#e879f9;color:#15051a;padding:1px 6px;border-radius:6px;font-size:8.5px;font-weight:900;'>5S</span>" +
-                "</button>";
-
-            (document.body || document.documentElement).appendChild(menu);
-
-            menu.querySelector("#ra-pick-manual").onclick = function(e){
-                e.stopPropagation();
-                activateLockedMode("MANUAL");
-            };
-            menu.querySelector("#ra-pick-5s").onclick = function(e){
-                e.stopPropagation();
-                activateLockedMode("5S_AUTO");
-            };
-        }
-
-        function createBotCircle() {
-            if (document.getElementById("ra-hacker-btn")) return;
-
-            var host = document.body || document.documentElement;
-            var btn = document.createElement("div");
-            btn.id = "ra-hacker-btn";
-            btn.style.cssText =
-                "position:fixed;bottom:146px;right:12px;width:82px;height:82px;border-radius:50%;" +
-                "background:#02090e;display:flex;align-items:center;justify-content:center;" +
-                "z-index:2147483647;cursor:grab;user-select:none;touch-action:none;overflow:visible;" +
-                "animation:raAuraUltra 2.8s infinite linear;";
-
-            btn.innerHTML =
-                "<div style='position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(from 0deg, #ff2a5f, #ffae00, #00ff88, #00f0ff, #c026d3, #ff2a5f);filter:blur(2.5px);animation:raSpinCW 2s linear infinite;pointer-events:none;'></div>" +
-                "<div style='position:absolute;inset:2px;border-radius:50%;background:conic-gradient(from 0deg, #22c55e, #00f0ff, #e879f9, #facc15, #fb7185, #22c55e);animation:raSpinCCW 2.6s linear infinite;pointer-events:none;'></div>" +
-                "<div style='position:absolute;inset:5px;border-radius:50%;background:#02090e;pointer-events:none;'></div>" +
-                "<img src='" + BOT_AVATAR + "' alt='R-A Bot' style='position:relative;z-index:3;width:66px;height:66px;border-radius:50%;object-fit:cover;border:1.8px solid #fff;pointer-events:none;' />" +
-                "<button id='ra-bot-on-btn' type='button' title='Click to Turn OFF' style='position:absolute;bottom:1px;left:50%;transform:translateX(-50%);z-index:6;display:none;align-items:center;justify-content:center;padding:1px 6px;border-radius:6px;background:#00e65b;color:#031409;border:1.2px solid #ffffff;font-size:7.5px;font-weight:900;cursor:pointer;box-shadow:0 0 12px #00e65b;'>ON</button>";
-
-            host.appendChild(btn);
-            updateOnBadge();
-
-            var onBtn = btn.querySelector("#ra-bot-on-btn");
-            onBtn.addEventListener("mousedown", function(e){ e.stopPropagation(); });
-            onBtn.addEventListener("touchstart", function(e){ e.stopPropagation(); }, { passive: true });
-            onBtn.addEventListener("click", function(e){
-                e.stopPropagation();
-                e.preventDefault();
-                turnBotOff();
-            });
-
-            var dragging = false, moved = false, dx = 0, dy = 0;
-
-            function startDrag(e) {
-                getAudio();
-                var pt = e.touches ? e.touches[0] : e;
-                var r = btn.getBoundingClientRect();
-                dx = pt.clientX - r.left;
-                dy = pt.clientY - r.top;
-                dragging = true;
-                moved = false;
-            }
-
-            function moveDrag(e) {
-                if (!dragging) return;
-                var pt = e.touches ? e.touches[0] : e;
-                var nx = Math.max(4, Math.min(window.innerWidth - btn.offsetWidth - 4, pt.clientX - dx));
-                var ny = Math.max(4, Math.min(window.innerHeight - btn.offsetHeight - 4, pt.clientY - dy));
-                if (Math.abs(nx - btn.offsetLeft) > 3 || Math.abs(ny - btn.offsetTop) > 3) moved = true;
-                btn.style.left = nx + "px";
-                btn.style.top = ny + "px";
-                btn.style.right = "auto";
-                btn.style.bottom = "auto";
-            }
-
-            function endDrag(e) {
-                if (!dragging) return;
-                dragging = false;
-                if (!moved) {
-                    if (e) e.stopPropagation();
-                    if (!lockedMode) {
-                        toggleModeMenu(btn);
-                    } else {
-                        activateLockedMode(lockedMode);
-                    }
-                }
-            }
-
-            btn.addEventListener("mousedown", startDrag);
-            btn.addEventListener("touchstart", startDrag, { passive: true });
-            document.addEventListener("mousemove", moveDrag);
-            document.addEventListener("touchmove", moveDrag, { passive: true });
-            document.addEventListener("mouseup", endDrag);
-            document.addEventListener("touchend", endDrag);
-        }
-
-        function showLoginModal() {
-            if (document.getElementById("ra-login-box")) return;
-            var host = document.body || document.documentElement;
-            var box = document.createElement("div");
-            box.id = "ra-login-box";
-            box.style.cssText =
-                "position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:262px;max-width:88vw;" +
-                "background:linear-gradient(170deg, #061018 0%, #091722 55%, #120722 100%);" +
-                "border:2.2px solid #22c55e;border-radius:14px;padding:11px;z-index:2147483647;" +
-                "font-family:'Segoe UI',Roboto,Arial,sans-serif;color:#fff;" +
-                "animation:raLoginBorderFast 1.6s infinite linear;";
-
-            box.innerHTML =
-                "<div style='display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.12);padding-bottom:7px;margin-bottom:8px;'>" +
-                "  <div style='display:flex;align-items:center;gap:7px;'>" +
-                "    <div style='width:34px;height:34px;border-radius:50%;padding:1.5px;background:linear-gradient(135deg,#22c55e,#00f0ff,#e879f9);box-shadow:0 0 14px rgba(34,197,94,0.85);flex-shrink:0;'>" +
-                "      <img src='" + BOT_AVATAR + "' style='width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;background:#02090e;' />" +
-                "    </div>" +
-                "    <div>" +
-                "      <div style='font-size:11px;font-weight:900;color:#ffffff;'>R-A Candle Hacker</div>" +
-                "      <div style='font-size:7.5px;font-weight:800;color:#00f0ff;letter-spacing:0.6px;'>SECURE CYBER LOGIN</div>" +
-                "    </div>" +
-                "  </div>" +
-                "  <span id='ra-login-x' style='cursor:pointer;color:#94a3b8;font-size:12px;font-weight:bold;padding:0 3px;'>✕</span>" +
-                "</div>" +
-                "<a href='" + TELEGRAM_URL + "' target='_blank' rel='noopener noreferrer' style='display:flex;align-items:center;gap:7px;text-decoration:none;background:rgba(255,255,255,0.05);border:1.5px solid #facc15;border-radius:9px;padding:6px 8px;margin-bottom:8px;box-shadow:0 0 14px rgba(250,204,21,0.35);'>" +
-                "  <img src='" + COMMUNITY_AVATAR + "' style='width:24px;height:24px;border-radius:50%;object-fit:cover;border:1px solid #4ade80;' />" +
-                "  <div>" +
-                "    <div style='font-size:9.2px;color:#4ade80;font-weight:800;line-height:1.15;'>R-A Trading Community</div>" +
-                "    <div style='font-size:7.4px;color:#facc15;'>Click to Join Telegram</div>" +
-                "  </div>" +
-                "</a>" +
-                "<input id='ra-pass-input' type='password' placeholder='Bot Access Key' style='width:100%;box-sizing:border-box;background:#0b1724;border:1.4px solid rgba(0,240,255,0.45);border-radius:8px;padding:7px;color:#fff;font-size:10.5px;text-align:center;outline:none;margin-bottom:6px;' />" +
-                "<div id='ra-pass-msg' style='min-height:13px;text-align:center;font-size:8.5px;font-weight:800;margin-bottom:6px;'></div>" +
-                "<button id='ra-pass-submit' type='button' style='width:100%;border:none;border-radius:8px;padding:8px;font-size:10.5px;font-weight:900;color:#04110a;background:linear-gradient(90deg,#f43f5e,#eab308,#22c55e);cursor:pointer;box-shadow:0 0 16px rgba(34,197,94,0.55);'>ACTIVATE BOT</button>";
-
-            host.appendChild(box);
-
-            var input = box.querySelector("#ra-pass-input");
-            var msg = box.querySelector("#ra-pass-msg");
-            var btn = box.querySelector("#ra-pass-submit");
-
-            box.querySelector("#ra-login-x").onclick = function(){ box.remove(); };
-
-            function verifyKey() {
-                if ((input.value || "").trim() !== ACCESS_KEY) {
-                    msg.style.color = "#f87171";
-                    msg.textContent = "✕ INCORRECT PASSWORD!";
-                    return;
-                }
-                window[STORAGE_UNLOCK] = true;
-                msg.style.color = "#4ade80";
-                msg.textContent = "✓ UNLOCKED!";
-                setTimeout(function(){
-                    box.remove();
-                    createBotCircle();
-                }, 350);
-            }
-
-            btn.onclick = verifyKey;
-            input.addEventListener("keydown", function(e){
-                if (e.key === "Enter") verifyKey();
-            });
-        }
-
-        function boot() {
-            injectStyles();
-            loadState();
-            if (window[STORAGE_UNLOCK]) {
-                createBotCircle();
-            } else {
-                showLoginModal();
-            }
-        }
-
-        window.__raMountBot = boot;
-
-        if (document.readyState === "loading") {
-            document.addEventListener("DOMContentLoaded", boot, { once: true });
-        } else {
-            boot();
-        }
-    })();
-    """
-
-
 @app.route('/')
 def home():
-    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - https://ra-ai-bot-1.onrender.com")
+    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - ULTRA SMOOTH LIVE CANDLES!")
     return add_cors_headers(res)
 
 
@@ -1325,12 +553,10 @@ def ping():
 
 @app.route('/health')
 def health():
-    js_hash = hashlib.sha256(_build_bot_js().encode("utf-8")).hexdigest()[:16]
     res = jsonify({
         "status": "ONLINE",
-        "server": "https://ra-ai-bot-1.onrender.com",
-        "bot_js_hash": js_hash,
-        "boot_ts": BUILD_BOOT_TS,
+        "server": "https://ra-ai-bot.onrender.com",
+        "knowledge": KNOWLEDGE_REGISTRY,
         "active_api_endpoints_loaded": len(API_REGISTRY)
     })
     return add_cors_headers(res)
@@ -1347,7 +573,8 @@ def get_signal():
         clean_sym, _, is_otc = LiveMarketCandleEngine._normalize_symbol(raw_market)
 
         if not is_otc and len(clean_sym) >= 3:
-            if not LiveMarketCandleEngine.check_news_safety(clean_sym[:3]):
+            is_news_safe = LiveMarketCandleEngine.check_news_safety(clean_sym[:3])
+            if not is_news_safe:
                 res = jsonify({
                     "signal": "HOLD",
                     "trend": "NEWS BLOCK",
@@ -1384,11 +611,1581 @@ def get_signal():
 @app.route('/bot.js', methods=['GET', 'OPTIONS'])
 def bot_script():
     if request.method == 'OPTIONS':
-        return add_cors_headers(make_response("", 204), is_js=True, js_payload="")
+        return add_cors_headers(make_response("", 204), is_js=True)
 
-    js = _build_bot_js()
+    js = """
+    (function(){
+        var renderServerUrl = "https://ra-ai-bot.onrender.com";
+        var botAvatarUrl = "https://i.postimg.cc/Fz3xjQGZ/file-000000001cc082119080b22d35ecbaaa.png";
+        var communityAvatarUrl = "https://i.postimg.cc/k5NBY37k/file-0000000016a482119619e0cb99151c28.png";
+        var telegramChannelUrl = "https://t.me/+x1QYA_1-sSs0NTk1";
+        var validAccessKey = "Gop Gop2027";
+        var sessionFlagName = "__raCandleHackerUnlocked";
+        var savedModeStorageKey = "__raLockedModeChoice";
+        var savedActiveStorageKey = "__raModeActiveState";
+
+        function mountBot() {
+            try {
+                var d = document;
+                var hostRoot = d.body || d.documentElement;
+                if(!hostRoot) return false;
+
+                var hasLogin = !!d.getElementById('ra-hacker-login-modal');
+                var hasBotBtn = !!d.getElementById('ra-hacker-btn');
+                var hasScan = !!d.getElementById('ra-hacker-scan-modal');
+                var hasCyberOverlay = !!d.getElementById('ra-cyber-5s-overlay');
+
+                if(hasLogin || hasBotBtn || hasScan || hasCyberOverlay) {
+                    return true;
+                }
+
+                [
+                    "ra-sniper-bot-panel", "ra-sniper-bot-btn", "ra-sniper-bot-style",
+                    "dr-tracker-panel", "dr-tracker-btn", "dr-scan-modal",
+                    "dr-candle-projection", "dr-next-signal-popup", "dr-hacker-style",
+                    "ra-hacker-btn", "ra-hacker-scan-modal", "ra-hacker-signal-popup",
+                    "ra-hacker-login-modal", "ra-bg-blur-overlay", "ra-hacker-style",
+                    "ra-mode-selector-menu", "ra-auto-5s-panel", "ra-cyber-5s-overlay"
+                ].forEach(function(id){
+                    var el = d.getElementById(id);
+                    if(el) el.remove();
+                });
+
+                if(window.__raScanTimer) {
+                    clearInterval(window.__raScanTimer);
+                    window.__raScanTimer = null;
+                }
+                if(window.__raScanRaf) {
+                    cancelAnimationFrame(window.__raScanRaf);
+                    window.__raScanRaf = null;
+                }
+                if(window.__raCyber5sRaf) {
+                    cancelAnimationFrame(window.__raCyber5sRaf);
+                    window.__raCyber5sRaf = null;
+                }
+                if(window.__raAuto5sLoopTimer) {
+                    clearTimeout(window.__raAuto5sLoopTimer);
+                    window.__raAuto5sLoopTimer = null;
+                }
+                if(window.__raAuto5sStepTimer) {
+                    clearInterval(window.__raAuto5sStepTimer);
+                    window.__raAuto5sStepTimer = null;
+                }
+                if(window.__raAuto5sClockTimer) {
+                    clearInterval(window.__raAuto5sClockTimer);
+                    window.__raAuto5sClockTimer = null;
+                }
+
+                function readSavedMode() {
+                    try {
+                        var v = window[savedModeStorageKey] || localStorage.getItem(savedModeStorageKey);
+                        if(v === "MANUAL" || v === "5S_AUTO") return v;
+                    } catch(e) {}
+                    return null;
+                }
+
+                function writeSavedMode(modeVal) {
+                    try {
+                        if(modeVal) {
+                            window[savedModeStorageKey] = modeVal;
+                            localStorage.setItem(savedModeStorageKey, modeVal);
+                        } else {
+                            delete window[savedModeStorageKey];
+                            localStorage.removeItem(savedModeStorageKey);
+                        }
+                    } catch(e) {}
+                }
+
+                function readSavedActive() {
+                    try {
+                        var a = window[savedActiveStorageKey];
+                        if(typeof a === "boolean") return a;
+                        var ls = localStorage.getItem(savedActiveStorageKey);
+                        if(ls === "1") return true;
+                        if(ls === "0") return false;
+                    } catch(e) {}
+                    return false;
+                }
+
+                function writeSavedActive(isAct) {
+                    try {
+                        window[savedActiveStorageKey] = !!isAct;
+                        localStorage.setItem(savedActiveStorageKey, isAct ? "1" : "0");
+                    } catch(e) {}
+                }
+
+                var lockedModeChoice = readSavedMode();
+                var isModeOn = readSavedActive();
+                var auto5sRunning = false;
+                var auto5sBusy = false;
+                var lastAutoTradeTs = 0;
+
+                var audioCtx = null;
+                var lastTickMs = 0;
+
+                function ensureAudioContext() {
+                    try {
+                        var Ctx = window.AudioContext || window.webkitAudioContext;
+                        if(!Ctx) return null;
+                        if(!audioCtx) audioCtx = new Ctx();
+                        if(audioCtx.state === "suspended") {
+                            audioCtx.resume().catch(function(){});
+                        }
+                        return audioCtx;
+                    } catch(e) {
+                        return null;
+                    }
+                }
+
+                function playTickSound() {
+                    try {
+                        var nowMs = Date.now();
+                        if(nowMs - lastTickMs < 85) return;
+                        lastTickMs = nowMs;
+
+                        var ctx = ensureAudioContext();
+                        if(!ctx) return;
+                        var now = ctx.currentTime;
+                        var osc = ctx.createOscillator();
+                        var gain = ctx.createGain();
+                        osc.type = "triangle";
+                        osc.frequency.setValueAtTime(1120, now);
+                        osc.frequency.exponentialRampToValueAtTime(520, now + 0.032);
+                        gain.gain.setValueAtTime(0.001, now);
+                        gain.gain.linearRampToValueAtTime(0.28, now + 0.004);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.042);
+                    } catch(e) {}
+                }
+
+                function playTradePongSound(isCall) {
+                    try {
+                        var ctx = ensureAudioContext();
+                        if(!ctx) return;
+                        var now = ctx.currentTime;
+                        var osc1 = ctx.createOscillator();
+                        var osc2 = ctx.createOscillator();
+                        var gain = ctx.createGain();
+
+                        osc1.type = "sine";
+                        osc2.type = "triangle";
+
+                        if(isCall) {
+                            osc1.frequency.setValueAtTime(520, now);
+                            osc1.frequency.exponentialRampToValueAtTime(980, now + 0.16);
+                            osc2.frequency.setValueAtTime(780, now);
+                            osc2.frequency.exponentialRampToValueAtTime(1240, now + 0.18);
+                        } else {
+                            osc1.frequency.setValueAtTime(640, now);
+                            osc1.frequency.exponentialRampToValueAtTime(260, now + 0.18);
+                            osc2.frequency.setValueAtTime(420, now);
+                            osc2.frequency.exponentialRampToValueAtTime(190, now + 0.2);
+                        }
+
+                        gain.gain.setValueAtTime(0.001, now);
+                        gain.gain.linearRampToValueAtTime(0.45, now + 0.015);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+                        osc1.connect(gain);
+                        osc2.connect(gain);
+                        gain.connect(ctx.destination);
+
+                        osc1.start(now);
+                        osc2.start(now);
+                        osc1.stop(now + 0.25);
+                        osc2.stop(now + 0.25);
+                    } catch(e) {}
+                }
+
+                var styleEl = d.createElement('style');
+                styleEl.id = 'ra-hacker-style';
+                styleEl.innerHTML = '' +
+                    '@keyframes raContinuousSpin {' +
+                    '  0%   { transform: rotate(0deg); }' +
+                    '  100% { transform: rotate(360deg); }' +
+                    '}' +
+                    '@keyframes raContinuousReverseSpin {' +
+                    '  0%   { transform: rotate(360deg); }' +
+                    '  100% { transform: rotate(0deg); }' +
+                    '}' +
+                    '@keyframes raBotNeonAura {' +
+                    '  0%   { box-shadow: 0 0 24px #00f0ff, 0 0 52px rgba(0,240,255,0.95), 0 0 80px rgba(34,197,94,0.75); }' +
+                    '  25%  { box-shadow: 0 0 26px #22c55e, 0 0 56px rgba(34,197,94,0.95), 0 0 84px rgba(250,204,21,0.75); }' +
+                    '  50%  { box-shadow: 0 0 26px #e879f9, 0 0 56px rgba(232,121,249,0.95), 0 0 84px rgba(0,240,255,0.75); }' +
+                    '  75%  { box-shadow: 0 0 26px #facc15, 0 0 56px rgba(250,204,21,0.95), 0 0 84px rgba(244,63,94,0.75); }' +
+                    '  100% { box-shadow: 0 0 24px #00f0ff, 0 0 52px rgba(0,240,255,0.95), 0 0 80px rgba(34,197,94,0.75); }' +
+                    '}' +
+                    '@keyframes raLoginFastBorder {' +
+                    '  0%   { border-color: #22c55e; box-shadow: 0 0 24px rgba(34,197,94,0.95), 0 0 46px rgba(0,240,255,0.55); }' +
+                    '  25%  { border-color: #00f0ff; box-shadow: 0 0 28px rgba(0,240,255,0.98), 0 0 52px rgba(232,121,249,0.58); }' +
+                    '  50%  { border-color: #e879f9; box-shadow: 0 0 28px rgba(232,121,249,0.98), 0 0 52px rgba(250,204,21,0.58); }' +
+                    '  75%  { border-color: #facc15; box-shadow: 0 0 28px rgba(250,204,21,0.98), 0 0 52px rgba(34,197,94,0.58); }' +
+                    '  100% { border-color: #22c55e; box-shadow: 0 0 24px rgba(34,197,94,0.95), 0 0 46px rgba(0,240,255,0.55); }' +
+                    '}' +
+                    '@keyframes raTelegramSlowBorder {' +
+                    '  0%   { border-color: #facc15; box-shadow: 0 0 16px rgba(250,204,21,0.85); }' +
+                    '  25%  { border-color: #4ade80; box-shadow: 0 0 18px rgba(74,222,128,0.9); }' +
+                    '  50%  { border-color: #38bdf8; box-shadow: 0 0 18px rgba(56,189,248,0.9); }' +
+                    '  75%  { border-color: #e879f9; box-shadow: 0 0 18px rgba(232,121,249,0.9); }' +
+                    '  100% { border-color: #facc15; box-shadow: 0 0 16px rgba(250,204,21,0.85); }' +
+                    '}' +
+                    '@keyframes raScanBoxSlowBorder {' +
+                    '  0%   { border-color: #22c55e; box-shadow: 0 0 44px rgba(34,197,94,1), 0 0 82px rgba(0,240,255,0.72); }' +
+                    '  25%  { border-color: #00f0ff; box-shadow: 0 0 48px rgba(0,240,255,1), 0 0 86px rgba(232,121,249,0.76); }' +
+                    '  50%  { border-color: #e879f9; box-shadow: 0 0 48px rgba(232,121,249,1), 0 0 86px rgba(250,204,21,0.76); }' +
+                    '  75%  { border-color: #facc15; box-shadow: 0 0 48px rgba(250,204,21,1), 0 0 86px rgba(56,189,248,0.76); }' +
+                    '  100% { border-color: #22c55e; box-shadow: 0 0 44px rgba(34,197,94,1), 0 0 82px rgba(0,240,255,0.72); }' +
+                    '}' +
+                    '@keyframes raHeaderAvatarGlow {' +
+                    '  0%   { border-color: #00f0ff; box-shadow: 0 0 18px rgba(0,240,255,0.95), 0 0 30px rgba(74,222,128,0.75); }' +
+                    '  50%  { border-color: #e879f9; box-shadow: 0 0 22px rgba(232,121,249,0.98), 0 0 34px rgba(250,204,21,0.78); }' +
+                    '  100% { border-color: #00f0ff; box-shadow: 0 0 18px rgba(0,240,255,0.95), 0 0 30px rgba(74,222,128,0.75); }' +
+                    '}' +
+                    '@keyframes raPopupGreenGlow {' +
+                    '  0%, 100% { border-color: #4ade80; box-shadow: 0 0 36px rgba(34,197,94,1), 0 0 68px rgba(74,222,128,0.85); }' +
+                    '  50% { border-color: #86efac; box-shadow: 0 0 46px rgba(34,197,94,1), 0 0 84px rgba(0,240,255,0.75); }' +
+                    '}' +
+                    '@keyframes raPopupRedGlow {' +
+                    '  0%, 100% { border-color: #f87171; box-shadow: 0 0 36px rgba(239,68,68,1), 0 0 68px rgba(248,113,113,0.85); }' +
+                    '  50% { border-color: #fca5a5; box-shadow: 0 0 46px rgba(239,68,68,1), 0 0 84px rgba(251,113,133,0.75); }' +
+                    '}' +
+                    '@keyframes raHeroCandleSpinGlow {' +
+                    '  0%   { transform: rotateY(0deg) scale(1.03); }' +
+                    '  50%  { transform: rotateY(180deg) scale(1.08); }' +
+                    '  100% { transform: rotateY(360deg) scale(1.03); }' +
+                    '}' +
+                    '@keyframes raCandleReveal {' +
+                    '  0% { transform: scaleY(0.2); opacity: 0.45; }' +
+                    '  100% { transform: scaleY(1); opacity: 1; }' +
+                    '}' +
+                    '@keyframes raPopupEnter {' +
+                    '  0% { opacity: 0; transform: translateY(8px) scale(0.95); }' +
+                    '  100% { opacity: 1; transform: translateY(0) scale(1); }' +
+                    '}' +
+                    '@keyframes raCyberFramePulse {' +
+                    '  0%   { border-color: #00f0ff; box-shadow: inset 0 0 90px rgba(0,240,255,0.34), 0 0 50px rgba(0,240,255,0.82); }' +
+                    '  25%  { border-color: #22c55e; box-shadow: inset 0 0 95px rgba(34,197,94,0.34), 0 0 54px rgba(34,197,94,0.82); }' +
+                    '  50%  { border-color: #e879f9; box-shadow: inset 0 0 95px rgba(232,121,249,0.36), 0 0 54px rgba(232,121,249,0.85); }' +
+                    '  75%  { border-color: #facc15; box-shadow: inset 0 0 95px rgba(250,204,21,0.34), 0 0 54px rgba(250,204,21,0.82); }' +
+                    '  100% { border-color: #00f0ff; box-shadow: inset 0 0 90px rgba(0,240,255,0.34), 0 0 50px rgba(0,240,255,0.82); }' +
+                    '}' +
+                    '@keyframes raCyberLogIn {' +
+                    '  0%   { opacity: 0; transform: translate3d(-12px, 0, 0); }' +
+                    '  100% { opacity: 1; transform: translate3d(0, 0, 0); }' +
+                    '}';
+                (d.head || hostRoot).appendChild(styleEl);
+
+                function refreshBotOnBadge() {
+                    var badge = d.getElementById('ra-bot-on-badge');
+                    if(!badge) return;
+                    if(isModeOn && lockedModeChoice) {
+                        badge.style.display = 'inline-flex';
+                        badge.innerText = 'ON';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+
+                function setBrokerBackgroundBlur(enableBlur) {
+                    var existing = d.getElementById('ra-bg-blur-overlay');
+                    if(enableBlur) {
+                        if(!existing) {
+                            var blurLayer = d.createElement('div');
+                            blurLayer.id = 'ra-bg-blur-overlay';
+                            blurLayer.style.cssText = 'position:fixed;inset:0;z-index:2147483640;' +
+                                'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);' +
+                                'background:rgba(2,8,15,0.26);pointer-events:none;';
+                            hostRoot.appendChild(blurLayer);
+                        }
+                    } else if(existing) {
+                        existing.remove();
+                    }
+                }
+
+                function applyHeroCandleColor(isCall) {
+                    var heroCandleBox = d.getElementById('ra-hero-candle-box');
+                    var heroCandleBody = d.getElementById('ra-hero-candle-body');
+                    var heroWickTop = d.getElementById('ra-hero-wick-top');
+                    var heroWickBot = d.getElementById('ra-hero-wick-bot');
+                    if(!heroCandleBody || !heroWickTop || !heroWickBot || !heroCandleBox) return;
+
+                    if(isCall) {
+                        heroCandleBody.style.background = 'linear-gradient(180deg,#86efac,#22c55e,#15803d)';
+                        heroCandleBody.style.borderColor = '#dcfce7';
+                        heroCandleBody.style.boxShadow = '0 0 38px #4ade80, 0 0 74px rgba(34,197,94,1), 0 0 98px rgba(74,222,128,1)';
+                        heroWickTop.style.background = '#86efac';
+                        heroWickTop.style.boxShadow = '0 0 20px #4ade80, 0 0 36px #22c55e';
+                        heroWickBot.style.background = '#86efac';
+                        heroWickBot.style.boxShadow = '0 0 20px #4ade80, 0 0 36px #22c55e';
+                        heroCandleBox.style.borderColor = '#4ade80';
+                        heroCandleBox.style.background = 'rgba(34,197,94,0.36)';
+                        heroCandleBox.style.boxShadow = '0 0 42px #4ade80, 0 0 80px rgba(74,222,128,1)';
+                    } else {
+                        heroCandleBody.style.background = 'linear-gradient(180deg,#fca5a5,#ef4444,#b91c1c)';
+                        heroCandleBody.style.borderColor = '#fee2e2';
+                        heroCandleBody.style.boxShadow = '0 0 38px #f87171, 0 0 74px rgba(239,68,68,1), 0 0 98px rgba(248,113,113,1)';
+                        heroWickTop.style.background = '#fca5a5';
+                        heroWickTop.style.boxShadow = '0 0 20px #f87171, 0 0 36px #ef4444';
+                        heroWickBot.style.background = '#fca5a5';
+                        heroWickBot.style.boxShadow = '0 0 20px #f87171, 0 0 36px #ef4444';
+                        heroCandleBox.style.borderColor = '#f87171';
+                        heroCandleBox.style.background = 'rgba(239,68,68,0.36)';
+                        heroCandleBox.style.boxShadow = '0 0 42px #f87171, 0 0 80px rgba(239,68,68,1)';
+                    }
+                }
+
+                function showCenteredPasswordPanel() {
+                    var oldLogin = d.getElementById('ra-hacker-login-modal');
+                    if(oldLogin) oldLogin.remove();
+
+                    var loginBox = d.createElement('div');
+                    loginBox.id = 'ra-hacker-login-modal';
+                    loginBox.style.cssText = 'position:fixed !important;top:50% !important;left:50% !important;' +
+                        'transform:translate(-50%, -50%) !important;display:block !important;opacity:1 !important;visibility:visible !important;' +
+                        'width:258px;max-width:88vw;background:linear-gradient(170deg, #061018 0%, #091722 55%, #050d14 100%);' +
+                        'border:2px solid #22c55e;border-radius:14px;padding:10px 11px;box-sizing:border-box;' +
+                        'z-index:2147483647;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#ffffff;' +
+                        'animation:raLoginFastBorder 1.5s infinite linear;';
+
+                    loginBox.innerHTML = '' +
+                        '<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:7px;margin-bottom:7px;">' +
+                        '  <div style="display:flex;align-items:center;gap:7px;">' +
+                        '    <div style="width:34px;height:34px;border-radius:50%;padding:1.5px;background:linear-gradient(135deg,#22c55e,#00f0ff,#e879f9);box-shadow:0 0 14px rgba(34,197,94,0.85);flex-shrink:0;">' +
+                        '      <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;background:#02090e;" />' +
+                        '    </div>' +
+                        '    <div>' +
+                        '      <div style="font-size:11px;font-weight:900;color:#ffffff;letter-spacing:0.2px;line-height:1.15;">R-A Candle Hacker</div>' +
+                        '      <div style="font-size:7.5px;font-weight:800;color:#f43f5e;letter-spacing:0.7px;margin-top:1px;">SECURE LOGIN</div>' +
+                        '    </div>' +
+                        '  </div>' +
+                        '  <div id="ra-login-close" style="width:20px;height:20px;border-radius:5px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10.5px;color:#cbd5e1;font-weight:bold;">✕</div>' +
+                        '</div>' +
+
+                        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">' +
+                        '  <div style="width:40px;height:40px;border-radius:50%;padding:1.5px;background:linear-gradient(135deg,#facc15,#ef4444,#22c55e);box-shadow:0 0 14px rgba(250,204,21,0.75);flex-shrink:0;">' +
+                        '    <img src="' + communityAvatarUrl + '" alt="R-A Trading Community" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;background:#02090e;" />' +
+                        '  </div>' +
+                        '  <div style="font-size:8.8px;color:#94a3b8;line-height:1.3;">' +
+                        '    <div style="color:#facc15;font-weight:800;font-size:9.3px;">Official VIP Access</div>' +
+                        '    <div>Join Telegram for updates &amp; keys.</div>' +
+                        '  </div>' +
+                        '</div>' +
+
+                        '<a href="' + telegramChannelUrl + '" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;background:linear-gradient(135deg, rgba(16,28,38,0.96), rgba(10,20,28,0.98));border:1.8px solid #facc15;border-radius:10px;padding:7px 8px;margin-bottom:7px;cursor:pointer;animation:raTelegramSlowBorder 10s infinite ease-in-out;">' +
+                        '  <div style="width:20px;height:20px;border-radius:50%;background:#26a5e4;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 10px rgba(38,165,228,0.85);">' +
+                        '    <svg width="11" height="11" viewBox="0 0 24 24" fill="#ffffff"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>' +
+                        '  </div>' +
+                        '  <div style="text-align:left;">' +
+                        '    <div style="font-size:10px;font-weight:800;color:#4ade80;line-height:1.15;">R-A Trading Community</div>' +
+                        '    <div style="font-size:7.5px;color:#cbd5e1;margin-top:1px;">Click to Join Telegram</div>' +
+                        '  </div>' +
+                        '</a>' +
+
+                        '<div style="text-align:center;font-size:8px;color:#94a3b8;font-weight:600;margin-bottom:4px;">Bot Access Key</div>' +
+                        '<input id="ra-access-key-input" type="password" placeholder="Bot Access Key" autocomplete="off" style="width:100%;box-sizing:border-box;background:#0b1724;border:1.4px solid rgba(148,163,184,0.3);border-radius:8px;padding:7px 8px;color:#ffffff;font-size:10.5px;text-align:center;outline:none;margin-bottom:6px;" />' +
+                        '<div id="ra-login-status-msg" style="min-height:12px;text-align:center;font-size:8.5px;font-weight:800;margin-bottom:5px;letter-spacing:0.2px;"></div>' +
+                        '<button id="ra-activate-bot-btn" type="button" style="width:100%;border:none;border-radius:8px;padding:8px;font-size:10.5px;font-weight:900;letter-spacing:0.5px;color:#04110a;background:linear-gradient(90deg, #f43f5e 0%, #eab308 45%, #22c55e 100%);cursor:pointer;box-shadow:0 0 15px rgba(34,197,94,0.5);">ACTIVATE BOT</button>';
+
+                    hostRoot.appendChild(loginBox);
+
+                    var closeBtn = loginBox.querySelector('#ra-login-close');
+                    var keyInput = loginBox.querySelector('#ra-access-key-input');
+                    var statusMsg = loginBox.querySelector('#ra-login-status-msg');
+                    var activateBtn = loginBox.querySelector('#ra-activate-bot-btn');
+                    var isVerifying = false;
+
+                    closeBtn.onclick = function() {
+                        loginBox.remove();
+                    };
+
+                    keyInput.addEventListener('input', function() {
+                        ensureAudioContext();
+                        if(!isVerifying) {
+                            keyInput.style.borderColor = 'rgba(0,240,255,0.65)';
+                            keyInput.style.boxShadow = '0 0 10px rgba(0,240,255,0.25)';
+                            statusMsg.innerText = '';
+                        }
+                    });
+
+                    function handleVerification() {
+                        ensureAudioContext();
+                        if(isVerifying) return;
+                        var enteredVal = (keyInput.value || '').trim();
+
+                        if(enteredVal !== validAccessKey) {
+                            keyInput.style.borderColor = '#ef4444';
+                            keyInput.style.boxShadow = '0 0 16px rgba(239,68,68,0.85)';
+                            keyInput.style.background = 'rgba(69,10,10,0.65)';
+                            statusMsg.style.color = '#f87171';
+                            statusMsg.innerText = '✕ INCORRECT PASSWORD! ACCESS DENIED';
+                            activateBtn.style.background = 'linear-gradient(90deg, #dc2626, #ef4444)';
+                            activateBtn.style.color = '#ffffff';
+                            activateBtn.innerText = 'INCORRECT PASSWORD';
+                            setTimeout(function() {
+                                if(loginBox.isConnected && !isVerifying) {
+                                    activateBtn.style.background = 'linear-gradient(90deg, #f43f5e 0%, #eab308 45%, #22c55e 100%)';
+                                    activateBtn.style.color = '#04110a';
+                                    activateBtn.innerText = 'ACTIVATE BOT';
+                                }
+                            }, 1600);
+                            return;
+                        }
+
+                        isVerifying = true;
+                        keyInput.disabled = true;
+                        keyInput.style.borderColor = '#facc15';
+                        keyInput.style.boxShadow = '0 0 16px rgba(250,204,21,0.8)';
+                        keyInput.style.background = '#0b1724';
+                        statusMsg.style.color = '#facc15';
+                        statusMsg.innerText = '⟳ VERIFYING LICENSE KEY...';
+                        activateBtn.style.background = 'linear-gradient(90deg, #0284c7, #eab308)';
+                        activateBtn.style.color = '#ffffff';
+                        activateBtn.innerText = 'PROCESSING...';
+
+                        setTimeout(function() {
+                            if(!loginBox.isConnected) return;
+                            statusMsg.style.color = '#00f0ff';
+                            statusMsg.innerText = '⟳ SYNCING QUANT ENGINE NODE...';
+                        }, 1000);
+
+                        setTimeout(function() {
+                            if(!loginBox.isConnected) return;
+                            keyInput.style.borderColor = '#22c55e';
+                            keyInput.style.boxShadow = '0 0 20px rgba(34,197,94,0.95)';
+                            statusMsg.style.color = '#4ade80';
+                            statusMsg.innerText = '✓ VERIFICATION SUCCESSFUL!';
+                            activateBtn.style.background = 'linear-gradient(90deg, #16a34a, #4ade80)';
+                            activateBtn.style.color = '#021208';
+                            activateBtn.innerText = 'SUCCESSFUL ✓';
+
+                            window[sessionFlagName] = true;
+
+                            setTimeout(function() {
+                                if(loginBox.isConnected) loginBox.remove();
+                                createDraggableBotButton();
+                            }, 650);
+                        }, 2100);
+                    }
+
+                    activateBtn.onclick = handleVerification;
+                    keyInput.addEventListener('keydown', function(e) {
+                        if(e.key === 'Enter') {
+                            e.preventDefault();
+                            handleVerification();
+                        }
+                    });
+                }
+
+                function positionPopupAboveBotWithGap(popupEl, botEl) {
+                    if(!popupEl || !botEl) return;
+                    var br = botEl.getBoundingClientRect();
+                    var popupWidth = 128;
+                    var gapPx = 14;
+                    var leftPos = Math.round(br.left + (br.width / 2) - (popupWidth / 2));
+                    leftPos = Math.max(8, Math.min(window.innerWidth - popupWidth - 8, leftPos));
+                    var popupHeight = popupEl.offsetHeight || 176;
+                    var topPos = Math.round(br.top - popupHeight - gapPx);
+                    topPos = Math.max(72, topPos);
+                    popupEl.style.width = popupWidth + 'px';
+                    popupEl.style.left = leftPos + 'px';
+                    popupEl.style.top = topPos + 'px';
+                }
+
+                function positionModeMenuAboveBot(menuEl, botEl) {
+                    if(!menuEl || !botEl) return;
+                    var br = botEl.getBoundingClientRect();
+                    var menuW = 196;
+                    var leftPos = Math.round(br.left + br.width / 2 - menuW / 2);
+                    leftPos = Math.max(8, Math.min(window.innerWidth - menuW - 8, leftPos));
+                    var menuH = menuEl.offsetHeight || 92;
+                    var topPos = Math.round(br.top - menuH - 12);
+                    topPos = Math.max(64, topPos);
+                    menuEl.style.width = menuW + 'px';
+                    menuEl.style.left = leftPos + 'px';
+                    menuEl.style.top = topPos + 'px';
+                }
+
+                function stopAuto5sEngine() {
+                    auto5sRunning = false;
+                    auto5sBusy = false;
+                    if(window.__raAuto5sLoopTimer) {
+                        clearTimeout(window.__raAuto5sLoopTimer);
+                        window.__raAuto5sLoopTimer = null;
+                    }
+                    if(window.__raCyber5sRaf) {
+                        cancelAnimationFrame(window.__raCyber5sRaf);
+                        window.__raCyber5sRaf = null;
+                    }
+                    var ov = d.getElementById('ra-cyber-5s-overlay');
+                    if(ov) ov.remove();
+                }
+
+                function turnModeOffToStandby() {
+                    isModeOn = false;
+                    lockedModeChoice = null;
+                    writeSavedActive(false);
+                    writeSavedMode(null);
+                    stopAuto5sEngine();
+                    var menu = d.getElementById('ra-mode-selector-menu');
+                    if(menu) menu.remove();
+                    var popup = d.getElementById('ra-hacker-signal-popup');
+                    if(popup) popup.remove();
+
+                    var botBtn = d.getElementById('ra-hacker-btn');
+                    if(botBtn) {
+                        botBtn.style.display = 'flex';
+                    } else {
+                        createDraggableBotButton();
+                    }
+                    refreshBotOnBadge();
+                }
+
+                function executePlatformTradeClick(isCall) {
+                    var nowMs = Date.now();
+                    if(nowMs - lastAutoTradeTs < 2400) {
+                        return false;
+                    }
+                    lastAutoTradeTs = nowMs;
+
+                    var candidates = Array.prototype.slice.call(
+                        d.querySelectorAll('button, [role="button"], a, div')
+                    );
+
+                    var scored = [];
+                    for(var i = 0; i < candidates.length; i++) {
+                        var el = candidates[i];
+                        if(!el || !el.getBoundingClientRect) continue;
+                        if(el.closest('#ra-auto-5s-panel, #ra-hacker-scan-modal, #ra-hacker-signal-popup, #ra-mode-selector-menu, #ra-hacker-login-modal, #ra-hacker-btn, #ra-cyber-5s-overlay')) {
+                            continue;
+                        }
+                        var rect = el.getBoundingClientRect();
+                        if(rect.width < 28 || rect.height < 22) continue;
+                        if(rect.top < window.innerHeight * 0.42) continue;
+
+                        var txt = ((el.innerText || el.textContent || '') + ' ' + (el.className || '') + ' ' + (el.getAttribute('aria-label') || '')).toUpperCase();
+                        var hasUp = /\b(UP|BUY|CALL|HIGHER|LONG)\b/.test(txt);
+                        var hasDown = /\b(DOWN|SELL|PUT|LOWER|SHORT)\b/.test(txt);
+
+                        if(isCall && hasUp && !hasDown) {
+                            scored.push({ el: el, rect: rect, score: 100 + rect.bottom });
+                        } else if(!isCall && hasDown && !hasUp) {
+                            var rightBonus = rect.left > window.innerWidth * 0.45 ? 40 : 0;
+                            scored.push({ el: el, rect: rect, score: 100 + rect.bottom + rightBonus });
+                        }
+                    }
+
+                    if(scored.length > 0) {
+                        scored.sort(function(a, b){ return b.score - a.score; });
+                        var target = scored[0].el;
+                        try {
+                            target.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, cancelable: true }));
+                            target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                            target.click();
+                            target.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, cancelable: true }));
+                            return true;
+                        } catch(e) {}
+                    }
+
+                    var fallbackBtns = candidates.filter(function(el){
+                        if(!el || !el.getBoundingClientRect) return false;
+                        if(el.closest('#ra-auto-5s-panel, #ra-hacker-scan-modal, #ra-hacker-signal-popup, #ra-mode-selector-menu, #ra-hacker-login-modal, #ra-hacker-btn, #ra-cyber-5s-overlay')) return false;
+                        var r = el.getBoundingClientRect();
+                        return r.width >= 48 && r.height >= 28 && r.bottom >= window.innerHeight - 130;
+                    });
+
+                    if(fallbackBtns.length >= 2) {
+                        fallbackBtns.sort(function(a, b){
+                            return a.getBoundingClientRect().left - b.getBoundingClientRect().left;
+                        });
+                        var pickEl = isCall ? fallbackBtns[0] : fallbackBtns[fallbackBtns.length - 1];
+                        try {
+                            pickEl.click();
+                            return true;
+                        } catch(e) {}
+                    }
+                    return false;
+                }
+
+                function runCyberHacking5sCycle(onCycleComplete) {
+                    if(auto5sBusy) return;
+                    auto5sBusy = true;
+
+                    var oldOv = d.getElementById('ra-cyber-5s-overlay');
+                    if(oldOv) oldOv.remove();
+                    if(window.__raCyber5sRaf) {
+                        cancelAnimationFrame(window.__raCyber5sRaf);
+                        window.__raCyber5sRaf = null;
+                    }
+
+                    var liveMarket = detectExactQuotexMarket();
+                    var qParam = liveMarket.replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || 'EURUSD';
+                    var scanMs = 5400;
+                    var startTs = performance.now();
+
+                    var cyberPalette = [
+                        "#00f0ff", "#22c55e", "#e879f9", "#facc15",
+                        "#fb7185", "#38bdf8", "#a855f7", "#4ade80"
+                    ];
+
+                    var leftLogStream = [
+                        { t: "0x7F8A::HOOK_CANDLE_TICK [" + liveMarket + "]", c: "#00f0ff" },
+                        { t: "ROOT@QUANT-CORE: INJECTING STREAM PACKET", c: "#4ade80" },
+                        { t: "MEM_MAP 0x0550D120 -> ORDERFLOW_BUS LOCK", c: "#e879f9" },
+                        { t: "LASER_SCAN_01: WICK IMPULSE +0.00048", c: "#facc15" },
+                        { t: "BREACH_NODE_09: LIQUIDITY DEPTH SYNCED", c: "#38bdf8" },
+                        { t: "CYBER_GRID: MICRO-REJECTION VECTOR ARMED", c: "#fb7185" },
+                        { t: "SOCKET_0x37: BID/ASK SPREAD DELTA VERIFIED", c: "#4ade80" },
+                        { t: "QUANT_ENGINE: MULTI-API CONSENSUS 98.6%", c: "#00f0ff" },
+                        { t: "EXPLOIT_PIPE: CANDLE MOMENTUM ACCELERATED", c: "#e879f9" },
+                        { t: "SCAN_BEAM_03: VOLATILITY SURGE CAPTURED", c: "#facc15" },
+                        { t: "KERNEL_HOOK: EXECUTION TRIGGER STANDBY", c: "#4ade80" },
+                        { t: "MATRIX_SYNC: 5S SNIPER WINDOW LOCKED", c: "#38bdf8" }
+                    ];
+
+                    var ov = d.createElement('div');
+                    ov.id = 'ra-cyber-5s-overlay';
+                    ov.style.cssText = 'position:fixed;inset:0;z-index:2147483645;pointer-events:none;overflow:hidden;' +
+                        'border:3px solid #00f0ff;box-sizing:border-box;' +
+                        'background:radial-gradient(circle at center, rgba(0,240,255,0.09) 0%, rgba(232,121,249,0.11) 45%, rgba(34,197,94,0.09) 75%, rgba(2,9,17,0.28) 100%);' +
+                        'font-family:"Courier New",Courier,monospace;will-change:transform,opacity;' +
+                        'animation:raCyberFramePulse 1.6s infinite linear;';
+
+                    ov.innerHTML = '' +
+                        '<div style="position:fixed;inset:0;background-image:linear-gradient(rgba(0,240,255,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(232,121,249,0.11) 1px, transparent 1px);background-size:30px 30px;opacity:0.85;"></div>' +
+
+                        '<div id="ra-cbeam-a" style="position:fixed;left:0;right:0;height:8px;top:14%;background:linear-gradient(90deg,transparent,#00f0ff 20%,#22c55e 52%,#e879f9 84%,transparent);box-shadow:0 0 28px #00f0ff,0 0 52px #22c55e;will-change:transform;"></div>' +
+                        '<div id="ra-cbeam-b" style="position:fixed;left:0;right:0;height:7px;top:46%;background:linear-gradient(90deg,transparent,#e879f9 22%,#facc15 50%,#00f0ff 80%,transparent);box-shadow:0 0 28px #e879f9,0 0 50px #facc15;will-change:transform;"></div>' +
+                        '<div id="ra-cbeam-c" style="position:fixed;left:0;right:0;height:8px;top:76%;background:linear-gradient(90deg,transparent,#22c55e 18%,#00f0ff 54%,#fb7185 86%,transparent);box-shadow:0 0 28px #22c55e,0 0 50px #00f0ff;will-change:transform;"></div>' +
+
+                        '<div style="position:fixed;top:46px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
+                        '  <div id="ra-cyber-top-status" style="background:rgba(3,12,22,0.9);border:1.6px solid #22c55e;border-radius:8px;padding:5px 9px;color:#4ade80;font-size:9px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:62%;box-shadow:0 0 20px rgba(34,197,94,0.65);">⚡ 5S CYBER BREACH [' + liveMarket + ']</div>' +
+                        '  <div id="ra-cyber-pct-pill" style="background:rgba(16,6,30,0.92);border:1.8px solid #e879f9;border-radius:8px;padding:5px 11px;color:#00f0ff;font-size:11px;font-weight:900;box-shadow:0 0 22px rgba(232,121,249,0.75);">SCANNING 1%</div>' +
+                        '</div>' +
+
+                        '<div id="ra-cyber-left-logs" style="position:fixed;top:82px;left:10px;width:224px;max-width:68vw;max-height:164px;overflow:hidden;' +
+                        'background:rgba(2,9,16,0.84);border-left:3px solid #00f0ff;border-radius:0 9px 9px 0;padding:6px 8px;' +
+                        'font-size:8px;line-height:1.38;box-shadow:0 0 22px rgba(0,240,255,0.38);"></div>';
+
+                    hostRoot.appendChild(ov);
+
+                    var beamA = ov.querySelector('#ra-cbeam-a');
+                    var beamB = ov.querySelector('#ra-cbeam-b');
+                    var beamC = ov.querySelector('#ra-cbeam-c');
+                    var topStatusEl = ov.querySelector('#ra-cyber-top-status');
+                    var pctPillEl = ov.querySelector('#ra-cyber-pct-pill');
+                    var leftLogsEl = ov.querySelector('#ra-cyber-left-logs');
+
+                    var sigPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(qParam) + '&mode=AUTO5S&t=' + Date.now())
+                        .then(function(r){ return r.json(); })
+                        .catch(function(){ return { signal: 'HOLD', pts: 0 }; });
+
+                    var lastPctSeen = 0;
+                    var lastLogStep = -1;
+                    var logCursor = 0;
+
+                    function stepCyber5s(nowTs) {
+                        if(!ov.isConnected || !auto5sRunning) {
+                            if(ov.parentNode) ov.remove();
+                            auto5sBusy = false;
+                            if(typeof onCycleComplete === "function") onCycleComplete(false);
+                            return;
+                        }
+
+                        var elapsed = nowTs - startTs;
+                        var ratio = Math.min(1, elapsed / scanMs);
+                        var vh = window.innerHeight || 720;
+
+                        if(beamA) beamA.style.transform = "translate3d(0," + ((Math.sin(elapsed * 0.0046) * 0.43 + 0.43) * vh * 0.84) + "px,0)";
+                        if(beamB) beamB.style.transform = "translate3d(0," + ((Math.cos(elapsed * 0.0056) * 0.44 + 0.44) * vh * 0.84) + "px,0)";
+                        if(beamC) beamC.style.transform = "translate3d(0," + ((Math.sin(elapsed * 0.0068 + 1.5) * 0.43 + 0.43) * vh * 0.84) + "px,0)";
+
+                        var curPct = Math.max(1, Math.min(100, Math.round(ratio * 100)));
+                        if(curPct !== lastPctSeen) {
+                            lastPctSeen = curPct;
+                            var c1 = cyberPalette[curPct % cyberPalette.length];
+                            var c2 = cyberPalette[(curPct + 3) % cyberPalette.length];
+                            if(pctPillEl) {
+                                pctPillEl.innerText = "SCANNING " + curPct + "%";
+                                pctPillEl.style.color = c1;
+                                pctPillEl.style.borderColor = c2;
+                            }
+                        }
+
+                        var logStep = Math.floor(elapsed / 190);
+                        if(logStep !== lastLogStep && leftLogsEl) {
+                            lastLogStep = logStep;
+                            var item = leftLogStream[logCursor % leftLogStream.length];
+                            var rowColor = cyberPalette[(logCursor + 1) % cyberPalette.length];
+                            logCursor++;
+
+                            if(topStatusEl) {
+                                topStatusEl.innerText = "⚡ " + item.t;
+                                topStatusEl.style.color = rowColor;
+                                topStatusEl.style.borderColor = rowColor;
+                            }
+                            leftLogsEl.style.borderLeftColor = rowColor;
+
+                            var lineDiv = d.createElement('div');
+                            lineDiv.style.color = rowColor;
+                            lineDiv.style.animation = "raCyberLogIn 0.14s ease-out";
+                            lineDiv.innerText = "▸ " + item.t;
+                            leftLogsEl.insertBefore(lineDiv, leftLogsEl.firstChild);
+                            while(leftLogsEl.children.length > 9) {
+                                leftLogsEl.removeChild(leftLogsEl.lastChild);
+                            }
+                            playTickSound();
+                        }
+
+                        if(ratio < 1) {
+                            window.__raCyber5sRaf = requestAnimationFrame(stepCyber5s);
+                            return;
+                        }
+
+                        if(ov.parentNode) ov.remove();
+                        sigPromise.then(function(data){
+                            auto5sBusy = false;
+                            if(!auto5sRunning) {
+                                if(typeof onCycleComplete === "function") onCycleComplete(false);
+                                return;
+                            }
+
+                            var sig = String((data && data.signal) || 'HOLD').toUpperCase();
+                            var isCall = (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
+                            var isPut = (sig === 'PUT' || sig === 'DOWN' || sig === 'SELL');
+                            var ptsVal = data && data.pts;
+
+                            if(isCall || isPut) {
+                                playTradePongSound(isCall);
+                                executePlatformTradeClick(isCall);
+                            }
+                            showBoxSignalCard(sig, detectExactQuotexMarket(), ptsVal);
+
+                            if(typeof onCycleComplete === "function") {
+                                onCycleComplete(true);
+                            }
+                        });
+                    }
+
+                    window.__raCyber5sRaf = requestAnimationFrame(stepCyber5s);
+                }
+
+                function startAuto5sLoop() {
+                    stopAuto5sEngine();
+                    auto5sRunning = true;
+                    isModeOn = true;
+                    writeSavedActive(true);
+                    refreshBotOnBadge();
+
+                    function scheduleNext() {
+                        if(!auto5sRunning || !isModeOn) return;
+                        runCyberHacking5sCycle(function(completed){
+                            if(!auto5sRunning || !isModeOn) return;
+                            var waitMs = completed ? 3600 : 1200;
+                            window.__raAuto5sLoopTimer = setTimeout(scheduleNext, waitMs);
+                        });
+                    }
+                    scheduleNext();
+                }
+
+                function selectManualModeAndActivate() {
+                    stopAuto5sEngine();
+                    lockedModeChoice = "MANUAL";
+                    writeSavedMode("MANUAL");
+                    isModeOn = true;
+                    writeSavedActive(true);
+                    refreshBotOnBadge();
+                    startHackerScanSequence();
+                }
+
+                function selectAuto5sModeAndActivate() {
+                    lockedModeChoice = "5S_AUTO";
+                    writeSavedMode("5S_AUTO");
+                    isModeOn = true;
+                    writeSavedActive(true);
+                    refreshBotOnBadge();
+                    startAuto5sLoop();
+                }
+
+                function openBotModeMenu(botBtn) {
+                    var existingMenu = d.getElementById('ra-mode-selector-menu');
+                    if(existingMenu) {
+                        existingMenu.remove();
+                        return;
+                    }
+
+                    var menu = d.createElement('div');
+                    menu.id = 'ra-mode-selector-menu';
+                    menu.style.cssText = 'position:fixed;width:196px;' +
+                        'background:linear-gradient(165deg,rgba(5,18,28,0.98),rgba(10,24,42,0.98));' +
+                        'border:2px solid #00f0ff;border-radius:12px;padding:7px;box-sizing:border-box;' +
+                        'z-index:2147483647;font-family:"Segoe UI",Roboto,Arial,sans-serif;color:#ffffff;' +
+                        'box-shadow:0 0 24px rgba(0,240,255,0.65),0 0 40px rgba(232,121,249,0.35);' +
+                        'animation:raPopupEnter 0.16s ease-out;';
+
+                    menu.innerHTML = '' +
+                        '<button id="ra-opt-manual-signal" type="button" style="width:100%;display:flex;align-items:center;justify-content:space-between;' +
+                        'background:linear-gradient(90deg,rgba(34,197,94,0.22),rgba(0,240,255,0.16));border:1.4px solid #4ade80;' +
+                        'border-radius:8px;padding:7px 9px;color:#ffffff;font-size:10.5px;font-weight:900;cursor:pointer;margin-bottom:6px;">' +
+                        '  <span>Manual Signal</span>' +
+                        '  <span style="background:#22c55e;color:#041208;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:900;">1</span>' +
+                        '</button>' +
+                        '<button id="ra-opt-auto-5s" type="button" style="width:100%;display:flex;align-items:center;justify-content:space-between;' +
+                        'background:linear-gradient(90deg,rgba(232,121,249,0.24),rgba(250,204,21,0.18));border:1.4px solid #e879f9;' +
+                        'border-radius:8px;padding:7px 9px;color:#ffffff;font-size:10.5px;font-weight:900;cursor:pointer;">' +
+                        '  <span>5s Auto Mode</span>' +
+                        '  <span style="background:#e879f9;color:#140519;padding:1px 6px;border-radius:6px;font-size:8.5px;font-weight:900;">5S</span>' +
+                        '</button>';
+
+                    hostRoot.appendChild(menu);
+                    positionModeMenuAboveBot(menu, botBtn);
+
+                    menu.querySelector('#ra-opt-manual-signal').onclick = function(ev) {
+                        ev.stopPropagation();
+                        menu.remove();
+                        selectManualModeAndActivate();
+                    };
+
+                    menu.querySelector('#ra-opt-auto-5s').onclick = function(ev) {
+                        ev.stopPropagation();
+                        menu.remove();
+                        selectAuto5sModeAndActivate();
+                    };
+                }
+
+                function createDraggableBotButton() {
+                    if(d.getElementById('ra-hacker-btn')) return;
+
+                    var btn = d.createElement('div');
+                    btn.id = 'ra-hacker-btn';
+                    btn.style.cssText = 'position:fixed;bottom:146px;right:12px;width:82px;height:82px;border-radius:50%;' +
+                        'background:#02090e;display:flex !important;opacity:1 !important;visibility:visible !important;' +
+                        'align-items:center;justify-content:center;' +
+                        'z-index:2147483647;cursor:grab;user-select:none;touch-action:none;overflow:visible;' +
+                        'font-family:"Courier New",Courier,monospace;' +
+                        'animation:raBotNeonAura 3s infinite linear;';
+
+                    btn.innerHTML = '' +
+                        '<div style="position:absolute;inset:-4px;border-radius:50%;pointer-events:none;z-index:0;' +
+                        'background:conic-gradient(from 0deg, #ff2a5f, #ffae00, #00ff88, #00f0ff, #c026d3, #ff2a5f);' +
+                        'filter:blur(3px);opacity:0.95;animation:raContinuousSpin 2s linear infinite;"></div>' +
+                        '<div style="position:absolute;inset:0;border-radius:50%;overflow:hidden;pointer-events:none;z-index:1;">' +
+                        '  <div style="position:absolute;inset:0;border-radius:50%;' +
+                        '  background:conic-gradient(from 0deg, #22c55e, #00f0ff, #e879f9, #facc15, #f43f5e, #38bdf8, #22c55e);' +
+                        '  animation:raContinuousReverseSpin 2.4s linear infinite;"></div>' +
+                        '  <div style="position:absolute;inset:5px;border-radius:50%;background:#02090e;"></div>' +
+                        '</div>' +
+                        '<img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="position:relative;z-index:3;width:66px;height:66px;object-fit:cover;border-radius:50%;pointer-events:none;display:block;background:#02090e;border:1.8px solid rgba(255,255,255,0.85);" />' +
+                        '<span id="ra-bot-on-badge" style="position:absolute;bottom:2px;left:50%;transform:translateX(-50%);z-index:6;display:none;align-items:center;justify-content:center;' +
+                        'padding:1px 6px;border-radius:6px;background:#00e65b;color:#031409;border:1.2px solid #ffffff;' +
+                        'font-family:\\"Segoe UI\\",Roboto,Arial,sans-serif;font-size:7.5px;font-weight:900;letter-spacing:0.3px;' +
+                        'box-shadow:0 0 10px rgba(0,230,91,0.95);cursor:pointer;white-space:nowrap;">ON</span>';
+
+                    hostRoot.appendChild(btn);
+                    refreshBotOnBadge();
+
+                    var onBadgeEl = btn.querySelector('#ra-bot-on-badge');
+                    if(onBadgeEl) {
+                        onBadgeEl.addEventListener('mousedown', function(ev){ ev.stopPropagation(); });
+                        onBadgeEl.addEventListener('touchstart', function(ev){ ev.stopPropagation(); }, {passive: true});
+                        onBadgeEl.addEventListener('click', function(ev){
+                            ev.stopPropagation();
+                            ev.preventDefault();
+                            ensureAudioContext();
+                            turnModeOffToStandby();
+                        });
+                    }
+
+                    var dragging = false, moved = false, offsetX = 0, offsetY = 0;
+
+                    function onStart(e) {
+                        ensureAudioContext();
+                        var pt = e.touches ? e.touches[0] : e;
+                        var rect = btn.getBoundingClientRect();
+                        offsetX = pt.clientX - rect.left;
+                        offsetY = pt.clientY - rect.top;
+                        dragging = true;
+                        moved = false;
+                        btn.style.cursor = 'grabbing';
+                    }
+
+                    function onMove(e) {
+                        if(!dragging) return;
+                        var pt = e.touches ? e.touches[0] : e;
+                        var nextLeft = pt.clientX - offsetX;
+                        var nextTop = pt.clientY - offsetY;
+                        if(Math.abs(nextLeft - btn.offsetLeft) > 3 || Math.abs(nextTop - btn.offsetTop) > 3) {
+                            moved = true;
+                        }
+                        var maxX = window.innerWidth - btn.offsetWidth - 4;
+                        var maxY = window.innerHeight - btn.offsetHeight - 4;
+                        nextLeft = Math.max(4, Math.min(nextLeft, maxX));
+                        nextTop = Math.max(4, Math.min(nextTop, maxY));
+                        btn.style.left = nextLeft + 'px';
+                        btn.style.top = nextTop + 'px';
+                        btn.style.right = 'auto';
+                        btn.style.bottom = 'auto';
+
+                        var activePopup = d.getElementById('ra-hacker-signal-popup');
+                        if(activePopup) positionPopupAboveBotWithGap(activePopup, btn);
+                        var activeMenu = d.getElementById('ra-mode-selector-menu');
+                        if(activeMenu) positionModeMenuAboveBot(activeMenu, btn);
+                    }
+
+                    function onEnd(e) {
+                        if(!dragging) return;
+                        dragging = false;
+                        btn.style.cursor = 'grab';
+                        if(!moved) {
+                            if(e) { e.stopPropagation(); e.preventDefault(); }
+                            if(!lockedModeChoice) {
+                                openBotModeMenu(btn);
+                            } else if(lockedModeChoice === "MANUAL") {
+                                selectManualModeAndActivate();
+                            } else if(lockedModeChoice === "5S_AUTO") {
+                                selectAuto5sModeAndActivate();
+                            }
+                        }
+                    }
+
+                    btn.addEventListener('mousedown', onStart);
+                    btn.addEventListener('touchstart', onStart, {passive: true});
+                    d.addEventListener('mousemove', onMove);
+                    d.addEventListener('touchmove', onMove, {passive: true});
+                    d.addEventListener('mouseup', onEnd);
+                    d.addEventListener('touchend', onEnd);
+                }
+
+                function detectExactQuotexMarket() {
+                    try {
+                        var selectors = [
+                            '.asset-select__title',
+                            '.asset-select button',
+                            '[class*="asset-select"] [class*="name"]',
+                            '[class*="asset-select"] [class*="title"]',
+                            '[class*="pair-name"]',
+                            '[class*="current-asset"]',
+                            '[class*="market-name"]'
+                        ];
+                        for(var s = 0; s < selectors.length; s++) {
+                            var nodes = d.querySelectorAll(selectors[s]);
+                            for(var i = 0; i < nodes.length; i++) {
+                                var raw = (nodes[i].innerText || '').trim();
+                                var cleaned = raw.replace(/\s+/g, ' ').trim();
+                                if(/^[A-Z0-9]{2,8}\s*\/\s*[A-Z0-9]{2,8}(\s*\(?(OTC|REAL)\)?)?$/i.test(cleaned)) {
+                                    return cleaned.replace(/\s*\/\s*/, '/').toUpperCase();
+                                }
+                            }
+                        }
+
+                        var allTextEls = d.querySelectorAll('span, div, button, p');
+                        for(var j = 0; j < allTextEls.length; j++) {
+                            if(allTextEls[j].children.length === 0) {
+                                var t = (allTextEls[j].innerText || '').trim().replace(/\s+/g, ' ');
+                                if(/^[A-Z0-9]{2,8}\s*\/\s*[A-Z0-9]{2,8}(\s*\(?(OTC|REAL)\)?)?$/i.test(t) && t.length <= 26) {
+                                    var rect = allTextEls[j].getBoundingClientRect();
+                                    if(rect.width > 20 && rect.height > 8 && rect.top > 35 && rect.top < window.innerHeight - 35) {
+                                        return t.replace(/\s*\/\s*/, '/').toUpperCase();
+                                    }
+                                }
+                            }
+                        }
+                    } catch(e) {}
+                    return "EUR/USD";
+                }
+
+                function getTierWithPct(scoreVal) {
+                    var p = Math.max(1, Math.min(100, Math.round(scoreVal)));
+                    if(p >= 98) return { label: "100% ULTRA", pctStr: "100%", color: "#e879f9" };
+                    if(p >= 72) return { label: "ULTRA HIGH", pctStr: p + "%", color: "#e879f9" };
+                    if(p >= 46) return { label: "HIGH", pctStr: p + "%", color: "#00f0ff" };
+                    if(p >= 22) return { label: "MEDIUM", pctStr: p + "%", color: "#facc15" };
+                    return { label: "LOW", pctStr: p + "%", color: "#4ade80" };
+                }
+
+                function computeTradeCandleSize(ptsRaw, isCall, marketStr) {
+                    var ptsNum = parseInt(ptsRaw, 10);
+                    if(isNaN(ptsNum) || ptsNum <= 0) {
+                        ptsNum = 16;
+                    }
+                    var clampedPts = Math.max(8, Math.min(40, ptsNum));
+                    var ratio = (clampedPts - 8) / 32;
+                    var candleHeightPx = Math.round(11 + (ratio * 44));
+                    var candleWidthPx = Math.round(10 + (ratio * 10));
+                    var ptsFontPx = (6.8 + (ratio * 2.2)).toFixed(1);
+                    var sizeFontPx = (5.8 + (ratio * 1.4)).toFixed(1);
+
+                    var sizeTag = "SMALL SIZE";
+                    if(clampedPts <= 14) {
+                        sizeTag = "SMALL SIZE";
+                    } else if(clampedPts <= 23) {
+                        sizeTag = "MEDIUM SIZE";
+                    } else if(clampedPts <= 32) {
+                        sizeTag = "LARGE SIZE";
+                    } else {
+                        sizeTag = "HEAVY SIZE";
+                    }
+
+                    return {
+                        pts: clampedPts,
+                        heightPx: candleHeightPx,
+                        widthPx: candleWidthPx,
+                        ptsFontPx: ptsFontPx,
+                        sizeFontPx: sizeFontPx,
+                        sizeTag: sizeTag
+                    };
+                }
+
+                function showBoxSignalCard(sigType, marketDisplayName, ptsFromBackend) {
+                    var old = d.getElementById('ra-hacker-signal-popup');
+                    if(old) old.remove();
+
+                    var liveMarket = marketDisplayName || detectExactQuotexMarket();
+                    var isHold = (sigType === 'HOLD');
+                    var isCall = (sigType === 'CALL' || sigType === 'UP' || sigType === 'BUY');
+                    var metrics = computeTradeCandleSize(ptsFromBackend, isCall, liveMarket);
+                    var estText = isHold ? "WAIT / SYNC" : ((isCall ? "+" : "-") + metrics.pts + " PTS");
+                    var mainColor = isHold ? "#facc15" : (isCall ? "#4ade80" : "#f87171");
+                    var glowAnim = isCall ? "raPopupGreenGlow 2.4s infinite ease-in-out" : "raPopupRedGlow 2.4s infinite ease-in-out";
+
+                    var candleVisualHtml = '';
+                    if(isHold) {
+                        candleVisualHtml = '' +
+                            '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:66px;">' +
+                            '  <div style="font-size:8px;font-weight:900;color:#facc15;">' + estText + '</div>' +
+                            '  <div style="font-size:6.5px;color:#cbd5e1;margin-top:4px;">AUTHENTIC FEED SYNCING</div>' +
+                            '</div>';
+                    } else if(isCall) {
+                        candleVisualHtml = '' +
+                            '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:66px;animation:raCandleReveal 0.25s ease-out;">' +
+                            '  <div style="font-size:' + metrics.ptsFontPx + 'px;font-weight:900;color:#4ade80;margin-bottom:2px;text-shadow:0 0 10px #22c55e;">' + estText + '</div>' +
+                            '  <div style="width:2px;height:6px;background:#4ade80;box-shadow:0 0 10px #22c55e;"></div>' +
+                            '  <div style="width:' + metrics.widthPx + 'px;height:' + metrics.heightPx + 'px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.2px solid #bbf7d0;border-radius:2px;box-shadow:0 0 24px rgba(34,197,94,1), 0 0 42px rgba(74,222,128,0.9);"></div>' +
+                            '  <div style="width:2px;height:5px;background:#4ade80;box-shadow:0 0 10px #22c55e;"></div>' +
+                            '</div>';
+                    } else {
+                        candleVisualHtml = '' +
+                            '<div style="display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:66px;animation:raCandleReveal 0.25s ease-out;">' +
+                            '  <div style="width:2px;height:5px;background:#f87171;box-shadow:0 0 10px #ef4444;"></div>' +
+                            '  <div style="width:' + metrics.widthPx + 'px;height:' + metrics.heightPx + 'px;background:linear-gradient(180deg,#fca5a5,#ef4444,#b91c1c);border:1.2px solid #fecaca;border-radius:2px;box-shadow:0 0 24px rgba(239,68,68,1), 0 0 42px rgba(248,113,113,0.9);"></div>' +
+                            '  <div style="width:2px;height:6px;background:#f87171;box-shadow:0 0 10px #ef4444;"></div>' +
+                            '  <div style="font-size:' + metrics.ptsFontPx + 'px;font-weight:900;color:#f87171;margin-top:2px;text-shadow:0 0 10px #ef4444;">' + estText + '</div>' +
+                            '</div>';
+                    }
+
+                    var popup = d.createElement('div');
+                    popup.id = 'ra-hacker-signal-popup';
+                    popup.style.cssText = 'position:fixed;width:128px;' +
+                        (isCall
+                            ? 'background:linear-gradient(165deg, rgba(6,34,20,0.99), rgba(10,48,28,0.98));'
+                            : 'background:linear-gradient(165deg, rgba(36,8,14,0.99), rgba(52,10,20,0.98));') +
+                        'border-width:2px;border-style:solid;border-radius:10px;padding:6px 6px;box-sizing:border-box;' +
+                        'z-index:2147483646;pointer-events:none;font-family:"Courier New",monospace;color:#e2e8f0;' +
+                        'animation:raPopupEnter 0.18s ease-out, ' + glowAnim + ';';
+
+                    var dirLabel = isHold ? '● HOLD / WAIT' : (isCall ? '▲ CALL (UP)' : '▼ PUT (DOWN)');
+
+                    popup.innerHTML = '' +
+                        '<div style="text-align:center;font-size:6.2px;font-weight:900;letter-spacing:0.3px;color:#00f0ff;line-height:1.25;margin-bottom:4px;">' +
+                        '  R-A Candle Hacker<br><span style="color:' + mainColor + ';font-size:8px;text-shadow:0 0 12px ' + mainColor + ';">' + dirLabel + '</span>' +
+                        '</div>' +
+                        '<div style="background:rgba(2,8,12,0.94);border:1.2px solid ' + mainColor + ';border-radius:6px;padding:5px 4px;text-align:center;margin-bottom:4px;box-shadow:inset 0 0 12px ' + (isCall ? 'rgba(34,197,94,0.42)' : 'rgba(239,68,68,0.42)') + ';">' +
+                        candleVisualHtml +
+                        '  <div style="font-size:' + metrics.sizeFontPx + 'px;font-weight:900;color:' + mainColor + ';margin-top:3px;letter-spacing:0.25px;">' + (isHold ? 'HOLD MODE' : ('SIZE: ' + metrics.sizeTag + ' (' + metrics.heightPx + 'PX)')) + '</div>' +
+                        '  <div style="font-size:6.6px;font-weight:900;color:#ffffff;margin-top:3px;letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + liveMarket + '</div>' +
+                        '</div>' +
+                        '<div style="text-align:center;font-size:6.5px;font-weight:900;color:' + mainColor + ';letter-spacing:0.8px;border-top:1px dashed rgba(255,255,255,0.22);padding-top:3px;">LOCKED</div>';
+
+                    hostRoot.appendChild(popup);
+                    var botBtn = d.getElementById('ra-hacker-btn');
+                    positionPopupAboveBotWithGap(popup, botBtn);
+
+                    setTimeout(function(){
+                        if(popup.parentNode) popup.remove();
+                    }, 10000);
+                }
+
+                function startHackerScanSequence() {
+                    ensureAudioContext();
+                    var oldModal = d.getElementById('ra-hacker-scan-modal');
+                    if(oldModal) oldModal.remove();
+                    if(window.__raScanTimer) {
+                        clearInterval(window.__raScanTimer);
+                        window.__raScanTimer = null;
+                    }
+                    if(window.__raScanRaf) {
+                        cancelAnimationFrame(window.__raScanRaf);
+                        window.__raScanRaf = null;
+                    }
+                    setBrokerBackgroundBlur(true);
+
+                    var liveMarketDisplay = detectExactQuotexMarket();
+                    var queryMarketParam = liveMarketDisplay.replace(/[^A-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '') || "EURUSD";
+                    var initialIsCall = (Math.floor(Date.now() / 1000) % 2 === 0);
+
+                    var hexStreamLines = [
+                        { text: "MOD KERNEL32.DLL: 0x0550D120 SCOPE", color: "#00f0ff" },
+                        { text: "HASH 0x626A.6F8C4E12 [TICK-SYNC]", color: "#4ade80" },
+                        { text: "HEAP 0x56A8B848: 1094272B [QX-03EE]", color: "#facc15" },
+                        { text: "PAT 0x80271894: EAX=0x16450 [+0.16450]", color: "#e879f9" },
+                        { text: "THREAD#3679 STACK=0x7F98A2B1: #1967", color: "#38bdf8" },
+                        { text: "SOCKET 168.153.167.11:21463 ACK", color: "#fb7185" },
+                        { text: "MEM 0x0528F7C3: 75C74F49E [016-ACK]", color: "#00f0ff" },
+                        { text: "PAT 0x802719A0: EAX=0x16492 [+0.16492]", color: "#4ade80" },
+                        { text: "HASH 0x9412A8C1: 0x0550D120 [STREAM]", color: "#facc15" },
+                        { text: "KERNEL WICK MATRIX: 0xA91F84C0 [SYNC]", color: "#e879f9" },
+                        { text: "ORDER BOOK DELTA: +0.00042 [BID-ASK]", color: "#38bdf8" },
+                        { text: "LIQUIDITY POOL DEPTH: 0x882E11B4", color: "#fb7185" },
+                        { text: "SESSION ENTROPY LOCK: 99.4% [VERIFIED]", color: "#4ade80" },
+                        { text: "SOCKET BRIDGE 0x37: LATENCY SYNC OK", color: "#00f0ff" }
+                    ];
+
+                    var scanSteps = [
+                        { text: "Scanning server parts", color: "#22c55e" },
+                        { text: "Brute-forcing auth token", color: "#00f0ff" },
+                        { text: "Intercepting order flow packets", color: "#facc15" },
+                        { text: "Reverse-engineering price engine", color: "#e879f9" },
+                        { text: "Injecting live data hook", color: "#38bdf8" },
+                        { text: "Masking intrusion trace", color: "#fb7185" },
+                        { text: "Hack complete - feed secured", color: "#4ade80" },
+                        { text: "Syncing tick buffer 0x626", color: "#00f0ff" },
+                        { text: "Probing liquidity depth matrix", color: "#facc15" },
+                        { text: "Mapping volatility impulse", color: "#e879f9" },
+                        { text: "Verifying session entropy", color: "#38bdf8" },
+                        { text: "Decrypting order queue stream", color: "#fb7185" },
+                        { text: "Calibrating candle wick pressure", color: "#22c55e" },
+                        { text: "Checking spread micro-shifts", color: "#00f0ff" },
+                        { text: "Aligning momentum vectors", color: "#facc15" },
+                        { text: "Scanning rejection zones", color: "#e879f9" },
+                        { text: "Parsing live bid/ask delta", color: "#38bdf8" },
+                        { text: "Locking trend expansion filter", color: "#fb7185" },
+                        { text: "Validating node 0x37 bridge", color: "#22c55e" },
+                        { text: "Tuning quant core weights", color: "#00f0ff" },
+                        { text: "Stabilizing socket stream", color: "#facc15" },
+                        { text: "Benchmarking execution path", color: "#e879f9" },
+                        { text: "Confirming breakout threshold", color: "#38bdf8" },
+                        { text: "Scanning imbalance & fair value gaps", color: "#fb7185" },
+                        { text: "Cross-checking multi-timeframe bias", color: "#4ade80" },
+                        { text: "Finalizing candle target model", color: "#00f0ff" },
+                        { text: "CIPHER LOCKED || 100% HIGH ARMED", color: "#4ade80" }
+                    ];
+
+                    var neonPalette = ["#22c55e", "#00f0ff", "#e879f9", "#facc15", "#fb7185", "#38bdf8"];
+
+                    var modal = d.createElement('div');
+                    modal.id = 'ra-hacker-scan-modal';
+                    modal.style.cssText = 'position:fixed;top:47%;left:50%;transform:translate(-50%, -50%);width:336px;max-width:95vw;' +
+                        'background:linear-gradient(160deg, #061d15 0%, #051326 52%, #150726 100%);' +
+                        'border:2.5px solid #22c55e;border-radius:14px;padding:10px;z-index:2147483647;' +
+                        'font-family:"Courier New",Courier,monospace;color:#4ade80;box-sizing:border-box;will-change:transform;' +
+                        'animation:raScanBoxSlowBorder 9s infinite ease-in-out;';
+
+                    modal.innerHTML = '' +
+                        '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid rgba(0,240,255,0.4);padding-bottom:6px;margin-bottom:6px;">' +
+                        '  <div style="display:flex;align-items:center;gap:8px;margin-top:-3px;">' +
+                        '    <img src="' + botAvatarUrl + '" alt="R-A Candle Hacker" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid #00f0ff;flex-shrink:0;animation:raHeaderAvatarGlow 4s infinite ease-in-out;" />' +
+                        '    <div>' +
+                        '      <div style="font-size:12px;font-weight:900;color:#4ade80;letter-spacing:0.6px;text-shadow:0 0 12px rgba(74,222,128,0.9);">R-A Candle Hacker</div>' +
+                        '      <div style="font-size:7px;color:#00f0ff;letter-spacing:0.5px;">QUANT CORE EXPLOIT</div>' +
+                        '      <div style="font-size:6.5px;color:#94a3b8;">SESSION: QQX-5709-03EE-1967 | ' + liveMarketDisplay + '</div>' +
+                        '    </div>' +
+                        '  </div>' +
+                        '  <div style="display:flex;align-items:center;gap:5px;">' +
+                        '    <div id="ra-pct-badge" style="background:rgba(20,83,45,0.85);border:1.4px solid #4ade80;color:#4ade80;font-size:9px;font-weight:900;padding:2px 7px;border-radius:10px;">1%</div>' +
+                        '    <div id="ra-modal-close" style="cursor:pointer;color:#94a3b8;font-size:12px;font-weight:bold;padding:0 3px;">✕</div>' +
+                        '  </div>' +
+                        '</div>' +
+
+                        '<div style="background:rgba(2,10,16,0.94);border:1.5px solid #00f0ff;border-radius:8px;padding:6px 7px;margin-bottom:6px;box-shadow:0 0 24px rgba(0,240,255,0.45), inset 0 0 14px rgba(232,121,249,0.2);">' +
+                        '  <div style="display:flex;justify-content:space-between;font-size:7px;color:#00f0ff;margin-bottom:4px;">' +
+                        '    <span>MEMORY STREAM</span>' +
+                        '    <span id="ra-mem-state" style="color:#4ade80;font-weight:bold;">● LOW (1%)</span>' +
+                        '  </div>' +
+                        '  <div style="display:flex;align-items:center;gap:6px;">' +
+                        '    <div id="ra-hero-candle-box" style="width:36px;height:68px;border:2px solid #4ade80;border-radius:6px;background:rgba(34,197,94,0.36);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 42px #4ade80, 0 0 80px rgba(74,222,128,1);animation:raHeroCandleSpinGlow 2.4s infinite linear;">' +
+                        '      <span id="ra-hero-wick-top" style="width:2.5px;height:12px;background:#86efac;box-shadow:0 0 20px #4ade80;"></span>' +
+                        '      <span id="ra-hero-candle-body" style="width:17px;height:38px;background:linear-gradient(180deg,#86efac,#22c55e,#15803d);border:1.4px solid #dcfce7;border-radius:2px;display:inline-block;box-shadow:0 0 38px #4ade80, 0 0 74px rgba(34,197,94,1);"></span>' +
+                        '      <span id="ra-hero-wick-bot" style="width:2.5px;height:12px;background:#86efac;box-shadow:0 0 20px #4ade80;"></span>' +
+                        '    </div>' +
+                        '    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;">' +
+                        '      <div style="display:flex;justify-content:space-between;font-size:6.8px;gap:3px;">' +
+                        '        <span><b style="color:#64748b;">OPEN</b> <span style="color:#fff;">0.1645</span></span>' +
+                        '        <span><b style="color:#64748b;">HIGH</b> <span style="color:#4ade80;">0.1650</span></span>' +
+                        '        <span><b style="color:#64748b;">LOW</b> <span style="color:#f87171;">0.1639</span></span>' +
+                        '        <span><b style="color:#64748b;">CLOSE</b> <span style="color:#00f0ff;">0.1643</span></span>' +
+                        '      </div>' +
+
+                        '      <div id="ra-track-rtl" style="position:relative;display:flex;align-items:center;height:32px;background:rgba(4,16,26,0.92);border:1.5px solid #4ade80;border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 28px rgba(74,222,128,0.85), 0 0 46px rgba(0,240,255,0.45), inset 0 0 14px rgba(74,222,128,0.35);">' +
+                        '        <div style="position:absolute;left:0;right:0;top:50%;height:1.6px;background:#facc15;box-shadow:0 0 16px #facc15, 0 0 24px #4ade80;z-index:3;pointer-events:none;"></div>' +
+                        '        <div id="ra-volume-bars-rtl" style="position:relative;z-index:2;display:flex;flex-direction:row-reverse;align-items:center;justify-content:flex-start;gap:1.5px;height:30px;width:100%;"></div>' +
+                        '      </div>' +
+
+                        '      <div id="ra-track-ltr" style="position:relative;display:flex;align-items:center;height:32px;background:rgba(4,16,26,0.92);border:1.5px solid #00f0ff;border-radius:5px;padding:0 2px;overflow:hidden;box-shadow:0 0 28px rgba(0,240,255,0.85), 0 0 46px rgba(232,121,249,0.45), inset 0 0 14px rgba(0,240,255,0.35);">' +
+                        '        <div style="position:absolute;left:0;right:0;top:50%;height:1.6px;background:#00f0ff;box-shadow:0 0 16px #00f0ff, 0 0 24px #e879f9;z-index:3;pointer-events:none;"></div>' +
+                        '        <div id="ra-volume-bars-ltr" style="position:relative;z-index:2;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:1.5px;height:30px;width:100%;"></div>' +
+                        '      </div>' +
+                        '    </div>' +
+                        '  </div>' +
+                        '</div>' +
+
+                        '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-bottom:4px;font-size:6.8px;text-align:center;">' +
+                        '  <div id="ra-box-vec" style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(34,197,94,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#94a3b8;">0x29</div><div id="ra-vec-mode" style="color:#4ade80;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-feed" style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(0,240,255,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#00f0ff;font-weight:bold;">LIVE</div><div id="ra-feed-mode" style="color:#86efac;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-rsi" style="background:rgba(2,10,16,0.92);border:1.5px solid #facc15;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(250,204,21,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#facc15;font-weight:bold;">RSI</div><div id="ra-rsi-val" style="color:#facc15;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-cyc" style="background:rgba(2,10,16,0.92);border:1.5px solid #e879f9;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(232,121,249,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#e879f9;font-weight:bold;">016</div><div id="ra-cyc-mode" style="color:#e879f9;font-weight:bold;">LOW 1%</div></div>' +
+                        '</div>' +
+
+                        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-bottom:6px;font-size:6.8px;text-align:center;">' +
+                        '  <div id="ra-box-lat" style="background:rgba(2,10,16,0.92);border:1.5px solid #22c55e;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(34,197,94,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div id="ra-ms-val" style="color:#4ade80;font-weight:bold;">1ms</div><div id="ra-lat-mode" style="color:#4ade80;font-size:6.2px;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-breach" style="background:rgba(2,10,16,0.92);border:1.5px solid #fb7185;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(251,113,133,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#fb7185;font-weight:bold;">BREACH</div><div id="ra-breach-val" style="color:#fb7185;font-weight:bold;">LOW 1%</div></div>' +
+                        '  <div id="ra-box-node" style="background:rgba(2,10,16,0.92);border:1.5px solid #00f0ff;border-radius:6px;padding:4px 2px;box-shadow:0 0 16px rgba(0,240,255,0.65);transition:border-color 0.35s,box-shadow 0.35s;"><div style="color:#00f0ff;font-weight:bold;">016</div><div id="ra-node-mode" style="color:#00f0ff;font-weight:bold;">LOW 1%</div></div>' +
+                        '</div>' +
+
+                        '<div id="ra-hex-stream" style="background:rgba(2,10,16,0.94);border:1.4px solid #00f0ff;border-radius:7px;padding:5px 6px;margin-bottom:6px;font-size:6.6px;line-height:1.42;height:74px;overflow-y:auto;box-shadow:0 0 16px rgba(0,240,255,0.45);transition:border-color 0.4s,box-shadow 0.4s;"></div>' +
+
+                        '<div id="ra-terminal-feed" style="background:#02090e;border:1.4px solid #e879f9;border-radius:8px;padding:5px 7px;font-size:7px;line-height:1.42;height:80px;overflow-y:auto;box-shadow:0 0 16px rgba(232,121,249,0.45);transition:border-color 0.4s,box-shadow 0.4s;"></div>';
+
+                    hostRoot.appendChild(modal);
+                    applyHeroCandleColor(initialIsCall);
+
+                    modal.querySelector('#ra-modal-close').onclick = function() {
+                        if(window.__raScanRaf) {
+                            cancelAnimationFrame(window.__raScanRaf);
+                            window.__raScanRaf = null;
+                        }
+                        setBrokerBackgroundBlur(false);
+                        modal.remove();
+                    };
+
+                    var pct = 1;
+                    var lastTickBeat = -1;
+                    var revealedSteps = 0;
+                    var revealedHex = 0;
+                    var pctBadge = modal.querySelector('#ra-pct-badge');
+                    var msValEl = modal.querySelector('#ra-ms-val');
+                    var rsaVal = modal.querySelector('#ra-rsi-val');
+                    var breachVal = modal.querySelector('#ra-breach-val');
+                    var memState = modal.querySelector('#ra-mem-state');
+                    var vecMode = modal.querySelector('#ra-vec-mode');
+                    var feedMode = modal.querySelector('#ra-feed-mode');
+                    var cycMode = modal.querySelector('#ra-cyc-mode');
+                    var latMode = modal.querySelector('#ra-lat-mode');
+                    var nodeMode = modal.querySelector('#ra-node-mode');
+                    var hexStreamEl = modal.querySelector('#ra-hex-stream');
+                    var feedEl = modal.querySelector('#ra-terminal-feed');
+                    var barsRtlEl = modal.querySelector('#ra-volume-bars-rtl');
+                    var barsLtrEl = modal.querySelector('#ra-volume-bars-ltr');
+                    var trackRtlEl = modal.querySelector('#ra-track-rtl');
+                    var trackLtrEl = modal.querySelector('#ra-track-ltr');
+
+                    var metricBoxes = [
+                        modal.querySelector('#ra-box-vec'),
+                        modal.querySelector('#ra-box-feed'),
+                        modal.querySelector('#ra-box-rsi'),
+                        modal.querySelector('#ra-box-cyc'),
+                        modal.querySelector('#ra-box-lat'),
+                        modal.querySelector('#ra-box-breach'),
+                        modal.querySelector('#ra-box-node')
+                    ];
+
+                    var signalPromise = fetch(renderServerUrl + '/signal?market=' + encodeURIComponent(queryMarketParam) + '&mode=MANUAL&t=' + Date.now())
+                        .then(function(r){ return r.json(); })
+                        .catch(function(){
+                            return { signal: "HOLD", pts: 0 };
+                        });
+
+                    signalPromise.then(function(data){
+                        var sig = String((data && data.signal) || '').toUpperCase();
+                        if(sig === 'CALL' || sig === 'UP' || sig === 'BUY') {
+                            applyHeroCandleColor(true);
+                        } else if(sig === 'PUT' || sig === 'DOWN' || sig === 'SELL') {
+                            applyHeroCandleColor(false);
+                        }
+                    });
+
+                    var trackWidth = (barsRtlEl && barsRtlEl.clientWidth) ? barsRtlEl.clientWidth : 230;
+                    var candleSlotWidth = 7.4;
+                    var maxDualCandles = Math.max(24, Math.floor(trackWidth / candleSlotWidth));
+
+                    function createCandleSlot(beatIdx, isAltLine) {
+                        var isGreenVol = isAltLine ? (beatIdx % 2 === 0) : (beatIdx % 3 !== 1);
+                        var vCol = isGreenVol ? '#4ade80' : '#ef4444';
+                        var bodyBg = isGreenVol
+                            ? 'linear-gradient(180deg,#bbf7d0,#4ade80,#16a34a)'
+                            : 'linear-gradient(180deg,#fecaca,#f87171,#dc2626)';
+                        var vGlow = isGreenVol
+                            ? '0 0 28px #4ade80, 0 0 52px rgba(74,222,128,1)'
+                            : '0 0 28px #f87171, 0 0 52px rgba(248,113,113,1)';
+                        var ratioStep = beatIdx / Math.max(1, maxDualCandles - 1);
+                        var maxH = Math.min(28, Math.round(9 + (ratioStep * 18) + ((beatIdx * 3) % 4)));
+
+                        var vCandle = d.createElement('div');
+                        vCandle.style.cssText = 'display:flex;flex-direction:column;align-items:center;justify-content:center;' +
+                            'width:5.6px;height:28px;flex-shrink:0;opacity:0;';
+                        vCandle.dataset.maxH = String(maxH);
+                        vCandle.dataset.glow = vGlow;
+                        vCandle.innerHTML = '' +
+                            '<span style="width:1.3px;height:3px;background:' + vCol + ';box-shadow:0 0 12px ' + vCol + ';"></span>' +
+                            '<span class="ra-vbody" style="width:4.4px;height:5px;background:' + bodyBg + ';border-radius:1.5px;display:inline-block;"></span>' +
+                            '<span style="width:1.3px;height:3px;background:' + vCol + ';box-shadow:0 0 12px ' + vCol + ';"></span>';
+                        return vCandle;
+                    }
+
+                    var rtlSlots = [];
+                    var ltrSlots = [];
+                    if(barsRtlEl && barsLtrEl) {
+                        barsRtlEl.innerHTML = '';
+                        barsLtrEl.innerHTML = '';
+                        for(var k = 0; k < maxDualCandles; k++) {
+                            var sRtl = createCandleSlot(k, false);
+                            var sLtr = createCandleSlot(k, true);
+                            barsRtlEl.appendChild(sRtl);
+                            barsLtrEl.appendChild(sLtr);
+                            rtlSlots.push(sRtl);
+                            ltrSlots.push(sLtr);
+                        }
+                    }
+
+                    function updateSmoothCandleStreams(elapsedMs, beatFloat, activeBeatIdx) {
+                        for(var i = 0; i < maxDualCandles; i++) {
+                            var pairNodes = [rtlSlots[i], ltrSlots[i]];
+                            for(var p = 0; p < pairNodes.length; p++) {
+                                var slot = pairNodes[p];
+                                if(!slot) continue;
+                                var bEl = slot.querySelector('.ra-vbody');
+                                var maxH = parseInt(slot.dataset.maxH || '14', 10);
+                                var gStr = slot.dataset.glow || '';
+
+                                if(i < activeBeatIdx) {
+                                    slot.style.opacity = '1';
+                                    if(bEl) {
+                                        bEl.style.height = maxH + 'px';
+                                        bEl.style.boxShadow = gStr;
+                                    }
+                                } else if(i === activeBeatIdx) {
+                                    var localFrac = Math.max(0.15, Math.min(1, beatFloat - activeBeatIdx));
+                                    var smoothH = Math.max(5, Math.round(5 + (maxH - 5) * localFrac));
+                                    slot.style.opacity = String(Math.min(1, 0.25 + localFrac * 0.75));
+                                    if(bEl) {
+                                        bEl.style.height = smoothH + 'px';
+                                        bEl.style.boxShadow = gStr;
+                                    }
+                                } else {
+                                    slot.style.opacity = '0';
+                                    if(bEl) {
+                                        bEl.style.height = '5px';
+                                        bEl.style.boxShadow = 'none';
+                                    }
+                                }
+                            }
+                        }
+
+                        var glowPulseIdx = Math.floor(elapsedMs / 420) % neonPalette.length;
+                        var colA = neonPalette[glowPulseIdx];
+                        var colB = neonPalette[(glowPulseIdx + 2) % neonPalette.length];
+                        if(trackRtlEl) {
+                            trackRtlEl.style.borderColor = colA;
+                            trackRtlEl.style.boxShadow = "0 0 30px " + colA + ", inset 0 0 14px " + colB;
+                        }
+                        if(trackLtrEl) {
+                            trackLtrEl.style.borderColor = colB;
+                            trackLtrEl.style.boxShadow = "0 0 30px " + colB + ", inset 0 0 14px " + colA;
+                        }
+                    }
+
+                    var scanStartTime = performance.now();
+                    var scanDurationMs = 10000;
+                    var beatIntervalMs = scanDurationMs / maxDualCandles;
+                    var finishedScan = false;
+
+                    function smoothScanFrame(nowTs) {
+                        if(!modal.isConnected || finishedScan) return;
+
+                        var elapsed = nowTs - scanStartTime;
+                        var rawRatio = Math.min(1, elapsed / scanDurationMs);
+                        var nextPct = Math.max(1, Math.min(100, Math.floor(rawRatio * 100)));
+                        if(rawRatio < 1 && nextPct >= 100) nextPct = 99;
+                        if(rawRatio >= 1) nextPct = 100;
+
+                        var beatFloat = Math.min(maxDualCandles, elapsed / beatIntervalMs);
+                        var activeBeat = Math.min(maxDualCandles - 1, Math.floor(beatFloat));
+
+                        if(activeBeat > lastTickBeat && rawRatio < 1) {
+                            lastTickBeat = activeBeat;
+                            playTickSound();
+                        }
+
+                        updateSmoothCandleStreams(elapsed, beatFloat, activeBeat);
+
+                        var pVec = Math.min(100, Math.max(1, Math.round((rawRatio / 0.86) * 100)));
+                        var pFeed = Math.min(100, Math.max(1, Math.round((rawRatio / 0.90) * 100)));
+                        var pRsi = Math.min(100, Math.max(1, Math.round((rawRatio / 0.93) * 100)));
+                        var pCyc = Math.min(100, Math.max(1, Math.round((rawRatio / 0.88) * 100)));
+                        var pLat = Math.min(100, Math.max(1, Math.round((rawRatio / 0.95) * 100)));
+                        var pBreach = Math.min(100, Math.max(1, Math.round((rawRatio / 0.97) * 100)));
+                        var pNode = Math.min(100, Math.max(1, Math.round((rawRatio / 0.99) * 100)));
+
+                        var msSteps = [1, 2, 3, 4, 5, 8, 10, 15, 20, 25, 32, 40, 50];
+                        var msIdx = Math.min(msSteps.length - 1, Math.floor(rawRatio * msSteps.length));
+                        if(msValEl) msValEl.innerText = msSteps[msIdx] + "ms";
+
+                        if(nextPct !== pct) {
+                            pct = nextPct;
+                            if(pctBadge) pctBadge.innerText = pct + '%';
+
+                            var tVec = getTierWithPct(pVec);
+                            var tFeed = getTierWithPct(pFeed);
+                            var tRsi = getTierWithPct(pRsi);
+                            var tCyc = getTierWithPct(pCyc);
+                            var tLat = getTierWithPct(pLat);
+                            var tBreach = getTierWithPct(pBreach);
+                            var tNode = getTierWithPct(pNode);
+
+                            if(vecMode) { vecMode.innerText = tVec.label + " " + tVec.pctStr; vecMode.style.color = tVec.color; }
+                            if(feedMode) { feedMode.innerText = tFeed.label + " " + tFeed.pctStr; feedMode.style.color = tFeed.color; }
+                            if(rsaVal) { rsaVal.innerText = tRsi.label + " " + tRsi.pctStr; rsaVal.style.color = tRsi.color; }
+                            if(cycMode) { cycMode.innerText = tCyc.label + " " + tCyc.pctStr; cycMode.style.color = tCyc.color; }
+                            if(latMode) { latMode.innerText = tLat.label + " " + tLat.pctStr; latMode.style.color = tLat.color; }
+                            if(breachVal) { breachVal.innerText = tBreach.label + " " + tBreach.pctStr; breachVal.style.color = tBreach.color; }
+                            if(nodeMode) { nodeMode.innerText = tNode.label + " " + tNode.pctStr; nodeMode.style.color = tNode.color; }
+                            if(memState) { memState.innerText = "● " + tNode.label + " (" + pct + "%)"; memState.style.color = tNode.color; }
+
+                            for(var b = 0; b < metricBoxes.length; b++) {
+                                var boxEl = metricBoxes[b];
+                                if(boxEl) {
+                                    var cIdx = (Math.floor(elapsed / (480 + b * 110)) + b) % neonPalette.length;
+                                    var colHex = neonPalette[cIdx];
+                                    boxEl.style.borderColor = colHex;
+                                    boxEl.style.boxShadow = "0 0 18px " + colHex;
+                                }
+                            }
+                            if(hexStreamEl) {
+                                var hCol = neonPalette[Math.floor(elapsed / 620) % neonPalette.length];
+                                hexStreamEl.style.borderColor = hCol;
+                                hexStreamEl.style.boxShadow = "0 0 18px " + hCol;
+                            }
+                            if(feedEl) {
+                                var fCol = neonPalette[(Math.floor(elapsed / 540) + 2) % neonPalette.length];
+                                feedEl.style.borderColor = fCol;
+                                feedEl.style.boxShadow = "0 0 18px " + fCol;
+                            }
+                        }
+
+                        var targetHex = Math.min(hexStreamLines.length, Math.floor(rawRatio * hexStreamLines.length) + 1);
+                        if(targetHex > revealedHex && hexStreamEl) {
+                            var fragHex = d.createDocumentFragment();
+                            while(revealedHex < targetHex) {
+                                var hObj = hexStreamLines[revealedHex];
+                                var hRow = d.createElement('div');
+                                hRow.style.color = hObj.color;
+                                hRow.innerText = hObj.text;
+                                fragHex.appendChild(hRow);
+                                revealedHex++;
+                            }
+                            hexStreamEl.appendChild(fragHex);
+                            hexStreamEl.scrollTop = hexStreamEl.scrollHeight;
+                        }
+
+                        var targetSteps = Math.min(scanSteps.length, Math.floor(rawRatio * scanSteps.length) + 1);
+                        if(targetSteps > revealedSteps && feedEl) {
+                            var fragSteps = d.createDocumentFragment();
+                            while(revealedSteps < targetSteps) {
+                                var stepObj = scanSteps[revealedSteps];
+                                var row = d.createElement('div');
+                                row.style.color = stepObj.color;
+                                row.innerHTML = '<span style="color:#4ade80;font-weight:900;">✓</span> ' + stepObj.text;
+                                fragSteps.appendChild(row);
+                                revealedSteps++;
+                            }
+                            feedEl.appendChild(fragSteps);
+                            feedEl.scrollTop = feedEl.scrollHeight;
+                        }
+
+                        if(rawRatio >= 1) {
+                            finishedScan = true;
+                            updateSmoothCandleStreams(scanDurationMs, maxDualCandles, maxDualCandles - 1);
+                            pct = 100;
+                            if(pctBadge) pctBadge.innerText = '100%';
+                            if(msValEl) msValEl.innerText = '50ms';
+                            if(vecMode) { vecMode.innerText = '100% ULTRA'; vecMode.style.color = '#e879f9'; }
+                            if(feedMode) { feedMode.innerText = '100% ULTRA'; feedMode.style.color = '#e879f9'; }
+                            if(rsaVal) { rsaVal.innerText = '100% ULTRA'; rsaVal.style.color = '#e879f9'; }
+                            if(cycMode) { cycMode.innerText = '100% ULTRA'; cycMode.style.color = '#e879f9'; }
+                            if(latMode) { latMode.innerText = '100% ULTRA'; latMode.style.color = '#e879f9'; }
+                            if(breachVal) { breachVal.innerText = '100% ULTRA'; breachVal.style.color = '#e879f9'; }
+                            if(nodeMode) { nodeMode.innerText = '100% ULTRA'; nodeMode.style.color = '#e879f9'; }
+                            if(memState) { memState.innerText = '● 100% LOCK (100%)'; memState.style.color = '#e879f9'; }
+
+                            var finalMarket = detectExactQuotexMarket();
+                            signalPromise.then(function(data){
+                                var sig = String((data && data.signal) || 'HOLD').toUpperCase();
+                                var isCall = (sig === 'CALL' || sig === 'UP' || sig === 'BUY');
+                                var ptsVal = data && data.pts;
+                                applyHeroCandleColor(isCall);
+                                playTradePongSound(isCall);
+                                setTimeout(function(){
+                                    if(modal.isConnected) modal.remove();
+                                    setBrokerBackgroundBlur(false);
+                                    showBoxSignalCard(sig, finalMarket, ptsVal);
+                                }, 240);
+                            });
+                            return;
+                        }
+
+                        window.__raScanRaf = requestAnimationFrame(smoothScanFrame);
+                    }
+
+                    window.__raScanRaf = requestAnimationFrame(smoothScanFrame);
+                }
+
+                if(window[sessionFlagName]) {
+                    createDraggableBotButton();
+                } else {
+                    showCenteredPasswordPanel();
+                }
+                return true;
+            } catch(err) {
+                console.error("R-A Candle Hacker Error:", err);
+                return false;
+            }
+        }
+
+        function ensureBotMountedContinuously() {
+            if(mountBot()) return;
+
+            var retryCount = 0;
+            var retryTimer = setInterval(function(){
+                retryCount++;
+                if(mountBot() || retryCount >= 40) {
+                    clearInterval(retryTimer);
+                }
+            }, 250);
+
+            if(typeof MutationObserver !== "undefined") {
+                var target = document.documentElement || document.body;
+                if(target) {
+                    var obs = new MutationObserver(function(){
+                        if(document.body && !document.getElementById('ra-hacker-btn') && !document.getElementById('ra-hacker-login-modal') && !document.getElementById('ra-hacker-scan-modal') && !document.getElementById('ra-cyber-5s-overlay')) {
+                            mountBot();
+                        }
+                    });
+                    obs.observe(target, { childList: true, subtree: true });
+                }
+            }
+        }
+
+        if(document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", ensureBotMountedContinuously, { once: true });
+        } else {
+            ensureBotMountedContinuously();
+        }
+        window.addEventListener("load", ensureBotMountedContinuously, { once: true });
+    })();
+    """
     res = make_response(js)
-    return add_cors_headers(res, is_js=True, js_payload=js)
+    return add_cors_headers(res, is_js=True)
 
 
 def start_server():
