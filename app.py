@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, make_response, request
 import requests
+import hashlib
 import base64
 import time
 import os
@@ -13,6 +14,8 @@ logging.basicConfig(
     format='%(asctime)s [%(levelname)s] %(name)s: %(message)s'
 )
 logger = logging.getLogger("RA_CANDLE_HACKER_Engine")
+
+BUILD_BOOT_TS = int(time.time())
 
 
 def _d(encoded_val: str) -> str:
@@ -121,20 +124,25 @@ POLYGON_KEYS_POOL = [
 
 http_session = requests.Session()
 http_session.headers.update({
-    "User-Agent": "RA-Candle-Hacker-Backend/18.0",
+    "User-Agent": "RA-Candle-Hacker-Backend/19.0",
     "Accept": "application/json"
 })
 if API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]:
     http_session.headers["X-Quantex-Key"] = API_REGISTRY["QUANTEX_PRO_DASHBOARD_KEY"]
 
 
-def add_cors_headers(response, is_js: bool = False):
+def add_cors_headers(response, is_js: bool = False, js_payload: str = ""):
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Methods"] = "GET, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     if is_js:
+        digest = hashlib.sha256(js_payload.encode("utf-8")).hexdigest()[:16]
         response.headers["Content-Type"] = "application/javascript; charset=utf-8"
+        response.headers["ETag"] = f'"{digest}-{BUILD_BOOT_TS}"'
+        response.headers["X-Bot-Build-Hash"] = digest
     return response
 
 
@@ -518,79 +526,8 @@ class LiveMarketCandleEngine:
         }
 
 
-@app.route('/')
-def home():
-    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - https://ra-ai-bot-1.onrender.com")
-    return add_cors_headers(res)
-
-
-@app.route('/ping')
-def ping():
-    res = make_response("OK", 200)
-    return add_cors_headers(res)
-
-
-@app.route('/health')
-def health():
-    res = jsonify({
-        "status": "ONLINE",
-        "server": "https://ra-ai-bot-1.onrender.com",
-        "active_api_endpoints_loaded": len(API_REGISTRY)
-    })
-    return add_cors_headers(res)
-
-
-@app.route('/signal', methods=['GET', 'OPTIONS'])
-def get_signal():
-    if request.method == 'OPTIONS':
-        return add_cors_headers(make_response("", 204))
-
-    try:
-        raw_market = request.args.get("market", "EURUSD").upper()
-        req_mode = request.args.get("mode", "MANUAL").upper()
-        clean_sym, _, is_otc = LiveMarketCandleEngine._normalize_symbol(raw_market)
-
-        if not is_otc and len(clean_sym) >= 3:
-            if not LiveMarketCandleEngine.check_news_safety(clean_sym[:3]):
-                res = jsonify({
-                    "signal": "HOLD",
-                    "trend": "NEWS BLOCK",
-                    "status": "NEWS_GUARD",
-                    "pts": 0,
-                    "confidence": 0,
-                    "rule": "High Impact News Filter Active."
-                })
-                return add_cors_headers(res)
-
-        analysis = LiveMarketCandleEngine.compute_live_market_signal(raw_market, mode=req_mode)
-        res = jsonify({
-            "signal": analysis["signal"],
-            "trend": analysis["trend"],
-            "status": analysis.get("status", "GREEN_EXECUTE"),
-            "pts": analysis.get("pts", 0),
-            "confidence": analysis.get("confidence", 94),
-            "rule": analysis["rule"]
-        })
-        return add_cors_headers(res)
-    except Exception as e:
-        logger.error(f"Signal Error: {e}")
-        res = jsonify({
-            "signal": "HOLD",
-            "trend": "ENGINE RETRY",
-            "status": "WAIT_FEED",
-            "pts": 0,
-            "confidence": 0,
-            "rule": "No-Fake Guard: Reconnecting Authentic Data Pipeline."
-        })
-        return add_cors_headers(res)
-
-
-@app.route('/bot.js', methods=['GET', 'OPTIONS'])
-def bot_script():
-    if request.method == 'OPTIONS':
-        return add_cors_headers(make_response("", 204), is_js=True)
-
-    js = """
+def _build_bot_js() -> str:
+    return """
     (function(){
         "use strict";
 
@@ -600,9 +537,9 @@ def bot_script():
         var TELEGRAM_URL = "https://t.me/+x1QYA_1-sSs0NTk1";
         var ACCESS_KEY = "Gop Gop2027";
 
-        var STORAGE_UNLOCK = "__raUnlockedSession_v5";
-        var STORAGE_MODE = "__raLockedMode_v5";
-        var STORAGE_ON = "__raModeIsOn_v5";
+        var STORAGE_UNLOCK = "__raUnlockedSession_v6";
+        var STORAGE_MODE = "__raLockedMode_v6";
+        var STORAGE_ON = "__raModeIsOn_v6";
 
         var lockedMode = null;
         var isModeOn = false;
@@ -615,7 +552,7 @@ def bot_script():
         var audioCtx = null;
         var lastTickTime = 0;
 
-        var NEON_COLORS = ["#00f0ff", "#22c55e", "#e879f9", "#facc15", "#fb7185", "#38bdf8", "#a855f7", "#4ade80"];
+        var NEON_PALETTE = ["#00f0ff", "#22c55e", "#e879f9", "#facc15", "#fb7185", "#38bdf8", "#a855f7", "#4ade80"];
 
         function loadState() {
             try {
@@ -666,7 +603,7 @@ def bot_script():
 
         function playScanTick() {
             var nowMs = Date.now();
-            if (nowMs - lastTickTime < 110) return;
+            if (nowMs - lastTickTime < 105) return;
             lastTickTime = nowMs;
             var ctx = getAudio();
             if (!ctx) return;
@@ -675,15 +612,15 @@ def bot_script():
                 var osc = ctx.createOscillator();
                 var gain = ctx.createGain();
                 osc.type = "sawtooth";
-                osc.frequency.setValueAtTime(1040, t);
-                osc.frequency.exponentialRampToValueAtTime(420, t + 0.045);
+                osc.frequency.setValueAtTime(1080, t);
+                osc.frequency.exponentialRampToValueAtTime(410, t + 0.042);
                 gain.gain.setValueAtTime(0.001, t);
                 gain.gain.linearRampToValueAtTime(0.22, t + 0.006);
-                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, t + 0.048);
                 osc.connect(gain);
                 gain.connect(ctx.destination);
                 osc.start(t);
-                osc.stop(t + 0.055);
+                osc.stop(t + 0.052);
             } catch (_) {}
         }
 
@@ -699,9 +636,9 @@ def bot_script():
                 osc2.type = "triangle";
                 if (isUp) {
                     osc1.frequency.setValueAtTime(520, t);
-                    osc1.frequency.exponentialRampToValueAtTime(1120, t + 0.18);
+                    osc1.frequency.exponentialRampToValueAtTime(1140, t + 0.18);
                     osc2.frequency.setValueAtTime(780, t);
-                    osc2.frequency.exponentialRampToValueAtTime(1380, t + 0.2);
+                    osc2.frequency.exponentialRampToValueAtTime(1420, t + 0.2);
                 } else {
                     osc1.frequency.setValueAtTime(660, t);
                     osc1.frequency.exponentialRampToValueAtTime(240, t + 0.2);
@@ -716,28 +653,24 @@ def bot_script():
                 gain.connect(ctx.destination);
                 osc1.start(t);
                 osc2.start(t);
-                osc1.stop(nowOrEnd(t, 0.26));
-                osc2.stop(nowOrEnd(t, 0.26));
+                osc1.stop(t + 0.26);
+                osc2.stop(t + 0.26);
             } catch (_) {}
         }
 
-        function nowOrEnd(t, dur) {
-            return t + dur;
-        }
-
         function injectStyles() {
-            if (document.getElementById("ra-cyber-master-styles")) return;
+            if (document.getElementById("ra-cyber-ultra-styles")) return;
             var style = document.createElement("style");
-            style.id = "ra-cyber-master-styles";
+            style.id = "ra-cyber-ultra-styles";
             style.textContent =
                 "@keyframes raSpinCW { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }" +
                 "@keyframes raSpinCCW { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }" +
-                "@keyframes raAuraRainbow { " +
-                "  0% { box-shadow: 0 0 24px #00f0ff, 0 0 52px rgba(0,240,255,0.9), 0 0 78px rgba(34,197,94,0.65); } " +
-                "  25% { box-shadow: 0 0 26px #22c55e, 0 0 56px rgba(34,197,94,0.92), 0 0 82px rgba(250,204,21,0.65); } " +
-                "  50% { box-shadow: 0 0 26px #e879f9, 0 0 56px rgba(232,121,249,0.92), 0 0 82px rgba(0,240,255,0.65); } " +
-                "  75% { box-shadow: 0 0 26px #facc15, 0 0 56px rgba(250,204,21,0.92), 0 0 82px rgba(251,113,133,0.65); } " +
-                "  100% { box-shadow: 0 0 24px #00f0ff, 0 0 52px rgba(0,240,255,0.9), 0 0 78px rgba(34,197,94,0.65); } " +
+                "@keyframes raAuraUltra { " +
+                "  0% { box-shadow: 0 0 24px #00f0ff, 0 0 54px rgba(0,240,255,0.92), 0 0 82px rgba(232,121,249,0.65); } " +
+                "  25% { box-shadow: 0 0 26px #22c55e, 0 0 58px rgba(34,197,94,0.94), 0 0 84px rgba(250,204,21,0.65); } " +
+                "  50% { box-shadow: 0 0 26px #e879f9, 0 0 58px rgba(232,121,249,0.94), 0 0 84px rgba(0,240,255,0.65); } " +
+                "  75% { box-shadow: 0 0 26px #facc15, 0 0 58px rgba(250,204,21,0.94), 0 0 84px rgba(251,113,133,0.65); } " +
+                "  100% { box-shadow: 0 0 24px #00f0ff, 0 0 54px rgba(0,240,255,0.92), 0 0 82px rgba(232,121,249,0.65); } " +
                 "}" +
                 "@keyframes raLoginBorderFast { " +
                 "  0% { border-color: #22c55e; box-shadow: 0 0 24px rgba(34,197,94,0.95), 0 0 48px rgba(0,240,255,0.55); } " +
@@ -746,17 +679,12 @@ def bot_script():
                 "  75% { border-color: #facc15; box-shadow: 0 0 28px rgba(250,204,21,0.98), 0 0 54px rgba(34,197,94,0.58); } " +
                 "  100% { border-color: #22c55e; box-shadow: 0 0 24px rgba(34,197,94,0.95), 0 0 48px rgba(0,240,255,0.55); } " +
                 "}" +
-                "@keyframes raFullLaserSweep { " +
-                "  0% { top: 0%; opacity: 0.95; } " +
-                "  50% { top: 97%; opacity: 1; } " +
-                "  100% { top: 0%; opacity: 0.95; } " +
-                "}" +
-                "@keyframes raFullChartGlow { " +
-                "  0% { border-color: #00f0ff; box-shadow: inset 0 0 85px rgba(0,240,255,0.28), 0 0 44px rgba(0,240,255,0.7); } " +
-                "  25% { border-color: #22c55e; box-shadow: inset 0 0 90px rgba(34,197,94,0.28), 0 0 48px rgba(34,197,94,0.72); } " +
-                "  50% { border-color: #e879f9; box-shadow: inset 0 0 90px rgba(232,121,249,0.3), 0 0 48px rgba(232,121,249,0.75); } " +
-                "  75% { border-color: #facc15; box-shadow: inset 0 0 90px rgba(250,204,21,0.28), 0 0 48px rgba(250,204,21,0.72); } " +
-                "  100% { border-color: #00f0ff; box-shadow: inset 0 0 85px rgba(0,240,255,0.28), 0 0 44px rgba(0,240,255,0.7); } " +
+                "@keyframes raFullChartPulse { " +
+                "  0% { border-color: #00f0ff; box-shadow: inset 0 0 90px rgba(0,240,255,0.28), 0 0 46px rgba(0,240,255,0.72); } " +
+                "  25% { border-color: #22c55e; box-shadow: inset 0 0 95px rgba(34,197,94,0.28), 0 0 50px rgba(34,197,94,0.72); } " +
+                "  50% { border-color: #e879f9; box-shadow: inset 0 0 95px rgba(232,121,249,0.32), 0 0 50px rgba(232,121,249,0.76); } " +
+                "  75% { border-color: #facc15; box-shadow: inset 0 0 95px rgba(250,204,21,0.28), 0 0 50px rgba(250,204,21,0.72); } " +
+                "  100% { border-color: #00f0ff; box-shadow: inset 0 0 90px rgba(0,240,255,0.28), 0 0 46px rgba(0,240,255,0.72); } " +
                 "}" +
                 "@keyframes raSignalPop { " +
                 "  0% { opacity: 0; transform: translate(-50%, -40%) scale(0.72); } " +
@@ -800,7 +728,7 @@ def bot_script():
             for (var i = 0; i < elements.length; i++) {
                 var el = elements[i];
                 if (!el || !el.getBoundingClientRect) continue;
-                if (el.closest("#ra-hacker-btn, #ra-mode-menu, #ra-login-box, #ra-fullchart-cyber-overlay, #ra-signal-card")) continue;
+                if (el.closest("#ra-hacker-btn, #ra-mode-menu, #ra-login-box, #ra-fullchart-cyber-overlay, #ra-manual-scan-box, #ra-signal-card")) continue;
 
                 var rect = el.getBoundingClientRect();
                 if (rect.width < 28 || rect.height < 22) continue;
@@ -831,7 +759,7 @@ def bot_script():
 
             var bottomButtons = elements.filter(function(el){
                 if (!el || !el.getBoundingClientRect) return false;
-                if (el.closest("#ra-hacker-btn, #ra-mode-menu, #ra-login-box, #ra-fullchart-cyber-overlay, #ra-signal-card")) return false;
+                if (el.closest("#ra-hacker-btn, #ra-mode-menu, #ra-login-box, #ra-fullchart-cyber-overlay, #ra-manual-scan-box, #ra-signal-card")) return false;
                 var r = el.getBoundingClientRect();
                 return r.width >= 48 && r.height >= 28 && r.bottom >= window.innerHeight - 135;
             });
@@ -847,13 +775,15 @@ def bot_script():
             return false;
         }
 
-        function clearFullChartOverlay() {
+        function clearAllScanOverlays() {
             if (scanFrameRaf) {
                 cancelAnimationFrame(scanFrameRaf);
                 scanFrameRaf = null;
             }
             var ov = document.getElementById("ra-fullchart-cyber-overlay");
             if (ov) ov.remove();
+            var mb = document.getElementById("ra-manual-scan-box");
+            if (mb) mb.remove();
         }
 
         function showSignalAnimationCard(signal, pairName, ptsRaw, didTrade) {
@@ -915,14 +845,81 @@ def bot_script():
             }, 3400);
         }
 
-        function runFullChartCyberScan(isAuto5sMode, onDoneCallback) {
+        function runManualClassicScan(onDoneCallback) {
             if (isScanningNow) return;
             isScanningNow = true;
-            clearFullChartOverlay();
+            clearAllScanOverlays();
 
             var pairName = detectMarketPair();
             var marketQuery = pairName.replace(/[^A-Z0-9]/g, "_") || "EURUSD";
-            var scanDurationMs = isAuto5sMode ? 5600 : 6200;
+            var scanDurationMs = 3600;
+            var startTime = performance.now();
+
+            var host = document.body || document.documentElement;
+            var box = document.createElement("div");
+            box.id = "ra-manual-scan-box";
+            box.style.cssText =
+                "position:fixed;top:48%;left:50%;transform:translate(-50%,-50%);width:184px;" +
+                "background:linear-gradient(165deg, rgba(6,16,28,0.97), rgba(16,8,34,0.98));" +
+                "border:2px solid #00f0ff;border-radius:14px;padding:10px;z-index:2147483647;" +
+                "pointer-events:none;font-family:'Courier New',monospace;color:#fff;text-align:center;" +
+                "box-shadow:0 0 28px rgba(0,240,255,0.65), 0 0 54px rgba(232,121,249,0.35);";
+
+            box.innerHTML =
+                "<div style='font-size:8px;font-weight:900;color:#4ade80;letter-spacing:0.6px;'>MANUAL SCAN • " + pairName + "</div>" +
+                "<div id='ra-manual-pct' style='font-size:12px;font-weight:900;color:#00f0ff;margin:4px 0 6px;'>SCANNING 1%</div>" +
+                "<div style='width:100%;height:6px;background:rgba(255,255,255,0.12);border-radius:6px;overflow:hidden;'>" +
+                "  <div id='ra-manual-bar' style='width:2%;height:100%;background:linear-gradient(90deg,#00f0ff,#22c55e,#e879f9);'></div>" +
+                "</div>";
+
+            host.appendChild(box);
+            var pctEl = box.querySelector("#ra-manual-pct");
+            var barEl = box.querySelector("#ra-manual-bar");
+
+            var signalPromise = fetch(SERVER_URL + "/signal?market=" + encodeURIComponent(marketQuery) + "&mode=MANUAL&t=" + Date.now(), { cache: "no-store" })
+                .then(function(r){ return r.json(); })
+                .catch(function(){ return { signal: "HOLD", pts: 0 }; });
+
+            function stepManual(now) {
+                if (!box.isConnected) {
+                    isScanningNow = false;
+                    if (typeof onDoneCallback === "function") onDoneCallback();
+                    return;
+                }
+                var progress = Math.min(1, (now - startTime) / scanDurationMs);
+                var pct = Math.max(1, Math.min(100, Math.round(progress * 100)));
+                if (pctEl) pctEl.textContent = "SCANNING " + pct + "%";
+                if (barEl) barEl.style.width = pct + "%";
+                playScanTick();
+
+                if (progress < 1) {
+                    scanFrameRaf = requestAnimationFrame(stepManual);
+                    return;
+                }
+
+                signalPromise.then(function(data){
+                    clearAllScanOverlays();
+                    isScanningNow = false;
+                    var sig = String((data && data.signal) || "HOLD").toUpperCase();
+                    var isUp = sig === "CALL" || sig === "UP" || sig === "BUY";
+                    var isDown = sig === "PUT" || sig === "DOWN" || sig === "SELL";
+                    if (isUp || isDown) playTradeAlert(isUp);
+                    showSignalAnimationCard(sig, detectMarketPair(), data && data.pts, false);
+                    if (typeof onDoneCallback === "function") onDoneCallback();
+                });
+            }
+
+            scanFrameRaf = requestAnimationFrame(stepManual);
+        }
+
+        function runFullChartCyberScan(onDoneCallback) {
+            if (isScanningNow) return;
+            isScanningNow = true;
+            clearAllScanOverlays();
+
+            var pairName = detectMarketPair();
+            var marketQuery = pairName.replace(/[^A-Z0-9]/g, "_") || "EURUSD";
+            var scanDurationMs = 5800;
             var startTime = performance.now();
 
             var host = document.body || document.documentElement;
@@ -932,39 +929,48 @@ def bot_script():
                 "position:fixed;inset:0;z-index:2147483645;pointer-events:none;overflow:hidden;" +
                 "border:3px solid #00f0ff;box-sizing:border-box;" +
                 "background:radial-gradient(circle at center, rgba(0,240,255,0.08) 0%, rgba(232,121,249,0.09) 42%, rgba(34,197,94,0.08) 72%, rgba(2,10,18,0.28) 100%);" +
-                "font-family:'Courier New',monospace;animation:raFullChartGlow 2s infinite linear;";
+                "font-family:'Courier New',monospace;animation:raFullChartPulse 1.8s infinite linear;will-change:transform,opacity;";
+
+            var beamsHtml =
+                "<div id='ra-beam-1' style='position:fixed;left:0;right:0;height:7px;top:12%;background:linear-gradient(90deg,transparent,#00f0ff 22%,#22c55e 55%,#e879f9 85%,transparent);box-shadow:0 0 26px #00f0ff,0 0 48px #22c55e;will-change:transform;'></div>" +
+                "<div id='ra-beam-2' style='position:fixed;left:0;right:0;height:6px;top:48%;background:linear-gradient(90deg,transparent,#e879f9 20%,#facc15 50%,#00f0ff 82%,transparent);box-shadow:0 0 26px #e879f9,0 0 46px #facc15;will-change:transform;'></div>" +
+                "<div id='ra-beam-3' style='position:fixed;left:0;right:0;height:7px;top:82%;background:linear-gradient(90deg,transparent,#22c55e 18%,#00f0ff 52%,#fb7185 86%,transparent);box-shadow:0 0 26px #22c55e,0 0 46px #00f0ff;will-change:transform;'></div>";
 
             overlay.innerHTML =
-                "<div style='position:fixed;inset:0;background-image:linear-gradient(rgba(0,240,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(232,121,249,0.09) 1px, transparent 1px);background-size:34px 34px;opacity:0.82;'></div>" +
-                "<div style='position:fixed;left:0;right:0;height:4px;background:linear-gradient(90deg, transparent, #00f0ff 15%, #22c55e 42%, #facc15 68%, #e879f9 88%, transparent);box-shadow:0 0 24px #00f0ff, 0 0 46px #e879f9;animation:raFullLaserSweep 1.25s linear infinite;'></div>" +
-                "<div id='ra-cyber-crosshair-v' style='position:fixed;top:0;bottom:0;width:1.5px;background:linear-gradient(180deg, transparent, #00f0ff, #e879f9, transparent);box-shadow:0 0 14px #00f0ff;left:50%;'></div>" +
-                "<div id='ra-cyber-crosshair-h' style='position:fixed;left:0;right:0;height:1.5px;background:linear-gradient(90deg, transparent, #22c55e, #facc15, transparent);box-shadow:0 0 14px #22c55e;top:50%;'></div>" +
-                "<div style='position:fixed;top:46px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;'>" +
-                "  <div style='background:rgba(3,12,22,0.88);border:1.6px solid #22c55e;border-radius:8px;padding:5px 10px;color:#4ade80;font-size:10px;font-weight:900;box-shadow:0 0 20px rgba(34,197,94,0.65);'>⚡ FULL CHART CYBER EXPLOIT [" + pairName + "] • " + (isAuto5sMode ? "5S AUTO" : "MANUAL") + "</div>" +
-                "  <div id='ra-cyber-scan-pct' style='background:rgba(16,6,30,0.9);border:1.6px solid #e879f9;border-radius:8px;padding:5px 10px;color:#00f0ff;font-size:10.5px;font-weight:900;box-shadow:0 0 20px rgba(232,121,249,0.65);'>SCANNING 1%</div>" +
+                "<div style='position:fixed;inset:0;background-image:linear-gradient(rgba(0,240,255,0.11) 1px, transparent 1px), linear-gradient(90deg, rgba(232,121,249,0.1) 1px, transparent 1px);background-size:32px 32px;opacity:0.84;'></div>" +
+                beamsHtml +
+                "<div style='position:fixed;top:46px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;'>" +
+                "  <div id='ra-cyber-feed-line' style='background:rgba(3,12,22,0.88);border:1.6px solid #22c55e;border-radius:8px;padding:5px 10px;color:#4ade80;font-size:9.5px;font-weight:900;max-width:66%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 0 20px rgba(34,197,94,0.65);'>⚡ CYBER EXPLOIT [" + pairName + "] • HOOK 0x7FF8A120</div>" +
+                "  <div id='ra-cyber-scan-pct' style='background:rgba(16,6,30,0.92);border:1.8px solid #e879f9;border-radius:8px;padding:5px 11px;color:#00f0ff;font-size:11px;font-weight:900;box-shadow:0 0 22px rgba(232,121,249,0.72);'>SCANNING 1%</div>" +
                 "</div>" +
-                "<div id='ra-cyber-stream-log' style='position:fixed;top:82px;left:12px;max-width:310px;background:rgba(2,9,16,0.82);border-left:2.5px solid #00f0ff;padding:6px 8px;border-radius:0 8px 8px 0;font-size:8.5px;line-height:1.42;color:#00f0ff;box-shadow:0 0 22px rgba(0,240,255,0.35);'></div>";
+                "<div id='ra-cyber-stream-log' style='position:fixed;top:82px;right:12px;width:196px;max-height:112px;overflow:hidden;background:rgba(2,9,16,0.82);border-right:2.5px solid #e879f9;padding:6px 8px;border-radius:8px 0 0 8px;font-size:8.2px;line-height:1.38;color:#00f0ff;box-shadow:0 0 20px rgba(0,240,255,0.32);'></div>";
 
             host.appendChild(overlay);
 
             var pctEl = overlay.querySelector("#ra-cyber-scan-pct");
+            var feedEl = overlay.querySelector("#ra-cyber-feed-line");
             var logEl = overlay.querySelector("#ra-cyber-stream-log");
-            var crossV = overlay.querySelector("#ra-cyber-crosshair-v");
-            var crossH = overlay.querySelector("#ra-cyber-crosshair-h");
+            var beam1 = overlay.querySelector("#ra-beam-1");
+            var beam2 = overlay.querySelector("#ra-beam-2");
+            var beam3 = overlay.querySelector("#ra-beam-3");
 
-            var cyberLines = [
-                "> ROOT 0x7FF8A120: FULL MARKET CHART STREAM HOOKED",
-                "> NEON MATRIX: ORDER BOOK & LIQUIDITY DEPTH BREACHED",
-                "> QUANT CORE: MULTI-SOURCE TICK CONSENSUS SYNCED",
-                "> CYBER RADAR: VOLATILITY IMPULSE & WICK LOCKED",
-                "> AUTO TRIGGER: BUY / SELL EXECUTION VECTOR ARMED"
+            var cyberStreamPool = [
+                ">> ROOT 0x7FF8A120: CHART TICK STREAM BREACHED",
+                ">> MATRIX GRID: LIQUIDITY & WICK DEPTH MAPPED",
+                ">> QUANT CORE: MULTI-API CONSENSUS LOCKED",
+                ">> LASER ARRAY: VOLATILITY SPIKE DETECTED",
+                ">> ORDER BOOK: BUY/SELL PRESSURE CALCULATED",
+                ">> CYBER NODE: MICRO-CANDLE MOMENTUM SYNC",
+                ">> EXPLOIT BUS: EXECUTION VECTOR READY"
             ];
 
-            var signalPromise = fetch(SERVER_URL + "/signal?market=" + encodeURIComponent(marketQuery) + "&mode=" + (isAuto5sMode ? "AUTO5S" : "MANUAL") + "&t=" + Date.now(), { cache: "no-store" })
+            var signalPromise = fetch(SERVER_URL + "/signal?market=" + encodeURIComponent(marketQuery) + "&mode=AUTO5S&t=" + Date.now(), { cache: "no-store" })
                 .then(function(r){ return r.json(); })
                 .catch(function(){ return { signal: "HOLD", pts: 0 }; });
 
-            var lastLineIdx = -1;
+            var lastPct = 0;
+            var lastStreamTick = -1;
+            var streamCursor = 0;
 
             function stepScan(now) {
                 if (!overlay.isConnected) {
@@ -975,34 +981,44 @@ def bot_script():
 
                 var elapsed = now - startTime;
                 var progress = Math.min(1, elapsed / scanDurationMs);
+                var vh = window.innerHeight || 720;
+
+                if (beam1) beam1.style.transform = "translate3d(0," + ((Math.sin(elapsed * 0.0042) * 0.42 + 0.42) * vh * 0.85) + "px,0)";
+                if (beam2) beam2.style.transform = "translate3d(0," + ((Math.cos(elapsed * 0.0051) * 0.44 + 0.44) * vh * 0.85) + "px,0)";
+                if (beam3) beam3.style.transform = "translate3d(0," + ((Math.sin(elapsed * 0.0063 + 1.4) * 0.42 + 0.42) * vh * 0.85) + "px,0)";
+
                 var pct = Math.max(1, Math.min(100, Math.round(progress * 100)));
-                var c1 = NEON_COLORS[pct % NEON_COLORS.length];
-                var c2 = NEON_COLORS[(pct + 3) % NEON_COLORS.length];
-
-                if (crossV) {
-                    var xPct = 18 + ((Math.sin(elapsed * 0.0022) + 1) * 0.5) * 64;
-                    crossV.style.left = xPct + "%";
-                    crossV.style.background = "linear-gradient(180deg, transparent, " + c1 + ", " + c2 + ", transparent)";
-                }
-                if (crossH) {
-                    var yPct = 22 + ((Math.cos(elapsed * 0.0019) + 1) * 0.5) * 56;
-                    crossH.style.top = yPct + "%";
-                    crossH.style.background = "linear-gradient(90deg, transparent, " + c2 + ", " + c1 + ", transparent)";
+                if (pct !== lastPct) {
+                    lastPct = pct;
+                    var c1 = NEON_PALETTE[pct % NEON_PALETTE.length];
+                    var c2 = NEON_PALETTE[(pct + 3) % NEON_PALETTE.length];
+                    if (pctEl) {
+                        pctEl.textContent = "SCANNING " + pct + "%";
+                        pctEl.style.color = c1;
+                        pctEl.style.borderColor = c2;
+                    }
                 }
 
-                if (pctEl) {
-                    pctEl.textContent = "SCANNING " + pct + "%";
-                    pctEl.style.color = c1;
-                    pctEl.style.borderColor = c2;
-                }
+                var streamStep = Math.floor(elapsed / 260);
+                if (streamStep !== lastStreamTick && logEl) {
+                    lastStreamTick = streamStep;
+                    var msgText = cyberStreamPool[streamCursor % cyberStreamPool.length];
+                    var lineColor = NEON_PALETTE[streamCursor % NEON_PALETTE.length];
+                    streamCursor++;
 
-                var lineIdx = Math.min(cyberLines.length - 1, Math.floor(progress * cyberLines.length));
-                if (lineIdx !== lastLineIdx && logEl) {
-                    lastLineIdx = lineIdx;
-                    var line = document.createElement("div");
-                    line.style.color = NEON_COLORS[lineIdx % NEON_COLORS.length];
-                    line.textContent = cyberLines[lineIdx];
-                    logEl.appendChild(line);
+                    if (feedEl) {
+                        feedEl.textContent = msgText.replace(/^>>\\s*/, "⚡ ");
+                        feedEl.style.color = lineColor;
+                        feedEl.style.borderColor = lineColor;
+                    }
+
+                    var row = document.createElement("div");
+                    row.style.color = lineColor;
+                    row.textContent = msgText;
+                    logEl.insertBefore(row, logEl.firstChild);
+                    while (logEl.children.length > 6) {
+                        logEl.removeChild(logEl.lastChild);
+                    }
                     playScanTick();
                 }
 
@@ -1012,7 +1028,7 @@ def bot_script():
                 }
 
                 signalPromise.then(function(data){
-                    clearFullChartOverlay();
+                    clearAllScanOverlays();
                     isScanningNow = false;
 
                     var sig = String((data && data.signal) || "HOLD").toUpperCase();
@@ -1022,7 +1038,7 @@ def bot_script():
                     var didClick = false;
                     if (isUp || isDown) {
                         playTradeAlert(isUp);
-                        if (isAuto5sMode && isModeOn) {
+                        if (isModeOn) {
                             didClick = clickBrokerTradeButton(isUp);
                         }
                     }
@@ -1044,7 +1060,7 @@ def bot_script():
                 clearTimeout(autoLoopTimer);
                 autoLoopTimer = null;
             }
-            clearFullChartOverlay();
+            clearAllScanOverlays();
             isScanningNow = false;
         }
 
@@ -1055,7 +1071,7 @@ def bot_script():
 
             function cycle() {
                 if (!autoLoopRunning || !isModeOn) return;
-                runFullChartCyberScan(true, function(){
+                runFullChartCyberScan(function(){
                     if (!autoLoopRunning || !isModeOn) return;
                     autoLoopTimer = setTimeout(cycle, 4500);
                 });
@@ -1074,7 +1090,7 @@ def bot_script():
             } else {
                 stopAuto5sLoop();
                 saveModeOn(true);
-                runFullChartCyberScan(false);
+                runManualClassicScan();
             }
         }
 
@@ -1143,7 +1159,7 @@ def bot_script():
                 "position:fixed;bottom:146px;right:12px;width:82px;height:82px;border-radius:50%;" +
                 "background:#02090e;display:flex;align-items:center;justify-content:center;" +
                 "z-index:2147483647;cursor:grab;user-select:none;touch-action:none;overflow:visible;" +
-                "animation:raAuraRainbow 3s infinite linear;";
+                "animation:raAuraUltra 2.8s infinite linear;";
 
             btn.innerHTML =
                 "<div style='position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(from 0deg, #ff2a5f, #ffae00, #00ff88, #00f0ff, #c026d3, #ff2a5f);filter:blur(2.5px);animation:raSpinCW 2s linear infinite;pointer-events:none;'></div>" +
@@ -1293,8 +1309,86 @@ def bot_script():
         }
     })();
     """
+
+
+@app.route('/')
+def home():
+    res = make_response("R-A CANDLE HACKER ENGINE ACTIVE - https://ra-ai-bot-1.onrender.com")
+    return add_cors_headers(res)
+
+
+@app.route('/ping')
+def ping():
+    res = make_response("OK", 200)
+    return add_cors_headers(res)
+
+
+@app.route('/health')
+def health():
+    js_hash = hashlib.sha256(_build_bot_js().encode("utf-8")).hexdigest()[:16]
+    res = jsonify({
+        "status": "ONLINE",
+        "server": "https://ra-ai-bot-1.onrender.com",
+        "bot_js_hash": js_hash,
+        "boot_ts": BUILD_BOOT_TS,
+        "active_api_endpoints_loaded": len(API_REGISTRY)
+    })
+    return add_cors_headers(res)
+
+
+@app.route('/signal', methods=['GET', 'OPTIONS'])
+def get_signal():
+    if request.method == 'OPTIONS':
+        return add_cors_headers(make_response("", 204))
+
+    try:
+        raw_market = request.args.get("market", "EURUSD").upper()
+        req_mode = request.args.get("mode", "MANUAL").upper()
+        clean_sym, _, is_otc = LiveMarketCandleEngine._normalize_symbol(raw_market)
+
+        if not is_otc and len(clean_sym) >= 3:
+            if not LiveMarketCandleEngine.check_news_safety(clean_sym[:3]):
+                res = jsonify({
+                    "signal": "HOLD",
+                    "trend": "NEWS BLOCK",
+                    "status": "NEWS_GUARD",
+                    "pts": 0,
+                    "confidence": 0,
+                    "rule": "High Impact News Filter Active."
+                })
+                return add_cors_headers(res)
+
+        analysis = LiveMarketCandleEngine.compute_live_market_signal(raw_market, mode=req_mode)
+        res = jsonify({
+            "signal": analysis["signal"],
+            "trend": analysis["trend"],
+            "status": analysis.get("status", "GREEN_EXECUTE"),
+            "pts": analysis.get("pts", 0),
+            "confidence": analysis.get("confidence", 94),
+            "rule": analysis["rule"]
+        })
+        return add_cors_headers(res)
+    except Exception as e:
+        logger.error(f"Signal Error: {e}")
+        res = jsonify({
+            "signal": "HOLD",
+            "trend": "ENGINE RETRY",
+            "status": "WAIT_FEED",
+            "pts": 0,
+            "confidence": 0,
+            "rule": "No-Fake Guard: Reconnecting Authentic Data Pipeline."
+        })
+        return add_cors_headers(res)
+
+
+@app.route('/bot.js', methods=['GET', 'OPTIONS'])
+def bot_script():
+    if request.method == 'OPTIONS':
+        return add_cors_headers(make_response("", 204), is_js=True, js_payload="")
+
+    js = _build_bot_js()
     res = make_response(js)
-    return add_cors_headers(res, is_js=True)
+    return add_cors_headers(res, is_js=True, js_payload=js)
 
 
 def start_server():
